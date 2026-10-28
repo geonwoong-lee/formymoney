@@ -175,7 +175,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response
   try {
     response = await fetch(`${API_BASE_URL}${path}`, options)
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error
+    }
     throw new ApiError('서버에 연결할 수 없습니다.')
   }
 
