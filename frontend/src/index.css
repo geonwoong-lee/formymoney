@@ -1,0 +1,45 @@
+:root {
+  font-family: Pretendard, "Noto Sans KR", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #202820;
+  background: #f5f4ee;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --surface: #f5f4ee;
+  --surface-raised: #fffef9;
+  --ink: #202820;
+  --muted: #687068;
+  --line: #dcded5;
+  --accent: #bdff55;
+  --accent-dark: #3e6b18;
+  --accent-soft: #e8f9ce;
+  --success: #3a9d4b;
+  --warning: #d49b25;
+  --danger: #d24d4d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--surface);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--ink);
+}

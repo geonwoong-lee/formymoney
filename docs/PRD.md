@@ -15,7 +15,7 @@
 | 백엔드 | FastAPI |
 | 운영 DB | Supabase PostgreSQL |
 | 개발·테스트 DB | SQLite3 |
-| 현재 단계 | 문서 작성 완료, 미정 항목 결정 전 |
+| 현재 단계 | Phase 1 기반 구축 완료, Phase 2 공식 상품 데이터 구축 전 |
 
 출처: [컨슈머인사이트 금융플랫폼 기획조사](https://www.consumerinsight.co.kr/up_files/2606_finance.pdf)
 

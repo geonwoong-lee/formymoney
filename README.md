@@ -19,8 +19,9 @@ Very Rich?는 다음 질문에 답하는 것을 목표로 합니다.
 ## 현재 진행 상태
 
 - 완료: **Phase 0 — 개발 기준 확정**
-- 다음 단계: **Phase 1 — React·FastAPI·SQLite3 기반 구축**
-- 현재는 기획 문서와 Git 저장소만 준비된 상태이며, 실행 가능한 애플리케이션 코드는 아직 없습니다.
+- 완료: **Phase 1 — React·FastAPI·SQLite3 기반 구축**
+- 다음 단계: **Phase 2 — 공식 상품 데이터 구축**
+- 현재 프론트엔드와 백엔드를 로컬에서 실행하고 SQLite 연결 상태를 확인할 수 있습니다. 실제 금융 상품과 계산 기능은 아직 구현하지 않았습니다.
 
 Phase 0에서 확정한 내용은 다음과 같습니다.
 
@@ -30,6 +31,15 @@ Phase 0에서 확정한 내용은 다음과 같습니다.
 - 운영 기준 데이터는 Supabase PostgreSQL에 저장한다.
 - 사용자 답변과 납입액은 브라우저에만 임시 보관한다.
 - 회원가입과 Supabase Auth는 MVP에서 만들지 않는다.
+
+Phase 1에서 준비한 내용은 다음과 같습니다.
+
+- React 화면 경로와 모바일 공통 레이아웃
+- FastAPI `/api/v1` 구조와 공통 오류 응답
+- SQLite 기준 데이터 테이블과 초기 연결 레코드
+- React에서 FastAPI·SQLite 상태를 확인하는 연결 화면
+- 브라우저 로컬 저장 모듈
+- 프론트엔드와 백엔드 자동 테스트
 
 ## 핵심 기능 범위
 
@@ -61,7 +71,7 @@ Phase 0에서 확정한 내용은 다음과 같습니다.
 ## 개발 로드맵
 
 - [x] Phase 0 — 개발 기준 확정
-- [ ] Phase 1 — React·FastAPI·SQLite3 기반 구축
+- [x] Phase 1 — React·FastAPI·SQLite3 기반 구축
 - [ ] Phase 2 — 공식 상품 데이터 구축
 - [ ] Phase 3 — 적금 계산 API 완성
 - [ ] Phase 4 — 은행 비교 세로 흐름 완성
@@ -76,13 +86,58 @@ Phase 0에서 확정한 내용은 다음과 같습니다.
 
 ## 실행 방법
 
-아직 Phase 1을 시작하지 않아 실행할 프론트엔드와 백엔드가 없습니다. Phase 1에서 다음 내용을 함께 추가할 예정입니다.
+### 1. 백엔드 환경 준비
 
-- `frontend/` React + TypeScript 프로젝트
-- `backend/` FastAPI 프로젝트
-- SQLite3 개발·테스트 설정
-- 환경변수 예시 파일
-- 로컬 실행 및 테스트 명령
+프로젝트 루트의 PowerShell에서 실행합니다.
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements-dev.txt
+```
+
+### 2. FastAPI 실행
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+- API 문서: `http://localhost:8000/docs`
+- 상태 확인: `http://localhost:8000/api/v1/health`
+
+처음 실행하면 `backend/data/very_rich.sqlite3`가 자동으로 생성됩니다. 이 로컬 DB 파일은 Git에 저장되지 않습니다.
+
+### 3. React 실행
+
+새 PowerShell을 열고 실행합니다.
+
+```powershell
+cd frontend
+npm.cmd install
+npm.cmd run dev
+```
+
+- 웹 화면: `http://localhost:5173`
+
+### 4. 테스트와 빌드
+
+백엔드:
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m pytest
+```
+
+프론트엔드:
+
+```powershell
+cd frontend
+npm.cmd run lint
+npm.cmd run test
+npm.cmd run build
+```
+
+환경값을 바꿔야 할 때는 [프론트 예시](frontend/.env.example)와 [백엔드 예시](backend/.env.example)를 참고해 각각의 폴더에 `.env`를 만듭니다. 예시 파일에는 실제 비밀값을 넣지 않습니다.
 
 ## 보안과 데이터 원칙
 

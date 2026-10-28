@@ -1,0 +1,1 @@
+"""Very Rich? FastAPI application."""
