@@ -5,13 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
-DEFAULT_DATABASE_PATH = (BACKEND_DIR / "data" / "very_rich.sqlite3").as_posix()
 
 
 class Settings(BaseSettings):
     app_name: str = "Very Rich?"
     api_v1_prefix: str = "/api/v1"
-    database_url: str = f"sqlite:///{DEFAULT_DATABASE_PATH}"
+    database_url: str | None = None
     frontend_origins: str = "http://localhost:5173"
     supabase_url: str | None = None
     supabase_anon_key: str | None = None

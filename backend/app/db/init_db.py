@@ -1,24 +1,21 @@
 from decimal import Decimal
 
-from sqlalchemy import Engine, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.base import Base
 from app.models.reference_item import ReferenceItem
 from app.models.savings_product import BankSavingsProduct, PreferentialCondition, SavingsPolicy
 from app.db.session import SessionFactory
 
 
-def initialize_database(engine: Engine, session_factory: SessionFactory) -> None:
-    Base.metadata.create_all(engine)
-
+def initialize_database(session_factory: SessionFactory) -> None:
     with session_factory() as session:
         existing = session.scalar(select(ReferenceItem).where(ReferenceItem.key == "phase1-ready"))
         if existing is None:
             session.add(
                 ReferenceItem(
                     key="phase1-ready",
-                    label="Phase 1 SQLite connection",
+                    label="Phase 1 database connection",
                 )
             )
             session.commit()

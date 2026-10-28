@@ -99,7 +99,18 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r backend\requirements-dev.txt
 ```
 
-### 2. FastAPI 실행
+### 2. Supabase DB 환경 설정과 테이블 준비
+
+[`backend/.env.example`](backend/.env.example)을 참고해 `backend/.env`에 Supabase Session pooler 연결 정보를 입력한 뒤 실행합니다.
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+상세 설정과 오류 확인 방법은 [Supabase PostgreSQL 연결 안내](docs/database_setup.md)를 참고합니다. 설정이 없거나 잘못되어도 SQLite로 자동 연결하지 않습니다.
+
+### 3. FastAPI 실행
 
 ```powershell
 cd backend
@@ -109,9 +120,9 @@ cd backend
 - API 문서: `http://localhost:8000/docs`
 - 상태 확인: `http://localhost:8000/api/v1/health`
 
-처음 실행하면 `backend/data/very_rich.sqlite3`가 자동으로 생성됩니다. 이 로컬 DB 파일은 Git에 저장되지 않습니다.
+서버는 `backend/.env`의 PostgreSQL 연결만 사용합니다. 기존 SQLite 파일은 삭제하지 않지만 서버 실행 DB로 자동 선택하지 않습니다.
 
-### 3. React 실행
+### 4. React 실행
 
 새 PowerShell을 열고 실행합니다.
 
@@ -123,7 +134,7 @@ npm.cmd run dev
 
 - 웹 화면: `http://localhost:5173`
 
-### 4. 테스트와 빌드
+### 5. 테스트와 빌드
 
 백엔드:
 

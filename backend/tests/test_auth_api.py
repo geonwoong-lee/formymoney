@@ -53,7 +53,11 @@ class FakeAuthGateway:
 @pytest.fixture
 def auth_client(tmp_path: Path) -> Iterator[TestClient]:
     database_url = f"sqlite:///{(tmp_path / 'auth.sqlite3').as_posix()}"
-    app = create_app(database_url=database_url, auth_gateway=FakeAuthGateway())
+    app = create_app(
+        database_url=database_url,
+        auth_gateway=FakeAuthGateway(),
+        create_schema_for_tests=True,
+    )
     with TestClient(app) as test_client:
         yield test_client
 

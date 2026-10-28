@@ -33,7 +33,7 @@ def test_seed_contains_official_policy_and_two_reviewed_banks(client: TestClient
 def test_database_seed_is_idempotent(client: TestClient) -> None:
     from app.db.init_db import initialize_database
 
-    initialize_database(client.app.state.engine, client.app.state.session_factory)
+    initialize_database(client.app.state.session_factory)
     with client.app.state.session_factory() as session:
         products = SavingsRepository(session).list_products()
 

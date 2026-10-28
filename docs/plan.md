@@ -394,6 +394,8 @@ React에서 동일한 현금흐름의 적금과 대안 결과를 비교한다.
 
 ## 11. Phase 8 — Supabase 운영 연결
 
+**연결 준비(2026-10-28):** psycopg 드라이버, Session pooler 환경변수, Alembic 초기 마이그레이션을 구성했다. 실제 Supabase 연결과 `upgrade head` 적용은 연결 정보 입력 후 확인한다.
+
 ### 목표
 
 SQLite3에서 검증한 기준 데이터 구조를 Supabase PostgreSQL에 적용하고 운영 조회를 확인한다.
