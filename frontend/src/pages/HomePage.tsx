@@ -38,6 +38,9 @@ export function HomePage() {
         <Link className="button button--secondary" to="/about">
           계산 원칙 보기
         </Link>
+        <Link className="button button--secondary" to="/auth">
+          로그인 · 회원가입
+        </Link>
       </div>
       <div className="status-card" aria-live="polite">
         <p className="status-card__label">개발 연결 상태</p>

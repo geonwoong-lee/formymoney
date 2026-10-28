@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     database_url: str = f"sqlite:///{DEFAULT_DATABASE_PATH}"
     frontend_origins: str = "http://localhost:5173"
+    supabase_url: str | None = None
+    supabase_anon_key: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

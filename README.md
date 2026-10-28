@@ -22,6 +22,7 @@ Very Rich?는 다음 질문에 답하는 것을 목표로 합니다.
 - 완료: **Phase 1 — React·FastAPI·SQLite3 기반 구축**
 - 완료: **Phase 2 — SQLite3 공식 상품 데이터 구축**
 - 완료: **Phase 3 — 적금 계산 API 완성**
+- 완료: **Phase 3.5 — Supabase Auth 인증 기반 구축**
 - 다음 단계: **Phase 4 — 은행 비교 세로 흐름 완성**
 - 현재 프론트엔드와 백엔드를 로컬에서 실행할 수 있으며, SQLite 공식 상품 데이터와 적금 계산 API까지 구현되어 있습니다.
 
@@ -31,8 +32,8 @@ Phase 0에서 확정한 내용은 다음과 같습니다.
 - 핵심 금융 계산은 FastAPI 한 곳에서 수행한다.
 - 로컬 개발과 자동 테스트에는 SQLite3를 사용한다.
 - 운영 기준 데이터는 Supabase PostgreSQL에 저장한다.
-- 사용자 답변과 납입액은 브라우저에만 임시 보관한다.
-- 회원가입과 Supabase Auth는 MVP에서 만들지 않는다.
+- 비회원의 답변과 납입액은 브라우저에만 임시 보관한다.
+- Supabase Auth 기반 회원가입·로그인을 제공하며, 로그인 사용자만 자신의 기록을 저장할 수 있게 확장한다.
 
 Phase 1에서 준비한 내용은 다음과 같습니다.
 
@@ -76,6 +77,7 @@ Phase 1에서 준비한 내용은 다음과 같습니다.
 - [x] Phase 1 — React·FastAPI·SQLite3 기반 구축
 - [x] Phase 2 — SQLite3 공식 상품 데이터 구축
 - [x] Phase 3 — 적금 계산 API 완성
+- [x] Phase 3.5 — Supabase Auth 인증 기반 구축
 - [ ] Phase 4 — 은행 비교 세로 흐름 완성
 - [ ] Phase 5 — 월별 납입 기능 완성
 - [ ] Phase 6 — 투자 데이터와 계산 완성

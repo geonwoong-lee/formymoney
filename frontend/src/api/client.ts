@@ -7,6 +7,22 @@ export interface HealthResponse {
   referenceKey: string
 }
 
+export interface AuthUser {
+  id: string
+  email: string
+  displayName: string | null
+  createdAt: string | null
+}
+
+export interface AuthSessionResponse {
+  user: AuthUser
+  accessToken: string | null
+  refreshToken: string | null
+  expiresIn: number | null
+  tokenType: 'bearer'
+  needsEmailConfirmation: boolean
+}
+
 export class ApiError extends Error {
   readonly status?: number
 
@@ -37,4 +53,52 @@ export async function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
   }
 
   return response.json() as Promise<HealthResponse>
+}
+
+export function signUp(
+  email: string,
+  password: string,
+  displayName: string,
+): Promise<AuthSessionResponse> {
+  return request<AuthSessionResponse>('/api/v1/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, displayName }),
+  })
+}
+
+export function login(email: string, password: string): Promise<AuthSessionResponse> {
+  return request<AuthSessionResponse>('/api/v1/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+}
+
+export function getMe(accessToken: string): Promise<AuthUser> {
+  return request<AuthUser>('/api/v1/auth/me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+async function request<T>(path: string, options: RequestInit): Promise<T> {
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, options)
+  } catch {
+    throw new ApiError('서버에 연결할 수 없습니다.')
+  }
+
+  if (!response.ok) {
+    let message = '요청을 처리하지 못했습니다.'
+    try {
+      const body = (await response.json()) as { error?: { message?: string } }
+      if (body.error?.message) message = body.error.message
+    } catch {
+      // JSON 오류 본문이 아니면 기본 메시지를 사용한다.
+    }
+    throw new ApiError(message, response.status)
+  }
+
+  return response.json() as Promise<T>
 }
