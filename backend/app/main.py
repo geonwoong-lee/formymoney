@@ -38,7 +38,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
         allow_credentials=False,
-        allow_methods=["GET", "OPTIONS"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Content-Type"],
     )
     register_error_handlers(app)
