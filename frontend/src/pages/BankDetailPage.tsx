@@ -16,10 +16,11 @@ export function BankDetailPage() {
     const draft = loadDraft()
     getSavingsProducts().then((products) => {
       if (!products.products.some((product) => product.bankCode === bankId)) throw new Error('은행 상품을 찾을 수 없습니다.')
+      const allAnswers = answersForApi(draft, products.products)
       return calculateSavings({
         monthlyAmount: draft.plan.monthlyAmount ?? 500_000,
         contributionType: draft.plan.contributionType ?? 'general',
-        conditionAnswers: answersForApi(draft, products.products),
+        conditionAnswers: { [bankId]: allAnswers[bankId] },
         bankCodes: [bankId],
       })
     }).then((response) => setBank(response.results[0])).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : '상세 계산을 불러오지 못했습니다.'))
