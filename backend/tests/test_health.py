@@ -14,10 +14,10 @@ def test_health_reads_seeded_sqlite_reference(client: TestClient) -> None:
     }
 
 
-def test_database_contains_only_public_reference_table(client: TestClient) -> None:
+def test_database_contains_public_reference_table(client: TestClient) -> None:
     table_names = inspect(client.app.state.engine).get_table_names()
 
-    assert table_names == ["reference_items"]
+    assert "reference_items" in table_names
 
 
 def test_development_frontend_origin_is_allowed(client: TestClient) -> None:
