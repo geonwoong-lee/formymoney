@@ -1,0 +1,39 @@
+# 비밀값과 로컬 환경변수
+.env
+.env.*
+!.env.example
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# React / Node.js
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# 로컬 SQLite 데이터베이스
+*.db
+*.sqlite
+*.sqlite3
+
+# 로그와 임시 파일
+*.log
+tmp/
+temp/
+
+# 편집기와 운영체제 자동 생성 파일
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
