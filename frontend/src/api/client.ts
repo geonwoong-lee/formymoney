@@ -23,6 +23,78 @@ export interface AuthSessionResponse {
   needsEmailConfirmation: boolean
 }
 
+export type ConditionAnswer = 'yes' | 'no' | 'unknown'
+export type ContributionType = 'none' | 'general' | 'preferred'
+
+export interface SavingsCondition {
+  code: string
+  title: string
+  bonusRate: number
+  description: string
+  question: string
+  requiresAdditionalReview: boolean
+}
+
+export interface SavingsProduct {
+  bankCode: string
+  bankName: string
+  productName: string
+  baseRate: number
+  maximumRate: number
+  sourceUrl: string
+  sourceDate: string
+  conditions: SavingsCondition[]
+}
+
+export interface SavingsProductsResponse {
+  policy: {
+    termMonths: number
+    minimumMonthlyAmount: number
+    maximumMonthlyAmount: number
+    generalContributionRate: number
+    preferredContributionRate: number
+    taxExempt: boolean
+  }
+  products: SavingsProduct[]
+}
+
+export interface ConditionResult {
+  code: string
+  title: string
+  bonusRate: number
+  answer: ConditionAnswer
+  status: string
+  appliedBonusRate: number
+  reason: string
+}
+
+export interface BankCalculationResult {
+  bankCode: string
+  bankName: string
+  productName: string
+  baseRate: number
+  maximumRate: number
+  appliedBonusRate: number
+  expectedRate: number
+  principal: number
+  depositInterest: number
+  governmentContribution: number
+  governmentContributionInterest: number
+  expectedMaturityAmount: number
+  differenceFromCurrentBank: number | null
+  conditions: ConditionResult[]
+  sourceUrl: string
+  sourceDate: string
+}
+
+export interface SavingsCalculationResponse {
+  monthlyAmount: number
+  termMonths: number
+  contributionType: ContributionType
+  taxExempt: boolean
+  results: BankCalculationResult[]
+}
+
 export class ApiError extends Error {
   readonly status?: number
 
@@ -81,7 +153,25 @@ export function getMe(accessToken: string): Promise<AuthUser> {
   })
 }
 
-async function request<T>(path: string, options: RequestInit): Promise<T> {
+export function getSavingsProducts(signal?: AbortSignal): Promise<SavingsProductsResponse> {
+  return request<SavingsProductsResponse>('/api/v1/savings/products', { signal })
+}
+
+export function calculateSavings(payload: {
+  monthlyAmount: number
+  contributionType: ContributionType
+  conditionAnswers: Record<string, Record<string, ConditionAnswer>>
+  bankCodes?: string[]
+  currentBankCode?: string
+}): Promise<SavingsCalculationResponse> {
+  return request<SavingsCalculationResponse>('/api/v1/savings/calculate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response
   try {
     response = await fetch(`${API_BASE_URL}${path}`, options)

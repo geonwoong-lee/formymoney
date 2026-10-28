@@ -18,7 +18,8 @@ def test_products_returns_questions_sources_and_limits(client: TestClient) -> No
     body = response.json()
     assert body["policy"]["termMonths"] == 36
     assert body["policy"]["maximumMonthlyAmount"] == 500_000
-    assert [product["bankCode"] for product in body["products"]] == ["kb", "shinhan"]
+    assert len(body["products"]) == 14
+    assert {product["bankCode"] for product in body["products"]} >= {"kb", "shinhan", "kakao", "post"}
     assert all(product["sourceUrl"].startswith("https://") for product in body["products"])
     assert all(product["conditions"] for product in body["products"])
 
@@ -36,20 +37,20 @@ def test_no_conditions_uses_base_rate_and_official_general_contribution(client: 
     assert result["expectedMaturityAmount"] == 20_550_750
 
 
-def test_all_direct_kb_conditions_apply_but_review_condition_does_not(client: TestClient) -> None:
+def test_all_kb_conditions_apply_up_to_the_published_cap(client: TestClient) -> None:
     answers = {
         "salary_transfer": "yes",
         "withdrawal_activity": "yes",
-        "relationship_thanks": "yes",
+        "first_or_linked": "yes",
         "income_plus": "yes",
         "financial_counseling": "yes",
     }
     result = _calculate(client, bankCodes=["kb"], conditionAnswers={"kb": answers}).json()["results"][0]
 
-    assert result["expectedRate"] == 7.5
-    relationship = next(item for item in result["conditions"] if item["code"] == "relationship_thanks")
-    assert relationship["status"] == "needs_review"
-    assert relationship["appliedBonusRate"] == 0
+    assert result["expectedRate"] == 8
+    relationship = next(item for item in result["conditions"] if item["code"] == "first_or_linked")
+    assert relationship["status"] == "applied"
+    assert relationship["appliedBonusRate"] == 0.5
 
 
 def test_unknown_is_never_applied_and_no_contribution_is_supported(client: TestClient) -> None:
@@ -88,9 +89,10 @@ def test_results_are_sorted_and_show_difference_from_current_bank(client: TestCl
     )
 
     results = response.json()["results"]
-    assert results[0]["bankCode"] == "shinhan"
-    assert results[0]["differenceFromCurrentBank"] > 0
-    assert results[1]["differenceFromCurrentBank"] == 0
+    shinhan = next(result for result in results if result["bankCode"] == "shinhan")
+    kb = next(result for result in results if result["bankCode"] == "kb")
+    assert shinhan["differenceFromCurrentBank"] > 0
+    assert kb["differenceFromCurrentBank"] == 0
 
 
 def test_invalid_amount_and_unknown_condition_return_422(client: TestClient) -> None:

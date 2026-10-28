@@ -1,0 +1,42 @@
+.page--wide { max-width: 780px; }
+.retro-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 28px; padding: 16px; background: var(--panel); border: 2px inset #fff; }
+.retro-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 700; }
+.retro-form input, .retro-form select { min-height: 36px; padding: 5px 8px; border: 2px inset #fff; background: #fff; font: inherit; }
+.bank-question-list { display: grid; gap: 10px; margin-top: 24px; }
+.bank-question { border: 2px outset #fff; background: var(--panel); }
+.bank-question > summary { display: flex; justify-content: space-between; gap: 12px; padding: 12px; cursor: pointer; }
+.bank-question > summary span { font-size: 12px; }
+.bank-question__body { padding: 4px 12px 14px; background: #fff; }
+.bank-question fieldset { margin: 10px 0; padding: 12px; border: 1px solid #808080; }
+.bank-question legend { font-weight: 700; }
+.bank-question legend small { color: #000080; }
+.bank-question fieldset p { margin: 4px 0 10px; color: #444; font-size: 12px; }
+.answer-options { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.actions--sticky { position: sticky; bottom: 44px; padding: 10px; background: var(--panel); border: 2px outset #fff; }
+.notice--error { color: #900; }
+.comparison-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 12px; }
+.comparison-summary span { padding: 5px 8px; border: 1px solid #000; background: #ffff80; font-size: 12px; }
+.bank-results { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.bank-results li { display: grid; grid-template-columns: 36px minmax(150px, 1fr) 90px 150px auto; align-items: center; gap: 10px; padding: 12px; border: 2px outset #fff; background: var(--panel); }
+.bank-results small { display: block; margin-top: 3px; color: #444; }
+.rank { font: 700 18px "Courier New", monospace; }
+.rate strong { color: #000080; font-size: 20px; }
+.button--small { min-height: 30px; padding: 0 10px; font-size: 12px; }
+.money-breakdown { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 28px 0; }
+.money-breakdown div { padding: 12px; border: 2px inset #fff; background: var(--panel-mid); }
+.money-breakdown dt { font-size: 12px; }
+.money-breakdown dd { margin: 6px 0 0; font-weight: 700; }
+.section-title { color: #000080; font: 700 20px "Courier New", monospace; }
+.condition-results { margin: 0; padding: 0; list-style: none; }
+.condition-results li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 4px; border-bottom: 1px dotted #808080; }
+.condition-results span { display: block; margin-top: 3px; color: #555; font-size: 12px; }
+.condition-results b { white-space: nowrap; color: #000080; }
+.source-note { font-size: 12px; color: #555; }
+
+@media (max-width: 720px) {
+  .retro-form { grid-template-columns: 1fr; }
+  .bank-results li { grid-template-columns: 28px 1fr auto; }
+  .bank-results .maturity { grid-column: 2 / 3; }
+  .bank-results .button { grid-column: 3; grid-row: 1 / span 2; }
+  .money-breakdown { grid-template-columns: 1fr; }
+}

@@ -8,6 +8,8 @@ export interface VeryRichDraft {
     enrollmentStatus?: string
     monthlyAmount?: number
     startMonth?: string
+    contributionType?: 'none' | 'general' | 'preferred'
+    currentBankCode?: string
   }
   conditions: Record<string, ConditionAnswer>
   monthlyPayments: Record<string, number>

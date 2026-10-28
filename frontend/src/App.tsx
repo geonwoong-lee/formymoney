@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
+import './pages/SavingsPages.css'
 import { AppLayout } from './components/AppLayout'
 import { AboutPage } from './pages/AboutPage'
 import { AlternativesPage } from './pages/AlternativesPage'
