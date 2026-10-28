@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSavingsProducts, type ConditionAnswer, type SavingsProductsResponse } from '../api/client'
-import { answerKey } from '../features/savingsDraft'
+import { answerKey, commonAnswerKey } from '../features/savingsDraft'
 import { loadDraft, saveDraft, type VeryRichDraft } from '../storage/draftStorage'
 
 export function ConditionsPage() {
@@ -26,6 +26,14 @@ export function ConditionsPage() {
 
   function setAnswer(bankCode: string, conditionCode: string, answer: ConditionAnswer) {
     update({ ...draft, conditions: { ...draft.conditions, [answerKey(bankCode, conditionCode)]: answer } })
+  }
+
+  function answerOptions(key: string, answer: ConditionAnswer, onChange: (answer: ConditionAnswer) => void) {
+    return <div className="answer-options">
+      {([['yes', '예'], ['no', '아니요'], ['unknown', '모름']] as const).map(([value, label]) => (
+        <label key={value}><input type="radio" name={key} value={value} checked={answer === value} onChange={() => onChange(value)} /> {label}</label>
+      ))}
+    </div>
   }
 
   const monthlyAmount = draft.plan.monthlyAmount ?? 500_000
@@ -53,22 +61,35 @@ export function ConditionsPage() {
 
       {error && <p className="notice notice--error">{error}</p>}
       {!data && !error && <p className="notice">14개 은행의 우대조건을 불러오는 중입니다.</p>}
+      {data && <section className="common-questions" aria-labelledby="common-question-title">
+        <h2 id="common-question-title">모든 은행에 공통인 질문</h2>
+        <p>두 번만 답하면 모든 은행의 공통 우대에 한꺼번에 반영됩니다.</p>
+        {data.products[0].conditions.filter((condition) => ['income_plus', 'financial_counseling'].includes(condition.code)).map((condition) => {
+          const key = commonAnswerKey(condition.code)
+          const answer = draft.conditions[key] ?? 'unknown'
+          return <fieldset key={condition.code}>
+            <legend>{condition.question} <small>+{condition.bonusRate}%p</small></legend>
+            <p>{condition.description}</p>
+            {answerOptions(key, answer, (value) => update({ ...draft, conditions: { ...draft.conditions, [key]: value } }))}
+          </fieldset>
+        })}
+      </section>}
+      {data && <div className="optional-heading">
+        <h2>은행별 조건은 선택사항</h2>
+        <p>지금은 건너뛰어도 비교할 수 있습니다. 자주 쓰거나 관심 있는 은행만 펼쳐 답해보세요.</p>
+      </div>}
       <div className="bank-question-list">
-        {data?.products.map((product, index) => (
-          <details className="bank-question" key={product.bankCode} open={index === 0}>
+        {data?.products.map((product) => (
+          <details className="bank-question" key={product.bankCode}>
             <summary><strong>{product.bankName}</strong><span>기본 {product.baseRate}% · 최고 {product.maximumRate}%</span></summary>
             <div className="bank-question__body">
-              {product.conditions.map((condition) => {
+              {product.conditions.filter((condition) => !['income_plus', 'financial_counseling'].includes(condition.code)).map((condition) => {
                 const key = answerKey(product.bankCode, condition.code)
                 const answer = draft.conditions[key] ?? 'unknown'
                 return <fieldset key={condition.code}>
                   <legend>{condition.question} <small>+{condition.bonusRate}%p</small></legend>
                   <p>{condition.description}</p>
-                  <div className="answer-options">
-                    {([['yes', '예'], ['no', '아니요'], ['unknown', '모름']] as const).map(([value, label]) => (
-                      <label key={value}><input type="radio" name={key} value={value} checked={answer === value} onChange={() => setAnswer(product.bankCode, condition.code, value)} /> {label}</label>
-                    ))}
-                  </div>
+                  {answerOptions(key, answer, (value) => setAnswer(product.bankCode, condition.code, value))}
                 </fieldset>
               })}
               <a href={product.sourceUrl} target="_blank" rel="noreferrer">공시 원문 · {product.sourceDate}</a>
@@ -77,7 +98,7 @@ export function ConditionsPage() {
         ))}
       </div>
       <div className="actions actions--sticky">
-        <button className="button" type="button" disabled={!data || monthlyAmount < 1_000 || monthlyAmount > 500_000} onClick={() => navigate('/banks')}>14개 은행 비교하기</button>
+        <button className="button" type="button" disabled={!data || monthlyAmount < 1_000 || monthlyAmount > 500_000} onClick={() => navigate('/banks')}>지금 답변으로 14개 비교하기</button>
       </div>
     </section>
   )
