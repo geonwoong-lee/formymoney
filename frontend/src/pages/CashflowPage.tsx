@@ -172,6 +172,7 @@ export function CashflowPage() {
           <div><dt>매달 기본금액 납입 대비</dt><dd className={result.differenceFromFixedPlan < 0 ? 'difference--minus' : 'difference--plus'}>{result.differenceFromFixedPlan > 0 ? '+' : ''}{money.format(result.differenceFromFixedPlan)}원</dd></div>
         </dl>
         <p className="source-note">예상금리 {result.result.expectedRate}% · 모든 금액은 입력값과 현재 상품 기준으로 계산한 예상치입니다.</p>
+        <div className="actions"><Link className="button" to="/alternatives">같은 돈으로 대안 비교하기</Link></div>
       </section>}
     </section>
   )

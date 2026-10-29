@@ -104,6 +104,56 @@ export interface CashflowCalculationResponse {
   differenceFromFixedPlan: number
 }
 
+export interface InvestmentAsset {
+  code: string
+  ticker: string
+  name: string
+  category: string
+  benchmark: string
+  leveraged: boolean
+  warning: string
+  startMonth: string
+  endMonth: string
+  availableMonths: number
+}
+
+export interface InvestmentAssetsResponse {
+  assets: InvestmentAsset[]
+  taxIncluded: boolean
+  tradingFeeIncluded: boolean
+  fxIncluded: boolean
+  fractionalShares: boolean
+}
+
+export interface ComparisonResult {
+  kind: 'savings' | 'investment'
+  code: string
+  name: string
+  ticker: string | null
+  principal: number
+  endingValue: number
+  profitLoss: number
+  returnPercent: number
+  maxDrawdownPercent: number | null
+  leveraged: boolean
+  warning: string
+  sourceUrl: string
+  sourceDate: string
+  taxTreatment: string
+  feeTreatment: string
+  fxTreatment: string
+}
+
+export interface ComparisonResponse {
+  startMonth: string
+  endMonth: string
+  monthlyAmounts: number[]
+  results: ComparisonResult[]
+  historicalScenario: boolean
+  dividendsReinvested: boolean
+  notice: string
+}
+
 export class ApiError extends Error {
   readonly status?: number
 
@@ -188,6 +238,25 @@ export function calculateCashflow(payload: {
   conditionAnswers: Record<string, ConditionAnswer>
 }): Promise<CashflowCalculationResponse> {
   return request<CashflowCalculationResponse>('/api/v1/savings/calculate-cashflow', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function getInvestmentAssets(signal?: AbortSignal): Promise<InvestmentAssetsResponse> {
+  return request<InvestmentAssetsResponse>('/api/v1/investments/assets', { signal })
+}
+
+export function calculateComparison(payload: {
+  bankCode: string
+  monthlyAmounts: number[]
+  fixedMonthlyAmount: number
+  contributionType: ContributionType
+  conditionAnswers: Record<string, ConditionAnswer>
+  assetCodes: string[]
+}): Promise<ComparisonResponse> {
+  return request<ComparisonResponse>('/api/v1/comparisons/calculate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

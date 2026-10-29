@@ -68,6 +68,31 @@
 .cashflow-result { margin-top: 24px; padding-top: 16px; border-top: 2px groove #fff; }
 .cashflow-result h2 { color: #000080; font: 700 20px "Courier New", monospace; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.enrolled-guide { display: grid; gap: 5px; margin: 12px 0; padding: 12px; border: 2px outset #fff; background: #ffffc0; font-size: 12px; }
+.enrolled-guide strong { color: #000080; }
+.alternative-controls { display: grid; gap: 12px; margin-top: 24px; padding: 14px; border: 2px outset #fff; background: var(--panel); }
+.alternative-controls > label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; }
+.alternative-controls select { min-height: 34px; padding: 4px 7px; border: 2px inset #fff; background: #fff; font: inherit; }
+.alternative-controls fieldset { margin: 0; padding: 10px; border: 1px solid #808080; }
+.asset-options { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.asset-options label { display: flex; align-items: center; gap: 5px; }
+.risk-tag { padding: 2px 4px; border: 1px solid #800; background: #ffb0b0; color: #800; font-size: 10px; font-weight: 700; }
+.comparison-disclaimer { display: grid; gap: 5px; margin: 18px 0 10px; padding: 12px; border: 2px inset #fff; background: #ffffc0; font-size: 12px; }
+.comparison-disclaimer strong { color: #800; }
+.alternative-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.alternative-card { padding: 12px; border: 2px outset #fff; background: var(--panel); }
+.alternative-card--risk { border-color: #ff8080 #800 #800 #ff8080; }
+.alternative-card header span { display: inline-block; padding: 2px 5px; background: #000080; color: #fff; font-size: 10px; }
+.alternative-card h2 { margin: 7px 0 2px; color: #000080; font: 700 20px "Courier New", monospace; }
+.alternative-card header small { display: block; min-height: 28px; color: #444; }
+.alternative-card dl { display: grid; gap: 5px; margin: 12px 0; }
+.alternative-card dl div { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 4px; border-bottom: 1px dotted #808080; }
+.alternative-card dt { font-size: 11px; }
+.alternative-card dd { margin: 0; font-weight: 700; text-align: right; }
+.assumption-list { display: grid; gap: 3px; font-size: 10px; color: #444; }
+.assumption-list span::before { content: "· "; }
+.risk-warning { min-height: 48px; padding: 7px; background: #fff; color: #700; font-size: 11px; line-height: 1.5; }
+.alternative-card a { font-size: 11px; }
 
 html, body, #root { height: 100%; overflow: hidden; }
 .retro-desktop { height: 100vh; min-height: 0; overflow: hidden; }
@@ -97,4 +122,5 @@ html, body, #root { height: 100%; overflow: hidden; }
   .bank-results .button { grid-column: 3; grid-row: 1 / span 2; }
   .money-breakdown { grid-template-columns: 1fr; }
   .cashflow-controls { grid-template-columns: 1fr; }
+  .alternative-results { grid-template-columns: 1fr; }
 }

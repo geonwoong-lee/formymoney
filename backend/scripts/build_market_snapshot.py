@@ -22,6 +22,7 @@ ASSETS = [
         "ticker": "QQQ",
         "name": "Invesco QQQ",
         "category": "nasdaq_100",
+        "currency": "USD",
         "benchmark": "Nasdaq-100 Index",
         "expense_ratio_percent": 0.18,
         "leveraged": False,
@@ -33,6 +34,7 @@ ASSETS = [
         "ticker": "SCHD",
         "name": "Schwab U.S. Dividend Equity ETF",
         "category": "dividend_equity",
+        "currency": "USD",
         "benchmark": "Dow Jones U.S. Dividend 100 Index",
         "expense_ratio_percent": 0.06,
         "leveraged": False,
@@ -44,6 +46,7 @@ ASSETS = [
         "ticker": "QLD",
         "name": "ProShares Ultra QQQ",
         "category": "leveraged_nasdaq_100",
+        "currency": "USD",
         "benchmark": "2x daily Nasdaq-100 Index",
         "expense_ratio_percent": 0.95,
         "leveraged": True,
@@ -55,11 +58,24 @@ ASSETS = [
         "ticker": "BND",
         "name": "Vanguard Total Bond Market ETF",
         "category": "us_investment_grade_bond",
+        "currency": "USD",
         "benchmark": "Bloomberg U.S. Aggregate Float Adjusted Index",
         "expense_ratio_percent": 0.03,
         "leveraged": False,
         "provider_source_url": "https://investor.vanguard.com/investment-products/etfs/profile/bnd",
         "warning": "채권 ETF도 금리·신용·환율 변화에 따라 가격이 하락할 수 있습니다.",
+    },
+    {
+        "code": "kosdaq150",
+        "ticker": "229200.KS",
+        "name": "KODEX 코스닥150",
+        "category": "korean_equity",
+        "currency": "KRW",
+        "benchmark": "KOSDAQ 150 Index",
+        "expense_ratio_percent": 0.25,
+        "leveraged": False,
+        "provider_source_url": "https://www.samsungfund.com/etf/product/list.do",
+        "warning": "코스닥 전체지수가 아니라 코스닥 대표 150종목을 추종하는 ETF입니다. 높은 가격 변동과 원금 손실 가능성이 있습니다.",
     },
 ]
 
@@ -92,18 +108,18 @@ def main() -> None:
     records = []
     for asset in ASSETS:
         prices = _chart(asset["ticker"])
-        common_months = sorted(set(prices) & set(fx))
+        is_krw = asset["currency"] == "KRW"
+        common_months = sorted(set(prices) if is_krw else set(prices) & set(fx))
         if len(common_months) != expected_months:
             raise RuntimeError(f"{asset['ticker']}: expected 36 common months, got {len(common_months)}")
         records.append({
             **asset,
-            "currency": "USD",
             "distribution_policy": "adjusted_close_reinvestment",
             "price_source_url": f"https://finance.yahoo.com/quote/{asset['ticker']}/history/",
-            "fx_source_url": "https://finance.yahoo.com/quote/KRW=X/history/",
+            "fx_source_url": "" if is_krw else "https://finance.yahoo.com/quote/KRW=X/history/",
             "source_date": "2026-09-30",
             "points": [
-                {"month": month, "adjusted_close": prices[month], "usd_krw": fx[month]}
+                {"month": month, "adjusted_close": prices[month], "usd_krw": 1 if is_krw else fx[month]}
                 for month in common_months
             ],
         })

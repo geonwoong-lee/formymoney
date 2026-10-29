@@ -16,8 +16,8 @@ def test_seed_contains_four_assets_and_36_points_each(client: TestClient) -> Non
         assets = list(session.scalars(select(InvestmentAsset).options(selectinload(InvestmentAsset.points))).all())
         point_count = session.scalar(select(func.count()).select_from(InvestmentMonthlyPoint))
 
-    assert {asset.code for asset in assets} == {"nasdaq100", "schd", "qld", "bond"}
-    assert point_count == 144
+    assert {asset.code for asset in assets} == {"nasdaq100", "schd", "qld", "bond", "kosdaq150"}
+    assert point_count == 180
     assert all(len(asset.points) == 36 for asset in assets)
 
 
@@ -26,7 +26,7 @@ def test_assets_endpoint_explains_sources_and_unreflected_costs(client: TestClie
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body["assets"]) == 4
+    assert len(body["assets"]) == 5
     assert body["taxIncluded"] is False
     assert body["tradingFeeIncluded"] is False
     assert body["fxIncluded"] is True
@@ -42,7 +42,7 @@ def test_same_cashflow_is_calculated_for_all_real_price_series(client: TestClien
     assert body["startMonth"] == "2023-10"
     assert body["endMonth"] == "2026-09"
     assert body["historicalScenario"] is True
-    assert {result["asset"]["ticker"] for result in body["results"]} == {"QQQ", "SCHD", "QLD", "BND"}
+    assert {result["asset"]["ticker"] for result in body["results"]} == {"QQQ", "SCHD", "QLD", "BND", "229200.KS"}
     assert all(result["principal"] == 18_000_000 for result in body["results"])
     assert all(result["endingValue"] > 0 for result in body["results"])
 
@@ -55,6 +55,14 @@ def test_qld_uses_its_own_series_instead_of_double_qqq_return(client: TestClient
     assert qld["returnPercent"] != qqq["returnPercent"] * 2
     assert qld["asset"]["leveraged"] is True
     assert "단순 2배가 아니" in qld["asset"]["warning"]
+
+
+def test_kosdaq_uses_krw_prices_without_exchange_conversion(client: TestClient) -> None:
+    result = _calculate(client, assetCodes=["kosdaq150"]).json()["results"][0]
+
+    assert result["asset"]["ticker"] == "229200.KS"
+    assert result["asset"]["currency"] == "KRW"
+    assert "코스닥 전체지수가 아니라" in result["asset"]["warning"]
 
 
 def test_zero_month_and_invalid_requests_are_handled(client: TestClient) -> None:

@@ -68,4 +68,26 @@ describe('Phase 4 pages', () => {
     expect(await screen.findByText('현재 은행보다 +100,000원')).toBeInTheDocument()
     expect(screen.getByText('현재 주거래 은행')).toBeInTheDocument()
   })
+
+  it('guides an enrolled user to enter the bank and enrollment month', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(productsResponse), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    })))
+
+    render(<MemoryRouter><ConditionsPage /></MemoryRouter>)
+    await user.selectOptions(await screen.findByRole('combobox', { name: '현재 가입 상태' }), 'enrolled')
+
+    expect(screen.getByText('이미 가입했다면 이렇게 확인해요')).toBeInTheDocument()
+    expect(screen.getByText('현재 가입한 은행을 선택해 주세요.')).toBeInTheDocument()
+    expect(screen.getByText('이미 가입했다면 가입한 달을 입력해 주세요.')).toBeInTheDocument()
+    const submit = screen.getByRole('button', { name: '가입 후 납입내역 계산하기' })
+    expect(submit).toBeDisabled()
+
+    const now = new Date()
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    await user.type(screen.getByLabelText('가입한 달'), currentMonth)
+    await user.selectOptions(screen.getByRole('combobox', { name: '가입한 은행' }), 'kb')
+    expect(submit).toBeEnabled()
+  })
 })

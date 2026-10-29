@@ -4,6 +4,9 @@ import { getSavingsProducts, type ConditionAnswer, type SavingsProductsResponse 
 import { answerKey, commonAnswerKey } from '../features/savingsDraft'
 import { clearDraft, emptyDraft, loadDraft, saveDraft, type VeryRichDraft } from '../storage/draftStorage'
 
+const today = new Date()
+const CURRENT_MONTH = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+
 export function ConditionsPage() {
   const navigate = useNavigate()
   const [data, setData] = useState<SavingsProductsResponse | null>(null)
@@ -40,11 +43,14 @@ export function ConditionsPage() {
   const contributionType = draft.plan.contributionType ?? 'general'
   const enrollmentStatus = draft.plan.enrollmentStatus ?? 'considering'
   const transitionStatus = draft.plan.transitionStatus ?? 'unknown'
+  const validEnrollmentMonth = Boolean(
+    draft.plan.startMonth && draft.plan.startMonth <= CURRENT_MONTH,
+  )
   const canCompare = Boolean(
     data
     && monthlyAmount >= 1_000
     && monthlyAmount <= 500_000
-    && (enrollmentStatus !== 'enrolled' || draft.plan.startMonth),
+    && (enrollmentStatus !== 'enrolled' || (validEnrollmentMonth && draft.plan.currentBankCode)),
   )
 
   function resetAll() {
@@ -84,9 +90,9 @@ export function ConditionsPage() {
           </select>
         </label>
         {enrollmentStatus === 'enrolled' && <label>가입한 달
-          <input type="month" value={draft.plan.startMonth ?? ''} onChange={(event) => update({ ...draft, plan: { ...draft.plan, startMonth: event.target.value } })} />
+          <input type="month" max={CURRENT_MONTH} value={draft.plan.startMonth ?? ''} onChange={(event) => update({ ...draft, plan: { ...draft.plan, startMonth: event.target.value } })} />
         </label>}
-        <label>현재 주거래 은행
+        <label>{enrollmentStatus === 'enrolled' ? '가입한 은행' : '현재 주거래 은행'}
           <select value={draft.plan.currentBankCode ?? ''} onChange={(event) => update({ ...draft, plan: { ...draft.plan, currentBankCode: event.target.value || undefined } })}>
             <option value="">선택 안 함</option>
             {data?.products.map((product) => <option key={product.bankCode} value={product.bankCode}>{product.bankName}</option>)}
@@ -94,8 +100,16 @@ export function ConditionsPage() {
         </label>
       </div>
 
+      {enrollmentStatus === 'enrolled' && <aside className="enrolled-guide">
+        <strong>이미 가입했다면 이렇게 확인해요</strong>
+        <span>1. 가입한 은행과 가입 월을 선택합니다.</span>
+        <span>2. 아래 조건을 확인한 뒤 월별 실제 납입액을 입력합니다.</span>
+      </aside>}
+
       {(monthlyAmount < 1_000 || monthlyAmount > 500_000) && <p className="field-error">월 납입액은 1천원부터 50만원까지 입력해 주세요.</p>}
       {enrollmentStatus === 'enrolled' && !draft.plan.startMonth && <p className="field-error">이미 가입했다면 가입한 달을 입력해 주세요.</p>}
+      {enrollmentStatus === 'enrolled' && draft.plan.startMonth && !validEnrollmentMonth && <p className="field-error">가입한 달은 이번 달보다 이후일 수 없습니다.</p>}
+      {enrollmentStatus === 'enrolled' && !draft.plan.currentBankCode && <p className="field-error">현재 가입한 은행을 선택해 주세요.</p>}
 
       {error && <p className="notice notice--error">{error}</p>}
       {!data && !error && <p className="notice">14개 은행의 우대조건을 불러오는 중입니다.</p>}
@@ -136,7 +150,10 @@ export function ConditionsPage() {
         ))}
       </div>
       <div className="actions actions--sticky">
-        <button className="button" type="button" disabled={!canCompare} onClick={() => navigate('/banks')}>지금 답변으로 14개 비교하기</button>
+        <button className="button" type="button" disabled={!canCompare} onClick={() => navigate(enrollmentStatus === 'enrolled' ? '/cashflow' : '/banks')}>
+          {enrollmentStatus === 'enrolled' ? '가입 후 납입내역 계산하기' : '지금 답변으로 14개 비교하기'}
+        </button>
+        {enrollmentStatus === 'enrolled' && <button className="button button--secondary" type="button" disabled={!data || monthlyAmount < 1_000 || monthlyAmount > 500_000} onClick={() => navigate('/banks')}>14개 은행 다시 비교하기</button>}
         <button className="button button--secondary" type="button" onClick={resetAll}>처음부터 다시 입력</button>
       </div>
       <p className="privacy-note">입력값은 이 브라우저에만 임시 저장됩니다. 공용 기기에서는 사용 후 초기화해 주세요.</p>

@@ -5,12 +5,12 @@
       "ticker": "QQQ",
       "name": "Invesco QQQ",
       "category": "nasdaq_100",
+      "currency": "USD",
       "benchmark": "Nasdaq-100 Index",
       "expense_ratio_percent": 0.18,
       "leveraged": false,
       "provider_source_url": "https://www.invesco.com/qqq-etf/en/home.html",
       "warning": "주식형 ETF로 원금 손실과 환율 변동 가능성이 있습니다.",
-      "currency": "USD",
       "distribution_policy": "adjusted_close_reinvestment",
       "price_source_url": "https://finance.yahoo.com/quote/QQQ/history/",
       "fx_source_url": "https://finance.yahoo.com/quote/KRW=X/history/",
@@ -18,37 +18,37 @@
       "points": [
         {
           "month": "2023-10",
-          "adjusted_close": 344.988373,
+          "adjusted_close": 344.988342,
           "usd_krw": 1348.069946
         },
         {
           "month": "2023-11",
-          "adjusted_close": 382.312042,
+          "adjusted_close": 382.312073,
           "usd_krw": 1288.359985
         },
         {
           "month": "2023-12",
-          "adjusted_close": 403.671692,
+          "adjusted_close": 403.671661,
           "usd_krw": 1293.530029
         },
         {
           "month": "2024-01",
-          "adjusted_close": 411.015289,
+          "adjusted_close": 411.01532,
           "usd_krw": 1326.619995
         },
         {
           "month": "2024-02",
-          "adjusted_close": 432.730682,
+          "adjusted_close": 432.730713,
           "usd_krw": 1333.380005
         },
         {
           "month": "2024-03",
-          "adjusted_close": 438.247864,
+          "adjusted_close": 438.247925,
           "usd_krw": 1345.290039
         },
         {
           "month": "2024-04",
-          "adjusted_close": 419.079926,
+          "adjusted_close": 419.079895,
           "usd_krw": 1374.640015
         },
         {
@@ -58,7 +58,7 @@
         },
         {
           "month": "2024-06",
-          "adjusted_close": 473.643951,
+          "adjusted_close": 473.644012,
           "usd_krw": 1380.280029
         },
         {
@@ -78,17 +78,17 @@
         },
         {
           "month": "2024-10",
-          "adjusted_close": 479.002136,
+          "adjusted_close": 479.002106,
           "usd_krw": 1378.569946
         },
         {
           "month": "2024-11",
-          "adjusted_close": 504.632721,
+          "adjusted_close": 504.63266,
           "usd_krw": 1399.859985
         },
         {
           "month": "2024-12",
-          "adjusted_close": 506.923859,
+          "adjusted_close": 506.92395,
           "usd_krw": 1467.390015
         },
         {
@@ -98,7 +98,7 @@
         },
         {
           "month": "2025-02",
-          "adjusted_close": 503.889679,
+          "adjusted_close": 503.889648,
           "usd_krw": 1449.859985
         },
         {
@@ -113,7 +113,7 @@
         },
         {
           "month": "2025-05",
-          "adjusted_close": 515.505188,
+          "adjusted_close": 515.505066,
           "usd_krw": 1381.97998
         },
         {
@@ -133,7 +133,7 @@
         },
         {
           "month": "2025-09",
-          "adjusted_close": 597.562378,
+          "adjusted_close": 597.562317,
           "usd_krw": 1399.329956
         },
         {
@@ -153,12 +153,12 @@
         },
         {
           "month": "2026-01",
-          "adjusted_close": 619.759277,
+          "adjusted_close": 619.759216,
           "usd_krw": 1449.699951
         },
         {
           "month": "2026-02",
-          "adjusted_close": 605.228699,
+          "adjusted_close": 605.22876,
           "usd_krw": 1432.319946
         },
         {
@@ -203,12 +203,12 @@
       "ticker": "SCHD",
       "name": "Schwab U.S. Dividend Equity ETF",
       "category": "dividend_equity",
+      "currency": "USD",
       "benchmark": "Dow Jones U.S. Dividend 100 Index",
       "expense_ratio_percent": 0.06,
       "leveraged": false,
       "provider_source_url": "https://www.schwabassetmanagement.com/products/schd",
       "warning": "배당을 지급하더라도 가격 하락과 환율 변동으로 손실이 날 수 있습니다.",
-      "currency": "USD",
       "distribution_policy": "adjusted_close_reinvestment",
       "price_source_url": "https://finance.yahoo.com/quote/SCHD/history/",
       "fx_source_url": "https://finance.yahoo.com/quote/KRW=X/history/",
@@ -226,12 +226,12 @@
         },
         {
           "month": "2023-12",
-          "adjusted_close": 22.978689,
+          "adjusted_close": 22.978685,
           "usd_krw": 1293.530029
         },
         {
           "month": "2024-01",
-          "adjusted_close": 23.011892,
+          "adjusted_close": 23.01189,
           "usd_krw": 1326.619995
         },
         {
@@ -241,27 +241,27 @@
         },
         {
           "month": "2024-03",
-          "adjusted_close": 24.526466,
+          "adjusted_close": 24.526468,
           "usd_krw": 1345.290039
         },
         {
           "month": "2024-04",
-          "adjusted_close": 23.419235,
+          "adjusted_close": 23.419237,
           "usd_krw": 1374.640015
         },
         {
           "month": "2024-05",
-          "adjusted_close": 23.899847,
+          "adjusted_close": 23.899845,
           "usd_krw": 1375.619995
         },
         {
           "month": "2024-06",
-          "adjusted_close": 23.904121,
+          "adjusted_close": 23.904119,
           "usd_krw": 1380.280029
         },
         {
           "month": "2024-07",
-          "adjusted_close": 25.385832,
+          "adjusted_close": 25.385828,
           "usd_krw": 1383.5
         },
         {
@@ -271,7 +271,7 @@
         },
         {
           "month": "2024-09",
-          "adjusted_close": 26.217989,
+          "adjusted_close": 26.217987,
           "usd_krw": 1309.300049
         },
         {
@@ -281,7 +281,7 @@
         },
         {
           "month": "2024-11",
-          "adjusted_close": 27.477251,
+          "adjusted_close": 27.477249,
           "usd_krw": 1399.859985
         },
         {
@@ -291,7 +291,7 @@
         },
         {
           "month": "2025-01",
-          "adjusted_close": 26.136923,
+          "adjusted_close": 26.136921,
           "usd_krw": 1441.660034
         },
         {
@@ -301,12 +301,12 @@
         },
         {
           "month": "2025-03",
-          "adjusted_close": 26.495996,
+          "adjusted_close": 26.495995,
           "usd_krw": 1469.410034
         },
         {
           "month": "2025-04",
-          "adjusted_close": 24.468044,
+          "adjusted_close": 24.468046,
           "usd_krw": 1431.160034
         },
         {
@@ -341,7 +341,7 @@
         },
         {
           "month": "2025-11",
-          "adjusted_close": 26.655014,
+          "adjusted_close": 26.655016,
           "usd_krw": 1466.130005
         },
         {
@@ -401,12 +401,12 @@
       "ticker": "QLD",
       "name": "ProShares Ultra QQQ",
       "category": "leveraged_nasdaq_100",
+      "currency": "USD",
       "benchmark": "2x daily Nasdaq-100 Index",
       "expense_ratio_percent": 0.95,
       "leveraged": true,
       "provider_source_url": "https://www.proshares.com/our-etfs/leveraged-and-inverse/qld",
       "warning": "하루 수익률 2배를 목표로 하는 레버리지 ETF입니다. 장기 결과는 QQQ의 단순 2배가 아니며 손실과 변동성 끌림이 확대될 수 있습니다.",
-      "currency": "USD",
       "distribution_policy": "adjusted_close_reinvestment",
       "price_source_url": "https://finance.yahoo.com/quote/QLD/history/",
       "fx_source_url": "https://finance.yahoo.com/quote/KRW=X/history/",
@@ -414,12 +414,12 @@
       "points": [
         {
           "month": "2023-10",
-          "adjusted_close": 28.015482,
+          "adjusted_close": 28.015484,
           "usd_krw": 1348.069946
         },
         {
           "month": "2023-11",
-          "adjusted_close": 34.118111,
+          "adjusted_close": 34.118114,
           "usd_krw": 1288.359985
         },
         {
@@ -429,57 +429,57 @@
         },
         {
           "month": "2024-01",
-          "adjusted_close": 38.870251,
+          "adjusted_close": 38.870247,
           "usd_krw": 1326.619995
         },
         {
           "month": "2024-02",
-          "adjusted_close": 42.767212,
+          "adjusted_close": 42.767208,
           "usd_krw": 1333.380005
         },
         {
           "month": "2024-03",
-          "adjusted_close": 43.510929,
+          "adjusted_close": 43.510937,
           "usd_krw": 1345.290039
         },
         {
           "month": "2024-04",
-          "adjusted_close": 39.452301,
+          "adjusted_close": 39.452297,
           "usd_krw": 1374.640015
         },
         {
           "month": "2024-05",
-          "adjusted_close": 44.326637,
+          "adjusted_close": 44.326641,
           "usd_krw": 1375.619995
         },
         {
           "month": "2024-06",
-          "adjusted_close": 49.696224,
+          "adjusted_close": 49.696228,
           "usd_krw": 1380.280029
         },
         {
           "month": "2024-07",
-          "adjusted_close": 47.555222,
+          "adjusted_close": 47.555225,
           "usd_krw": 1383.5
         },
         {
           "month": "2024-08",
-          "adjusted_close": 48.073051,
+          "adjusted_close": 48.073048,
           "usd_krw": 1336.569946
         },
         {
           "month": "2024-09",
-          "adjusted_close": 50.165001,
+          "adjusted_close": 50.165009,
           "usd_krw": 1309.300049
         },
         {
           "month": "2024-10",
-          "adjusted_close": 48.959454,
+          "adjusted_close": 48.95945,
           "usd_krw": 1378.569946
         },
         {
           "month": "2024-11",
-          "adjusted_close": 53.906216,
+          "adjusted_close": 53.906212,
           "usd_krw": 1399.859985
         },
         {
@@ -489,32 +489,32 @@
         },
         {
           "month": "2025-01",
-          "adjusted_close": 55.829784,
+          "adjusted_close": 55.829788,
           "usd_krw": 1441.660034
         },
         {
           "month": "2025-02",
-          "adjusted_close": 52.480297,
+          "adjusted_close": 52.480305,
           "usd_krw": 1449.859985
         },
         {
           "month": "2025-03",
-          "adjusted_close": 44.312641,
+          "adjusted_close": 44.312645,
           "usd_krw": 1469.410034
         },
         {
           "month": "2025-04",
-          "adjusted_close": 44.163074,
+          "adjusted_close": 44.163078,
           "usd_krw": 1431.160034
         },
         {
           "month": "2025-05",
-          "adjusted_close": 52.214939,
+          "adjusted_close": 52.214935,
           "usd_krw": 1381.97998
         },
         {
           "month": "2025-06",
-          "adjusted_close": 58.750854,
+          "adjusted_close": 58.750858,
           "usd_krw": 1363.589966
         },
         {
@@ -534,7 +534,7 @@
         },
         {
           "month": "2025-10",
-          "adjusted_close": 74.63018,
+          "adjusted_close": 74.630173,
           "usd_krw": 1424.02002
         },
         {
@@ -554,7 +554,7 @@
         },
         {
           "month": "2026-02",
-          "adjusted_close": 67.911682,
+          "adjusted_close": 67.911674,
           "usd_krw": 1432.319946
         },
         {
@@ -569,7 +569,7 @@
         },
         {
           "month": "2026-05",
-          "adjusted_close": 98.366997,
+          "adjusted_close": 98.367004,
           "usd_krw": 1505.959961
         },
         {
@@ -599,12 +599,12 @@
       "ticker": "BND",
       "name": "Vanguard Total Bond Market ETF",
       "category": "us_investment_grade_bond",
+      "currency": "USD",
       "benchmark": "Bloomberg U.S. Aggregate Float Adjusted Index",
       "expense_ratio_percent": 0.03,
       "leveraged": false,
       "provider_source_url": "https://investor.vanguard.com/investment-products/etfs/profile/bnd",
       "warning": "채권 ETF도 금리·신용·환율 변화에 따라 가격이 하락할 수 있습니다.",
-      "currency": "USD",
       "distribution_policy": "adjusted_close_reinvestment",
       "price_source_url": "https://finance.yahoo.com/quote/BND/history/",
       "fx_source_url": "https://finance.yahoo.com/quote/KRW=X/history/",
@@ -612,32 +612,32 @@
       "points": [
         {
           "month": "2023-10",
-          "adjusted_close": 61.142265,
+          "adjusted_close": 61.142258,
           "usd_krw": 1348.069946
         },
         {
           "month": "2023-11",
-          "adjusted_close": 63.918987,
+          "adjusted_close": 63.918999,
           "usd_krw": 1288.359985
         },
         {
           "month": "2023-12",
-          "adjusted_close": 66.191513,
+          "adjusted_close": 66.19149,
           "usd_krw": 1293.530029
         },
         {
           "month": "2024-01",
-          "adjusted_close": 66.083504,
+          "adjusted_close": 66.083511,
           "usd_krw": 1326.619995
         },
         {
           "month": "2024-02",
-          "adjusted_close": 65.182762,
+          "adjusted_close": 65.182747,
           "usd_krw": 1333.380005
         },
         {
           "month": "2024-03",
-          "adjusted_close": 65.736641,
+          "adjusted_close": 65.736671,
           "usd_krw": 1345.290039
         },
         {
@@ -652,27 +652,27 @@
         },
         {
           "month": "2024-06",
-          "adjusted_close": 65.806061,
+          "adjusted_close": 65.806053,
           "usd_krw": 1380.280029
         },
         {
           "month": "2024-07",
-          "adjusted_close": 67.355255,
+          "adjusted_close": 67.355263,
           "usd_krw": 1383.5
         },
         {
           "month": "2024-08",
-          "adjusted_close": 68.333023,
+          "adjusted_close": 68.333038,
           "usd_krw": 1336.569946
         },
         {
           "month": "2024-09",
-          "adjusted_close": 69.232635,
+          "adjusted_close": 69.232658,
           "usd_krw": 1309.300049
         },
         {
           "month": "2024-10",
-          "adjusted_close": 67.532547,
+          "adjusted_close": 67.532539,
           "usd_krw": 1378.569946
         },
         {
@@ -682,32 +682,32 @@
         },
         {
           "month": "2024-12",
-          "adjusted_close": 67.106689,
+          "adjusted_close": 67.106697,
           "usd_krw": 1467.390015
         },
         {
           "month": "2025-01",
-          "adjusted_close": 67.50795,
+          "adjusted_close": 67.507957,
           "usd_krw": 1441.660034
         },
         {
           "month": "2025-02",
-          "adjusted_close": 68.963821,
+          "adjusted_close": 68.963806,
           "usd_krw": 1449.859985
         },
         {
           "month": "2025-03",
-          "adjusted_close": 68.972275,
+          "adjusted_close": 68.97226,
           "usd_krw": 1469.410034
         },
         {
           "month": "2025-04",
-          "adjusted_close": 69.245491,
+          "adjusted_close": 69.245468,
           "usd_krw": 1431.160034
         },
         {
           "month": "2025-05",
-          "adjusted_close": 68.778603,
+          "adjusted_close": 68.778572,
           "usd_krw": 1381.97998
         },
         {
@@ -722,22 +722,22 @@
         },
         {
           "month": "2025-08",
-          "adjusted_close": 70.439865,
+          "adjusted_close": 70.43985,
           "usd_krw": 1386.969971
         },
         {
           "month": "2025-09",
-          "adjusted_close": 71.218391,
+          "adjusted_close": 71.218407,
           "usd_krw": 1399.329956
         },
         {
           "month": "2025-10",
-          "adjusted_close": 71.647827,
+          "adjusted_close": 71.64782,
           "usd_krw": 1424.02002
         },
         {
           "month": "2025-11",
-          "adjusted_close": 72.07576,
+          "adjusted_close": 72.075775,
           "usd_krw": 1466.130005
         },
         {
@@ -747,7 +747,7 @@
         },
         {
           "month": "2026-01",
-          "adjusted_close": 72.014633,
+          "adjusted_close": 72.014641,
           "usd_krw": 1449.699951
         },
         {
@@ -757,7 +757,7 @@
         },
         {
           "month": "2026-03",
-          "adjusted_close": 71.896919,
+          "adjusted_close": 71.896912,
           "usd_krw": 1516.130005
         },
         {
@@ -767,7 +767,7 @@
         },
         {
           "month": "2026-05",
-          "adjusted_close": 72.203217,
+          "adjusted_close": 72.203209,
           "usd_krw": 1505.959961
         },
         {
@@ -777,7 +777,7 @@
         },
         {
           "month": "2026-07",
-          "adjusted_close": 71.471336,
+          "adjusted_close": 71.471329,
           "usd_krw": 1420.599976
         },
         {
@@ -789,6 +789,204 @@
           "month": "2026-09",
           "adjusted_close": 69.901001,
           "usd_krw": 1350.5
+        }
+      ]
+    },
+    {
+      "code": "kosdaq150",
+      "ticker": "229200.KS",
+      "name": "KODEX 코스닥150",
+      "category": "korean_equity",
+      "currency": "KRW",
+      "benchmark": "KOSDAQ 150 Index",
+      "expense_ratio_percent": 0.25,
+      "leveraged": false,
+      "provider_source_url": "https://www.samsungfund.com/etf/product/list.do",
+      "warning": "코스닥 전체지수가 아니라 코스닥 대표 150종목을 추종하는 ETF입니다. 높은 가격 변동과 원금 손실 가능성이 있습니다.",
+      "distribution_policy": "adjusted_close_reinvestment",
+      "price_source_url": "https://finance.yahoo.com/quote/229200.KS/history/",
+      "fx_source_url": "",
+      "source_date": "2026-09-30",
+      "points": [
+        {
+          "month": "2023-10",
+          "adjusted_close": 11375.402344,
+          "usd_krw": 1
+        },
+        {
+          "month": "2023-11",
+          "adjusted_close": 13054.391602,
+          "usd_krw": 1
+        },
+        {
+          "month": "2023-12",
+          "adjusted_close": 13849.179688,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-01",
+          "adjusted_close": 12353.984375,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-02",
+          "adjusted_close": 13893.886719,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-03",
+          "adjusted_close": 15071.166016,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-04",
+          "adjusted_close": 14321.379883,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-05",
+          "adjusted_close": 13217.055664,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-06",
+          "adjusted_close": 13520.496094,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-07",
+          "adjusted_close": 13306.595703,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-08",
+          "adjusted_close": 12839.0,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-09",
+          "adjusted_close": 12799.204102,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-10",
+          "adjusted_close": 12644.99707,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-11",
+          "adjusted_close": 11286.978516,
+          "usd_krw": 1
+        },
+        {
+          "month": "2024-12",
+          "adjusted_close": 11217.335938,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-01",
+          "adjusted_close": 12252.017578,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-02",
+          "adjusted_close": 12570.380859,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-03",
+          "adjusted_close": 11122.822266,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-04",
+          "adjusted_close": 11629.02832,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-05",
+          "adjusted_close": 11888.671875,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-06",
+          "adjusted_close": 12632.649414,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-07",
+          "adjusted_close": 13426.55957,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-08",
+          "adjusted_close": 13241.813477,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-09",
+          "adjusted_close": 13930.867188,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-10",
+          "adjusted_close": 15343.925781,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-11",
+          "adjusted_close": 15878.192383,
+          "usd_krw": 1
+        },
+        {
+          "month": "2025-12",
+          "adjusted_close": 15408.836914,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-01",
+          "adjusted_close": 20471.882812,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-02",
+          "adjusted_close": 21071.060547,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-03",
+          "adjusted_close": 18130.099609,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-04",
+          "adjusted_close": 19855.0,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-05",
+          "adjusted_close": 18730.0,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-06",
+          "adjusted_close": 16565.0,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-07",
+          "adjusted_close": 12100.0,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-08",
+          "adjusted_close": 14370.0,
+          "usd_krw": 1
+        },
+        {
+          "month": "2026-09",
+          "adjusted_close": 14455.0,
+          "usd_krw": 1
         }
       ]
     }
