@@ -61,6 +61,10 @@ export function AppLayout({ children }: PropsWithChildren) {
   const windowRef = useRef<HTMLElement>(null)
   const dragState = useRef<{ pointerId: number; startX: number; startY: number; left: number; top: number } | null>(null)
 
+  function goHistory(direction: -1 | 1) {
+    navigate(direction)
+  }
+
   function captureWindowRect() {
     const workspace = workspaceRef.current?.getBoundingClientRect()
     const window = windowRef.current?.getBoundingClientRect()
@@ -166,6 +170,11 @@ export function AppLayout({ children }: PropsWithChildren) {
             <span>보기(V)</span>
             <span>도움말(H)</span>
           </div>
+          <nav className="retro-window__toolbar" aria-label="창 탐색">
+            <button type="button" aria-label="뒤로 가기" onClick={() => goHistory(-1)}>←</button>
+            <button type="button" aria-label="앞으로 가기" onClick={() => goHistory(1)}>→</button>
+            <span aria-label="현재 위치">{currentApp.windowTitle}</span>
+          </nav>
           <div className="retro-window__body">{children}</div>
           <footer className="retro-window__statusbar">
             <span>준비</span>

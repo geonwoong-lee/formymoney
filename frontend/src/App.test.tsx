@@ -82,4 +82,20 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: '창 최대화' }))
     expect(screen.getByRole('button', { name: '창 복원' })).toBeInTheDocument()
   })
+
+  it('moves backward and forward through app windows', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      status: 'ok', app: 'Very Rich?', database: 'ok', referenceKey: 'phase1-ready',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })))
+
+    render(<MemoryRouter><App /></MemoryRouter>)
+
+    await user.click(screen.getByRole('link', { name: '납입 계획' }))
+    expect(screen.getByRole('heading', { name: '월별 납입 계획' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '뒤로 가기' }))
+    expect(screen.getByRole('heading', { name: '같은 돈의 다른 미래를 비교하세요.' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '앞으로 가기' }))
+    expect(screen.getByRole('heading', { name: '월별 납입 계획' })).toBeInTheDocument()
+  })
 })
