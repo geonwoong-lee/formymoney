@@ -1,0 +1,56 @@
+.utility-app { display: grid; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; background: var(--panel); color: #000; font: 12px "MS Sans Serif", Tahoma, sans-serif; }
+.utility-menubar { display: flex; align-items: center; min-height: 25px; gap: 18px; padding: 3px 7px; border-bottom: 1px solid #808080; }
+.utility-menubar span::first-letter, .utility-menubar button::first-letter { text-decoration: underline; }
+.utility-menubar button { padding: 1px 2px; border: 0; background: transparent; color: #000; }
+.utility-statusbar { min-height: 23px; padding: 4px 6px; border: 2px inset #fff; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.folder-app { grid-template-rows: auto auto minmax(0, 1fr) auto auto !important; }
+.folder-toolbar { display: flex; align-items: center; gap: 8px; padding: 4px; border-bottom: 1px solid #808080; }
+.folder-toolbar button, .folder-manager button { min-height: 25px; border: 2px outset #fff; background: var(--panel); }
+.folder-toolbar label { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; flex: 1; gap: 5px; }
+.folder-toolbar input { width: 100%; min-width: 0; height: 24px; border: 2px inset #fff; background: #fff; }
+.folder-app__content { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); align-content: start; gap: 16px 10px; padding: 18px; border: 2px inset #fff; background: #fff; overflow: auto; }
+.folder-app__item { position: relative; min-width: 0; }
+.folder-app__open { display: flex; align-items: center; flex-direction: column; width: 100%; gap: 5px; border: 0; background: transparent; font-size: 11px; }
+.folder-app__remove { position: absolute; top: -7px; right: 3px; width: 18px; height: 18px; padding: 0; border: 1px outset #fff; background: var(--panel); font-weight: 700; line-height: 14px; }
+.folder-app__glyph { width: 38px; height: 38px; }
+.folder-empty { grid-column: 1 / -1; margin: 20px; text-align: center; }
+.folder-manager { display: flex; align-items: center; gap: 6px; padding: 6px; }
+.folder-manager select { min-width: 130px; height: 25px; }
+
+.notepad-app { grid-template-rows: auto minmax(0, 1fr) auto !important; }
+.notepad-app textarea { width: 100%; height: 100%; min-height: 0; padding: 5px; resize: none; border: 2px inset #fff; outline: 0; background: #fff; color: #000; font: 15px "Fixedsys", "Courier New", monospace; line-height: 1.45; }
+
+.paint-app { grid-template-rows: auto minmax(0, 1fr) auto auto !important; }
+.paint-workspace { display: grid; grid-template-columns: 52px minmax(0, 1fr); min-height: 0; padding: 4px; background: #808080; }
+.paint-tools { display: grid; grid-template-columns: 1fr 1fr; align-content: start; gap: 2px; padding-right: 4px; }
+.paint-tools button { width: 22px; height: 25px; padding: 0; border: 2px outset #fff; background: var(--panel); font-size: 17px; }
+.paint-tools button.is-pressed { border-style: inset; background: #fff; }
+.paint-canvas-wrap { min-width: 0; min-height: 0; padding: 3px 12px 12px 3px; overflow: auto; background: #808080; }
+.paint-canvas-wrap canvas { display: block; width: 100%; min-width: 420px; height: 100%; min-height: 260px; border: 2px inset #fff; background: #fff; cursor: crosshair; touch-action: none; }
+.paint-palette { display: flex; align-items: center; flex-wrap: wrap; min-height: 43px; gap: 2px; padding: 5px 8px; }
+.paint-palette button { width: 18px; height: 18px; padding: 0; border: 2px outset #fff; }
+.paint-current-color { width: 35px; height: 30px; margin-right: 5px; border: 3px double #fff; outline: 1px solid #000; }
+
+.calculator-app { grid-template-rows: auto auto auto minmax(0, 1fr) !important; padding: 0 8px 10px; gap: 8px; }
+.calculator-app .utility-menubar { margin: 0 -8px; }
+.calculator-app output { display: flex; align-items: center; justify-content: flex-end; min-height: 36px; padding: 4px; border: 2px inset #fff; background: #fff; font: 18px "Courier New", monospace; overflow: hidden; }
+.calculator-actions { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 6px; }
+.calculator-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.calculator-actions button, .calculator-grid button { min-height: 40px; border: 2px outset #fff; background: var(--panel); color: #000080; font-weight: 700; }
+.calculator-actions button:active, .calculator-grid button:active { border-style: inset; }
+
+.minesweeper-app { grid-template-rows: auto auto minmax(0, 1fr) auto !important; padding: 0 8px 8px; }
+.minesweeper-app .utility-menubar { margin: 0 -8px 8px; }
+.mine-counter { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; padding: 7px; border: 3px inset #fff; }
+.mine-counter span { padding: 3px; background: #200; color: #f00; font: 25px "Courier New", monospace; text-align: center; text-shadow: 0 0 2px #f00; }
+.mine-counter button { width: 42px; height: 42px; padding: 0; border: 3px outset #fff; background: var(--panel); font-size: 23px; }
+.mine-board { display: grid; grid-template-columns: repeat(9, 1fr); align-self: center; width: min(100%, 340px); aspect-ratio: 1; margin: 10px auto; border: 4px inset #fff; }
+.mine-board button { min-width: 0; min-height: 0; padding: 0; border: 3px outset #fff; background: var(--panel); color: #000080; font: 700 clamp(11px, 2.1vw, 19px) Arial, sans-serif; }
+.mine-board button.is-revealed { border: 1px solid #808080; background: #c0c0c0; }
+
+@media (max-width: 720px) {
+  .paint-canvas-wrap canvas { min-width: 300px; }
+  .folder-app__content { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+  .mine-board { max-height: calc(100vh - 330px); }
+}

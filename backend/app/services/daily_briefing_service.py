@@ -1,8 +1,10 @@
+import json
 import re
 from datetime import date, datetime, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 
 from app.data.daily_sources import DAILY_SOURCE_POLICIES
 from app.models.daily_briefing import DailyBriefingItem, DailyBriefingSource
@@ -13,6 +15,8 @@ from app.schemas.daily_briefing import (
     DailyBriefingItemResponse,
     DailyBriefingResponse,
     FinancialTermResponse,
+    OpenAIResultIngestRequest,
+    StructuredBriefing,
     SummaryPointResponse,
 )
 
@@ -67,6 +71,45 @@ class DailyBriefingService:
             validation_errors=item.validation_errors,
         )
 
+    def ingest_openai_result(self, payload: OpenAIResultIngestRequest) -> BriefingIngestResponse:
+        response = payload.openai_response
+        if response.get("status") != "completed":
+            raise DailyBriefingInputError("AI 요약이 정상적으로 완료되지 않았습니다.")
+
+        output_text = self._extract_output_text(response)
+        try:
+            summary = StructuredBriefing.model_validate(json.loads(output_text))
+        except (json.JSONDecodeError, TypeError, ValidationError) as error:
+            raise DailyBriefingInputError("AI 요약 결과가 정해진 JSON 형식과 일치하지 않습니다.") from error
+
+        model_name = response.get("model")
+        usage = response.get("usage")
+        if not isinstance(model_name, str) or not model_name.strip() or not isinstance(usage, dict):
+            raise DailyBriefingInputError("AI 실행 정보가 누락됐습니다.")
+        input_tokens = usage.get("input_tokens")
+        output_tokens = usage.get("output_tokens")
+        if not isinstance(input_tokens, int) or input_tokens < 0 or not isinstance(output_tokens, int) or output_tokens < 0:
+            raise DailyBriefingInputError("AI 토큰 사용량을 확인할 수 없습니다.")
+
+        return self.ingest(
+            BriefingIngestRequest(
+                source_code=payload.source_code,
+                source_item_id=payload.source_item_id,
+                canonical_url=payload.canonical_url,
+                original_title=payload.original_title,
+                published_at=payload.published_at,
+                fetched_at=payload.fetched_at,
+                content_sha256=payload.content_sha256,
+                evidence=payload.evidence,
+                summary=summary,
+                model_name=model_name,
+                prompt_version=payload.prompt_version,
+                generated_at=datetime.now(timezone.utc),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+            )
+        )
+
     def get_daily(self, briefing_date: date) -> DailyBriefingResponse:
         items = self.repository.list_published_for_date(briefing_date)
         assignment = self.repository.get_term_assignment(briefing_date)
@@ -87,6 +130,29 @@ class DailyBriefingService:
             items=[self._item_response(item) for item in items],
             term=term,
         )
+
+    @staticmethod
+    def _extract_output_text(response: dict[str, object]) -> str:
+        output = response.get("output")
+        if not isinstance(output, list):
+            raise DailyBriefingInputError("AI 요약 본문이 없습니다.")
+        texts: list[str] = []
+        for item in output:
+            if not isinstance(item, dict):
+                continue
+            content = item.get("content")
+            if not isinstance(content, list):
+                continue
+            for part in content:
+                if not isinstance(part, dict):
+                    continue
+                if part.get("type") == "refusal":
+                    raise DailyBriefingInputError("AI가 요약 요청을 거절했습니다.")
+                if part.get("type") == "output_text" and isinstance(part.get("text"), str):
+                    texts.append(part["text"])
+        if not texts:
+            raise DailyBriefingInputError("AI 요약 본문이 없습니다.")
+        return "".join(texts)
 
     def _get_or_create_source(self, source_code: str) -> DailyBriefingSource:
         policy = DAILY_SOURCE_POLICIES.get(source_code)

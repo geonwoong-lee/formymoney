@@ -1,113 +1,95 @@
 {
-  "name": "Very Rich - 공식 금융뉴스 후보 수집",
+  "name": "Very Rich - 공식 금융뉴스 수집·AI 검증",
   "nodes": [
-    {
-      "parameters": {},
-      "id": "2b53c6f3-1ae2-4e62-bd82-0a2507a88901",
-      "name": "수동 실행",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [-440, 80]
-    },
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "cronExpression",
-              "expression": "0 7 * * *"
-            }
-          ]
-        }
-      },
-      "id": "88453f0a-1e96-4587-a390-1c9f3c6b6ac2",
-      "name": "매일 오전 7시 KST",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [-440, -80]
-    },
+    {"parameters": {}, "id": "2b53c6f3-1ae2-4e62-bd82-0a2507a88901", "name": "수동 실행", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [-900, 140]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 7 * * *"}]}}, "id": "88453f0a-1e96-4587-a390-1c9f3c6b6ac2", "name": "매일 오전 7시 KST", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [-900, -20]},
     {
       "parameters": {
         "url": "={{$env.VERY_RICH_API_BASE_URL}}/api/v1/internal/daily/candidates/collect",
         "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "date",
-              "value": "={{$now.setZone('Asia/Seoul').minus({days: 1}).toISODate()}}"
-            },
-            {
-              "name": "maxCandidates",
-              "value": "3"
-            }
-          ]
-        },
+        "queryParameters": {"parameters": [{"name": "date", "value": "={{$now.setZone('Asia/Seoul').minus({days: 1}).toISODate()}}"}, {"name": "maxCandidates", "value": "3"}]},
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-Very-Rich-Ingest-Secret",
-              "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 30000
-        }
+        "headerParameters": {"parameters": [{"name": "X-Very-Rich-Ingest-Secret", "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"}]},
+        "options": {"timeout": 30000}
       },
-      "id": "013eb9c6-a640-4509-ab20-c9018cc51158",
-      "name": "FastAPI 공식 후보 수집",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [-160, 0],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000,
-      "onError": "continueRegularOutput"
+      "id": "013eb9c6-a640-4509-ab20-c9018cc51158", "name": "FastAPI 공식 후보 수집", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [-660, 60],
+      "retryOnFail": true, "maxTries": 3, "waitBetweenTries": 3000, "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"jsCode": "const response = $json;\nif (response.error) return [];\nreturn (response.candidates ?? []).filter((candidate) => candidate.eligibleForSummary === true).slice(0, 3).map((candidate) => ({ json: candidate }));"},
+      "id": "8944e54d-0038-4283-be24-f1abfcd1fd3c", "name": "공개 후보 최대 3개", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [-420, 60]
     },
     {
       "parameters": {
-        "jsCode": "const response = $json;\nif (response.error) {\n  return [{ json: { status: 'request_failed', candidates: [], sourceResults: [] } }];\n}\nconst candidates = (response.candidates ?? [])\n  .filter((candidate) => candidate.eligibleForSummary === true)\n  .slice(0, 3);\nreturn [{ json: {\n  status: response.status,\n  targetDate: response.targetDate,\n  candidates,\n  discoveryOnlyCount: (response.candidates ?? []).filter((candidate) => !candidate.eligibleForSummary).length,\n  duplicateCount: response.duplicateCount ?? 0,\n  sourceResults: response.sourceResults ?? []\n} }];"
+        "method": "POST", "url": "={{$env.VERY_RICH_API_BASE_URL}}/api/v1/internal/daily/candidates/evidence",
+        "sendHeaders": true, "headerParameters": {"parameters": [{"name": "X-Very-Rich-Ingest-Secret", "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"}]},
+        "sendBody": true, "contentType": "raw", "rawContentType": "application/json",
+        "body": "={{JSON.stringify({sourceCode:$json.sourceCode,sourceItemId:$json.sourceItemId,originalTitle:$json.originalTitle,canonicalUrl:$json.canonicalUrl,publishedAt:$json.publishedAt})}}",
+        "options": {"timeout": 30000}
       },
-      "id": "8944e54d-0038-4283-be24-f1abfcd1fd3c",
-      "name": "공개 후보 최대 3개",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [100, 0]
+      "id": "868cbb1d-b779-49a0-9bcf-96bc0e5ea248", "name": "원문 근거 준비", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [-180, 60],
+      "retryOnFail": true, "maxTries": 2, "waitBetweenTries": 3000, "onError": "continueRegularOutput"
     },
     {
-      "parameters": {},
-      "id": "11196b1f-dab2-49c8-b75e-f63cc445a1e5",
-      "name": "Phase 14 요약 입력 대기",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [360, 0]
-    }
+      "parameters": {
+        "jsCode": "const context = $json;\nconst schema = {type:'object',additionalProperties:false,properties:{schema_version:{type:'string',enum:['1.0']},source_item_id:{type:'string'},plain_headline:{type:'string'},summary_points:{type:'array',minItems:1,maxItems:3,items:{type:'object',additionalProperties:false,properties:{text:{type:'string'},evidence_ids:{type:'array',minItems:1,items:{type:'string',pattern:'^p[1-9][0-9]*$'}}},required:['text','evidence_ids']}},why_it_matters:{type:'object',additionalProperties:false,properties:{text:{type:'string'},evidence_ids:{type:'array',minItems:1,items:{type:'string',pattern:'^p[1-9][0-9]*$'}}},required:['text','evidence_ids']},related_terms:{type:'array',maxItems:3,items:{type:'string'}},caution:{type:'string',enum:['공식 발표를 쉽게 풀어쓴 요약이며 투자·가입 권유가 아닙니다. 원문을 함께 확인하세요.']}},required:['schema_version','source_item_id','plain_headline','summary_points','why_it_matters','related_terms','caution']};\nconst instructions = '당신은 공식 금융기관 발표를 쉬운 한국어로 요약합니다. 제공한 근거 문단만 사용하고 각 문장에 실제 evidence ID를 연결하세요. 근거에 없는 숫자, 날짜, 원인, 전망, 평가를 만들지 마세요. 특정 상품의 추천, 매수·매도, 수익 보장 표현을 쓰지 마세요.';\nconst source = {source_item_id:context.sourceItemId,source_name:'금융위원회',original_title:context.originalTitle,published_at:context.publishedAt,evidence:context.evidence};\nreturn [{json:{context,openaiRequest:{model:$env.OPENAI_MODEL || 'gpt-6-luna',store:false,reasoning:{effort:'none'},max_output_tokens:900,input:[{role:'developer',content:[{type:'input_text',text:instructions}]},{role:'user',content:[{type:'input_text',text:JSON.stringify(source)}]}],text:{format:{type:'json_schema',name:'very_rich_daily_briefing',strict:true,schema}}}}}];"
+      },
+      "id": "b52e0736-b230-4248-a923-a981e0cc197d", "name": "OpenAI 요청 준비", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [60, 60]
+    },
+    {
+      "parameters": {"method": "POST", "url": "https://api.openai.com/v1/responses", "authentication": "predefinedCredentialType", "nodeCredentialType": "openAiApi", "sendBody": true, "contentType": "raw", "rawContentType": "application/json", "body": "={{JSON.stringify($json.openaiRequest)}}", "options": {"batching": {"batch": {"batchSize": 1, "batchInterval": 1000}}, "timeout": 60000}},
+      "id": "96284fc2-753d-4c8b-9c3c-b3030afed765", "name": "OpenAI Structured Output", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [300, 60],
+      "retryOnFail": true, "maxTries": 2, "waitBetweenTries": 5000, "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"jsCode": "const context = $('OpenAI 요청 준비').item.json.context;\nreturn [{json:{sourceCode:context.sourceCode,sourceItemId:context.sourceItemId,originalTitle:context.originalTitle,canonicalUrl:context.canonicalUrl,publishedAt:context.publishedAt,fetchedAt:context.fetchedAt,contentSha256:context.contentSha256,evidence:context.evidence,openaiResponse:$json,promptVersion:'1.0'}}];"},
+      "id": "cce44521-5fba-41e5-b83e-295b35f6dd89", "name": "검증 요청 만들기", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [540, 60]
+    },
+    {
+      "parameters": {"method": "POST", "url": "={{$env.VERY_RICH_API_BASE_URL}}/api/v1/internal/daily/briefings/openai-result", "sendHeaders": true, "headerParameters": {"parameters": [{"name": "X-Very-Rich-Ingest-Secret", "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"}]}, "sendBody": true, "contentType": "raw", "rawContentType": "application/json", "body": "={{JSON.stringify($json)}}", "options": {"timeout": 30000}},
+      "id": "5022c78e-0fe7-46b1-8daa-9bc8cc7215cf", "name": "FastAPI 검증·저장", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [780, 60], "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2}, "conditions": [{"id": "dbf4d2f7-e609-445a-8e76-609a816aeccb", "leftValue": "={{$json.status === 'rejected' || $json.error !== undefined}}", "rightValue": true, "operator": {"type": "boolean", "operation": "true", "singleValue": true}}], "combinator": "and"}},
+      "id": "ced43fb4-7963-4a24-b63d-01beea2485ea", "name": "검증 실패 한 번 재시도", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [1020, 60]
+    },
+    {
+      "parameters": {"jsCode": "const base = $('OpenAI 요청 준비').item.json;\nconst errors = $json.validationErrors ?? [$json.error?.message ?? '응답 형식 또는 전송 실패'];\nconst retry = JSON.parse(JSON.stringify(base));\nretry.openaiRequest.input.push({role:'developer',content:[{type:'input_text',text:`이전 결과가 검증을 통과하지 못했습니다: ${errors.join(' | ')}. 같은 근거만 사용해 JSON 전체를 다시 작성하세요.`}]});\nreturn [{json:retry}];"},
+      "id": "fe1bc68b-e39e-4afe-a061-107580174501", "name": "재시도 요청 준비", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [1240, -40]
+    },
+    {
+      "parameters": {"method": "POST", "url": "https://api.openai.com/v1/responses", "authentication": "predefinedCredentialType", "nodeCredentialType": "openAiApi", "sendBody": true, "contentType": "raw", "rawContentType": "application/json", "body": "={{JSON.stringify($json.openaiRequest)}}", "options": {"batching": {"batch": {"batchSize": 1, "batchInterval": 1000}}, "timeout": 60000}},
+      "id": "88e97ca4-4c5b-4bce-9747-8ee6fe76e99c", "name": "OpenAI 한 번 재시도", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1480, -40], "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {"jsCode": "const context = $('OpenAI 요청 준비').item.json.context;\nreturn [{json:{sourceCode:context.sourceCode,sourceItemId:context.sourceItemId,originalTitle:context.originalTitle,canonicalUrl:context.canonicalUrl,publishedAt:context.publishedAt,fetchedAt:context.fetchedAt,contentSha256:context.contentSha256,evidence:context.evidence,openaiResponse:$json,promptVersion:'1.0'}}];"},
+      "id": "5de2d59d-9de3-45c5-89ac-b74a0367cb25", "name": "재검증 요청 만들기", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [1720, -40]
+    },
+    {
+      "parameters": {"method": "POST", "url": "={{$env.VERY_RICH_API_BASE_URL}}/api/v1/internal/daily/briefings/openai-result", "sendHeaders": true, "headerParameters": {"parameters": [{"name": "X-Very-Rich-Ingest-Secret", "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"}]}, "sendBody": true, "contentType": "raw", "rawContentType": "application/json", "body": "={{JSON.stringify($json)}}", "options": {"timeout": 30000}},
+      "id": "d7d2d128-690b-4c2f-a1e7-95c93b122706", "name": "FastAPI 최종 검증·저장", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1960, -40], "onError": "continueRegularOutput"
+    },
+    {"parameters": {}, "id": "5c4d568d-c8cd-4e17-b6ea-0a45969f349a", "name": "처리 완료", "type": "n8n-nodes-base.noOp", "typeVersion": 1, "position": [1240, 160]}
   ],
   "connections": {
-    "수동 실행": {
-      "main": [[{"node": "FastAPI 공식 후보 수집", "type": "main", "index": 0}]]
-    },
-    "매일 오전 7시 KST": {
-      "main": [[{"node": "FastAPI 공식 후보 수집", "type": "main", "index": 0}]]
-    },
-    "FastAPI 공식 후보 수집": {
-      "main": [[{"node": "공개 후보 최대 3개", "type": "main", "index": 0}]]
-    },
-    "공개 후보 최대 3개": {
-      "main": [[{"node": "Phase 14 요약 입력 대기", "type": "main", "index": 0}]]
-    }
+    "수동 실행": {"main": [[{"node": "FastAPI 공식 후보 수집", "type": "main", "index": 0}]]},
+    "매일 오전 7시 KST": {"main": [[{"node": "FastAPI 공식 후보 수집", "type": "main", "index": 0}]]},
+    "FastAPI 공식 후보 수집": {"main": [[{"node": "공개 후보 최대 3개", "type": "main", "index": 0}]]},
+    "공개 후보 최대 3개": {"main": [[{"node": "원문 근거 준비", "type": "main", "index": 0}]]},
+    "원문 근거 준비": {"main": [[{"node": "OpenAI 요청 준비", "type": "main", "index": 0}]]},
+    "OpenAI 요청 준비": {"main": [[{"node": "OpenAI Structured Output", "type": "main", "index": 0}]]},
+    "OpenAI Structured Output": {"main": [[{"node": "검증 요청 만들기", "type": "main", "index": 0}]]},
+    "검증 요청 만들기": {"main": [[{"node": "FastAPI 검증·저장", "type": "main", "index": 0}]]},
+    "FastAPI 검증·저장": {"main": [[{"node": "검증 실패 한 번 재시도", "type": "main", "index": 0}]]},
+    "검증 실패 한 번 재시도": {"main": [[{"node": "재시도 요청 준비", "type": "main", "index": 0}], [{"node": "처리 완료", "type": "main", "index": 0}]]},
+    "재시도 요청 준비": {"main": [[{"node": "OpenAI 한 번 재시도", "type": "main", "index": 0}]]},
+    "OpenAI 한 번 재시도": {"main": [[{"node": "재검증 요청 만들기", "type": "main", "index": 0}]]},
+    "재검증 요청 만들기": {"main": [[{"node": "FastAPI 최종 검증·저장", "type": "main", "index": 0}]]},
+    "FastAPI 최종 검증·저장": {"main": [[{"node": "처리 완료", "type": "main", "index": 0}]]}
   },
   "active": false,
-  "settings": {
-    "timezone": "Asia/Seoul",
-    "saveDataSuccessExecution": "none",
-    "saveDataErrorExecution": "all",
-    "executionTimeout": 120
-  },
-  "versionId": "324a4e45-2256-48ba-ab7a-7d71ead0bacc",
-  "meta": {
-    "templateCredsSetupCompleted": false
-  },
+  "settings": {"timezone": "Asia/Seoul", "saveDataSuccessExecution": "none", "saveDataErrorExecution": "all", "executionTimeout": 300},
+  "versionId": "aab2c6de-e9b4-4caa-b785-225b69721d85",
+  "meta": {"templateCredsSetupCompleted": false},
   "tags": []
 }

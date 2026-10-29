@@ -67,7 +67,7 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 완료: **Phase 11 — 공식 출처·저장 범위·Scrapling 제한·AI 검증 기준 확정**
 - 완료: **Phase 12 — 브리핑 DB·API 기반**
 - 완료: **Phase 13 — n8n 공식 피드 수집**
-- 다음: **Phase 14 — OpenAI 요약·사실 검증**
+- 진행 중: **Phase 14 — 코드·검증 흐름 완료, n8n OpenAI Credential 연결과 실호출 평가 필요**
 - 현재 은행별 적금과 36개월 변동 납입을 계산하고, 같은 현금흐름을 QQQ·SCHD·QLD·BND·KODEX 코스닥150 과거 시계열과 한 화면에서 비교할 수 있습니다.
 
 Phase 0에서 확정한 내용은 다음과 같습니다.
@@ -118,7 +118,12 @@ Phase 1에서 준비한 내용은 다음과 같습니다.
 - 파란 제목 표시줄과 입체 테두리 창
 - 하단 작업표시줄과 시작 메뉴
 - 아이콘을 누르면 같은 데스크톱 안에서 기능 창이 열리는 구조
+- 열린 금융 화면과 놀이용 앱을 작업표시줄에서 각각 최소화·복원하는 다중 창 구조
+- 날짜·실시간 시계, 바탕화면 드래그 선택 상자
+- 메모장·그림판·계산기·지뢰찾기는 바탕화면에 따로 두지 않고 모두 `내 폴더` 안에서 실행
 - 사용자가 제공한 레퍼런스 시트에서 선택해 추출한 픽셀 아이콘 6종
+- 놀이용 앱 아이콘도 사용자가 제공한 픽셀 아이콘 시트의 유사 아이콘을 사용
+- 브라우저 파비콘은 보라색 물음표 책 아이콘을 사용하고, 금융 대시보드 6개 아이콘은 새로 제공된 Windows 98 아이콘 시트를 우선 사용
 - 공개 배포 전 레퍼런스 아이콘의 사용 권한을 확인할 예정
 
 ## 문서 안내
@@ -128,6 +133,7 @@ Phase 1에서 준비한 내용은 다음과 같습니다.
 - [기능 동작 설명서](docs/spec.md): 기능별 입력, 정상 결과, 오류와 검증 방법
 - [개발 계획](docs/plan.md): Phase별 구현 순서, 의존 관계와 완료 기준
 - [브리핑 수집·요약 기준](docs/daily_briefing_policy.md): 공식 출처, Scrapling 제한, AI 검증과 보안 원칙
+- [세션 인수인계 명세서](docs/SESSION_HANDOFF.md): 다른 세션에서 바로 이어가기 위한 현재 구현 상태·실행법·다음 작업
 
 ## 개발 로드맵
 
@@ -216,6 +222,32 @@ npm.cmd run test
 npm.cmd run build
 ```
 
+### 6. 기준자료 갱신
+
+투자 기준자료는 실행일을 기준으로 **마지막으로 완료된 월부터 최근 36개월**을 수집합니다. 가격·환율 누락, 지원 자산, 기간과 양수 여부를 모두 통과한 경우에만 Supabase의 기존 자료를 한 트랜잭션으로 교체합니다. 검증이나 DB 반영이 실패하면 이전 정상 자료를 유지합니다.
+
+로컬에서 수집과 검증만 확인하려면 다음 명령을 실행합니다. 이 명령은 DB를 수정하지 않습니다.
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe scripts\sync_market_data.py --dry-run
+```
+
+검증 후 Supabase에 반영하려면 `--dry-run`을 빼고 실행합니다.
+
+```powershell
+..\.venv\Scripts\python.exe scripts\sync_market_data.py
+```
+
+`.github/workflows/reference-data.yml`은 매월 3일 오전 9시(KST)에 같은 작업을 실행합니다. GitHub 저장소의 `Settings > Secrets and variables > Actions`에 `VERY_RICH_DATABASE_URL`을 Repository secret으로 등록해야 하며 실제 값은 코드나 문서에 넣지 않습니다. Actions의 `Run workflow`에서 수동 실행도 가능합니다.
+
+적금 공시는 매주 원문 변경 여부만 확인하고 자동으로 금리·조건을 덮어쓰지 않습니다. 변경이 감지되면 공식 원문과 현재 데이터를 사람이 대조한 뒤 다음 명령으로 검토한 페이지의 기준선을 갱신합니다.
+
+```powershell
+..\.venv\Scripts\python.exe scripts\check_savings_sources.py
+..\.venv\Scripts\python.exe scripts\check_savings_sources.py --write-baseline
+```
+
 환경값을 바꿔야 할 때는 [프론트 예시](frontend/.env.example)와 [백엔드 예시](backend/.env.example)를 참고해 각각의 폴더에 `.env`를 만듭니다. 예시 파일에는 실제 비밀값을 넣지 않습니다.
 
 ## 보안과 데이터 원칙
@@ -246,7 +278,18 @@ Phase 13에서는 로컬 Docker n8n이 매일 오전 7시(KST)에 FastAPI 내부
 - 내부 인증 헤더: `X-Very-Rich-Ingest-Secret`
 - 부분 실패 시 성공한 출처는 계속 처리하고, 전체 실패 시 게시 단계로 넘길 후보를 만들지 않습니다.
 - 워크플로 JSON에는 비밀번호·API 키·내부 비밀값을 넣지 않고 환경변수 이름만 기록합니다.
-- Phase 13은 후보 수집까지만 담당합니다. AI 요약과 검증·저장은 Phase 14에서 연결합니다.
+- Phase 14 구현으로 공식 원문의 근거 문단 준비, OpenAI Structured Outputs, FastAPI 재검증·저장까지 연결했습니다.
+
+### 3. Phase 14 AI 요약과 사실 검증
+
+- 금융위원회 상세 원문에서 최대 12개·총 16,000자의 근거 문단만 메모리에서 준비합니다.
+- 근거 준비 API는 `POST /api/v1/internal/daily/candidates/evidence`, AI 결과 검증·저장 API는 `POST /api/v1/internal/daily/briefings/openai-result`입니다.
+- OpenAI 요청에는 공식 제목·발표일·근거 문단만 포함하고 사용자 답변이나 금융정보는 포함하지 않습니다.
+- JSON Schema 1.0으로 쉬운 제목, 핵심 내용, 중요한 이유, 관련 용어와 고정 주의문구를 받습니다.
+- FastAPI가 응답 완료 여부, 거절, JSON 형식, 근거 ID, 숫자와 금지 표현을 다시 검사합니다.
+- 후보는 하루 최대 3개, 검증 실패 재요청은 항목별 한 번, 출력은 요청당 최대 900토큰입니다.
+- 개발 기본 모델은 `gpt-6-luna`이며 n8n 환경값으로 변경할 수 있습니다.
+- 실제 API 키는 n8n OpenAI Credential에 직접 등록해야 합니다. 현재 Credential과 실호출 품질 평가는 완료되지 않았습니다.
 
 ## 주의사항
 
@@ -259,8 +302,9 @@ Very Rich?가 보여주는 금액은 입력값과 공개된 기준 자료를 사
 - 가입 상태·가입 월·전환 여부·주거래 은행을 브라우저에 임시 저장하고 전체 초기화할 수 있습니다.
 - `/banks`에서 예상금리·만기금액·주거래 은행 대비 차액을 비교하고 `/banks/{은행코드}`에서 계산 근거를 확인할 수 있습니다.
 - `/cashflow`에서 36개월 납입액을 각각 수정하고 미납 월을 0원으로 입력해 원금·이자·정부기여금·만기액과 고정 납입 대비 차액을 확인할 수 있습니다.
-- `/api/v1/investments`는 2023년 10월~2026년 9월 QQQ·SCHD·QLD·BND·KODEX 코스닥150 조정주가로 동일 현금흐름의 과거 시나리오를 계산합니다.
+- `/api/v1/investments`는 마지막으로 완료된 월부터 최근 36개월의 QQQ·SCHD·QLD·BND·KODEX 코스닥150 조정주가로 동일 현금흐름의 과거 시나리오를 계산합니다.
 - `/alternatives`에서 적금과 선택한 투자 대안의 종료금액·증감·최대 낙폭·위험·출처를 비교할 수 있습니다.
+- `/about`에서 설문 표본·조사기간, 적금·투자 계산 방법, 상품별 출처·기준일과 미반영 요소를 확인할 수 있습니다.
 - 투자 계산은 배당 재투자와 환율을 반영하지만 개인별 세금과 증권사 거래 수수료는 반영하지 않습니다.
 - KODEX 코스닥150은 코스닥 전체지수가 아니라 대표 150종목을 추종하는 원화 ETF이며 환율을 적용하지 않습니다.
 - 레트로 기능 창은 이동·크기 조절·최소화·최대화·복원이 가능합니다.

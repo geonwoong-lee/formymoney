@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from email.utils import parsedate_to_datetime
+import hashlib
 import time
 from typing import Callable
 from urllib.parse import parse_qs, urljoin, urlsplit
@@ -16,6 +17,9 @@ from app.data.daily_sources import DAILY_SOURCE_POLICIES
 
 USER_AGENT = "VeryRichResearchBot/0.1 (+local portfolio project)"
 MAX_RESPONSE_BYTES = 2_000_000
+MAX_EVIDENCE_PARAGRAPHS = 12
+MAX_EVIDENCE_PARAGRAPH_CHARS = 2_000
+MAX_EVIDENCE_TOTAL_CHARS = 16_000
 
 
 class OfficialCollectionError(RuntimeError):
@@ -42,6 +46,13 @@ class SourceCollectionResult:
 @dataclass(frozen=True)
 class CollectionBatch:
     results: tuple[SourceCollectionResult, ...]
+
+
+@dataclass(frozen=True)
+class CollectedEvidence:
+    fetched_at: datetime
+    content_sha256: str
+    paragraphs: tuple[str, ...]
 
 
 FetchBytes = Callable[[str], tuple[bytes, str]]
@@ -137,6 +148,70 @@ def _parse_fsc_listing(body: bytes, target_date: date) -> tuple[CollectedCandida
             )
         )
     return tuple(candidates)
+
+
+def _clean_paragraphs(body: bytes) -> tuple[str, ...]:
+    try:
+        document = html.fromstring(body.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as error:
+        raise OfficialCollectionError("official detail page was not valid UTF-8 HTML") from error
+
+    nodes = document.cssselect(".board-view-wrap .body .cont p")
+    if not nodes:
+        nodes = document.cssselect(".board-view-wrap .body p")
+
+    paragraphs: list[str] = []
+    total_chars = 0
+    for node in nodes:
+        text = " ".join(node.text_content().split())
+        if len(text) < 10:
+            continue
+        text = text[:MAX_EVIDENCE_PARAGRAPH_CHARS]
+        if total_chars + len(text) > MAX_EVIDENCE_TOTAL_CHARS:
+            break
+        paragraphs.append(text)
+        total_chars += len(text)
+        if len(paragraphs) >= MAX_EVIDENCE_PARAGRAPHS:
+            break
+    if not paragraphs:
+        raise OfficialCollectionError("official detail page did not contain summary evidence")
+    return tuple(paragraphs)
+
+
+def collect_candidate_evidence(
+    candidate: CollectedCandidate,
+    fetch_bytes: FetchBytes | None = None,
+) -> CollectedEvidence:
+    policy = DAILY_SOURCE_POLICIES.get(candidate.source_code)
+    if policy is None or not policy["summary_allowed"]:
+        raise OfficialCollectionError("source is not allowed for AI summaries")
+
+    requested = urlsplit(candidate.canonical_url)
+    if (
+        requested.scheme != "https"
+        or requested.hostname != policy["allowed_host"]
+        or not requested.path.startswith(str(policy["allowed_path_prefix"]))
+    ):
+        raise OfficialCollectionError("candidate URL is outside the allowed official path")
+
+    fetch = fetch_bytes or _fetch_bytes
+    try:
+        body, final_url = fetch(candidate.canonical_url)
+    except OfficialCollectionError:
+        raise
+    except Exception as error:
+        raise OfficialCollectionError("official detail page could not be read") from error
+    final = urlsplit(final_url)
+    if final.hostname != policy["allowed_host"] or not final.path.startswith(str(policy["allowed_path_prefix"])):
+        raise OfficialCollectionError("official detail page redirected outside the allowed path")
+
+    paragraphs = _clean_paragraphs(body)
+    normalized = "\n".join(paragraphs).encode("utf-8")
+    return CollectedEvidence(
+        fetched_at=datetime.now(timezone.utc),
+        content_sha256=hashlib.sha256(normalized).hexdigest(),
+        paragraphs=paragraphs,
+    )
 
 
 def collect_official_candidates(

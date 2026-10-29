@@ -1,0 +1,55 @@
+name: Reference data maintenance
+
+on:
+  schedule:
+    # 매월 3일 오전 9시(KST). 직전 월의 월봉이 확정된 뒤 실행한다.
+    - cron: "0 0 3 * *"
+    # 매주 월요일 오전 9시(KST). 공시는 바꾸지 않고 변경 여부만 알린다.
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Task to run"
+        required: true
+        default: "market-sync"
+        type: choice
+        options:
+          - market-sync
+          - savings-source-check
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reference-data-maintenance
+  cancel-in-progress: false
+
+jobs:
+  market-sync:
+    if: github.event.schedule == '0 0 3 * *' || inputs.job == 'market-sync'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERY_RICH_DATABASE_URL: ${{ secrets.VERY_RICH_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: python -m pip install -r backend/requirements.txt
+      - name: Fetch, validate, and update Supabase
+        run: python backend/scripts/sync_market_data.py
+
+  savings-source-check:
+    if: github.event.schedule == '0 0 * * 1' || inputs.job == 'savings-source-check'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Detect official disclosure page changes
+        run: python backend/scripts/check_savings_sources.py

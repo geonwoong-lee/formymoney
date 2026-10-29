@@ -93,6 +93,27 @@
 .assumption-list span::before { content: "· "; }
 .risk-warning { min-height: 48px; padding: 7px; background: #fff; color: #700; font-size: 11px; line-height: 1.5; }
 .alternative-card a { font-size: 11px; }
+.about-warning { display: grid; gap: 5px; margin: 20px 0; padding: 12px; border: 2px inset #fff; background: #ffffc0; font-size: 12px; line-height: 1.5; }
+.about-warning strong { color: #800; }
+.reference-section { margin-top: 18px; padding: 14px; border: 2px outset #fff; background: var(--panel); }
+.reference-section h2 { margin: 0 0 12px; color: #000080; font: 700 19px "Courier New", monospace; }
+.reference-section h3 { margin: 18px 0 8px; font-size: 14px; }
+.reference-section p, .method-list, .limit-list { font-size: 12px; line-height: 1.65; }
+.reference-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 0; }
+.reference-facts div { padding: 9px; border: 2px inset #fff; background: #fff; }
+.reference-facts dt { color: #555; font-size: 10px; }
+.reference-facts dd { margin: 5px 0 0; font-size: 12px; font-weight: 700; }
+.reference-caution, .reference-summary { padding: 9px; background: #fff; }
+.reference-caution { color: #555; }
+.reference-summary { border-left: 4px solid #000080; }
+.method-list, .limit-list { display: grid; gap: 7px; padding-left: 22px; }
+.source-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.source-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px; border: 1px solid #808080; background: #fff; }
+.source-list b, .source-list small { display: block; }
+.source-list small { margin-top: 3px; color: #555; font-size: 10px; }
+.source-list a, .source-list em { font-size: 10px; white-space: nowrap; }
+.source-list em { color: #900; }
+.source-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px 9px; }
 
 html, body, #root { height: 100%; overflow: hidden; }
 .retro-desktop { height: 100vh; min-height: 0; overflow: hidden; }
@@ -123,4 +144,7 @@ html, body, #root { height: 100%; overflow: hidden; }
   .money-breakdown { grid-template-columns: 1fr; }
   .cashflow-controls { grid-template-columns: 1fr; }
   .alternative-results { grid-template-columns: 1fr; }
+  .reference-facts { grid-template-columns: 1fr; }
+  .source-list li { align-items: flex-start; flex-direction: column; }
+  .source-links { justify-content: flex-start; }
 }

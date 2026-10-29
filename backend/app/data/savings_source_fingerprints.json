@@ -1,0 +1,19 @@
+{
+  "sources": [
+    {
+      "name": "서민금융진흥원 청년미래적금 정책",
+      "url": "https://www.kinfa.or.kr/financialProduct/youthFutureSavings.do",
+      "sha256": "3051b96abcf065e796cfb97c1d3fa111953cab8ec33f3f54e71b67abc0a697a3"
+    },
+    {
+      "name": "은행연합회 청년미래적금 금리비교",
+      "url": "https://portal.kfb.or.kr/compare/receiving_youth_future.php",
+      "sha256": "855e12841f51b4940acfde551adf7a37580f25b25ef3de82323727231f28124b"
+    },
+    {
+      "name": "KB국민은행 청년미래적금 공시",
+      "url": "https://ombr1.kbstar.com/quics?TmpltID=TP03037&page=C106592",
+      "sha256": "5bc8bfdadeaebb2a1349320d55bf2108569f6aace02b373cb6f550f618a88386"
+    }
+  ]
+}

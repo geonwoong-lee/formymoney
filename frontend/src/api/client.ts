@@ -109,8 +109,15 @@ export interface InvestmentAsset {
   ticker: string
   name: string
   category: string
+  currency: string
   benchmark: string
   leveraged: boolean
+  expenseRatioPercent: number
+  distributionPolicy: string
+  providerSourceUrl: string
+  priceSourceUrl: string
+  fxSourceUrl: string
+  sourceDate: string
   warning: string
   startMonth: string
   endMonth: string

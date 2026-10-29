@@ -15,7 +15,7 @@
 | 백엔드 | FastAPI |
 | 운영 DB | Supabase PostgreSQL |
 | 개발·테스트 DB | SQLite3 |
-| 현재 단계 | v1 Phase 9 통합 QA 진행 중, v2 Phase 11 기준·출처 확정 완료, 다음 Phase 12 DB·API 기반 |
+| 현재 단계 | v1 Phase 9 통합 QA 진행 중, v2 Phase 14 코드·자동검증 구현 완료, n8n OpenAI Credential 연결과 실호출 평가 대기 |
 
 출처: [컨슈머인사이트 금융플랫폼 기획조사](https://www.consumerinsight.co.kr/up_files/2606_finance.pdf)
 

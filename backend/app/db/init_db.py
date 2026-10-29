@@ -41,6 +41,11 @@ def initialize_database(session_factory: SessionFactory) -> None:
 
 def _initialize_investments(session: Session) -> None:
     snapshot = json.loads(MARKET_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    upsert_investment_snapshot(session, snapshot)
+
+
+def upsert_investment_snapshot(session: Session, snapshot: dict[str, object]) -> None:
+    """Replace supported market reference rows inside the caller's transaction."""
     for data in snapshot["assets"]:
         values = dict(data)
         points = values.pop("points")

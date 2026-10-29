@@ -1,6 +1,6 @@
-# Phase 13 로컬 n8n
+# Phase 13~14 로컬 n8n
 
-이 구성은 매일 오전 7시(KST)에 전날의 공식 금융뉴스 후보를 FastAPI에 요청한다. 금융위원회는 공식 RSS를 먼저 확인하고 실패할 때만 허용된 공식 목록을 Scrapling 일반 Fetcher로 읽는다. 한국은행은 발견·링크 전용이며 AI 요약 후보에 포함하지 않는다.
+이 구성은 매일 오전 7시(KST)에 전날의 공식 금융뉴스 후보를 FastAPI에 요청하고, 금융위원회 공식 원문의 근거 문단만 OpenAI Responses API로 요약한다. 금융위원회는 공식 RSS를 먼저 확인하고 실패할 때만 허용된 공식 목록을 Scrapling 일반 Fetcher로 읽는다. 한국은행은 발견·링크 전용이며 AI 요약 후보에 포함하지 않는다.
 
 ## 1. 환경값 준비
 
@@ -9,6 +9,7 @@
 - `N8N_ENCRYPTION_KEY`: n8n Credential 암호화용 임의 문자열
 - `VERY_RICH_N8N_INGEST_SECRET`: `backend/.env`와 같은 내부 API 비밀값
 - `VERY_RICH_API_BASE_URL`: 기본값을 사용하며 FastAPI 포트를 바꾼 경우만 수정
+- `OPENAI_MODEL`: 기본값 `gpt-6-luna`. API 키가 아니라 공개 가능한 모델 이름
 
 실제 값이 든 `.env`는 Git에 포함하지 않는다.
 
@@ -21,18 +22,27 @@ docker compose --env-file automation/n8n/.env -f automation/n8n/compose.yml up -
 docker compose --env-file automation/n8n/.env -f automation/n8n/compose.yml run --rm n8n import:workflow --input=/workflows/daily-official-candidates.json
 ```
 
-브라우저에서 `http://localhost:5678`을 열고 `Very Rich - 공식 금융뉴스 후보 수집`을 확인한다. 처음에는 비활성 상태이므로 수동 실행 결과를 확인한 뒤 게시해야 오전 7시 예약이 작동한다.
+브라우저에서 `http://localhost:5678`을 열고 `Very Rich - 공식 금융뉴스 수집·AI 검증`을 확인한다. 처음에는 비활성 상태이므로 수동 실행 결과를 확인한 뒤 게시해야 오전 7시 예약이 작동한다.
 
-## 3. 결과 확인
+## 3. OpenAI Credential 연결
+
+1. n8n의 `Credentials`에서 `OpenAI API` Credential을 새로 만든다.
+2. 사용자가 보관한 OpenAI API 키를 n8n 화면에 직접 입력한다.
+3. 워크플로의 `OpenAI Structured Output`과 `OpenAI 한 번 재시도` 노드에서 같은 Credential을 선택한다.
+4. API 키는 `.env`, workflow JSON, 코드와 Git에 넣지 않는다.
+
+후보는 하루 최대 3개이고 항목별 첫 요청과 검증 실패 재시도 한 번까지만 실행하므로 하루 최대 6회 요청한다. 출력은 항목당 최대 900토큰이다. 기본 모델과 이 제한을 사용한 개발 운영 기준은 하루 미화 0.02달러 이하이며, 저장된 브리핑의 실제 토큰 수와 당시 공식 가격으로 다시 확인한다.
+
+## 4. 결과 확인
 
 - `status=ok`: 출처 확인이 끝났고 새 후보가 있음
 - `status=partial`: 한 출처는 실패했지만 다른 출처 결과는 있음
 - `status=no_candidates`: 해당 날짜에 새 후보가 없거나 기존 DB 자료와 중복됨
 - `status=all_failed` 또는 `request_failed`: 새 브리핑을 만들지 않음
 
-워크플로는 요약 가능한 금융위원회 후보만 최대 3개 남긴다. OpenAI 호출과 최종 저장은 Phase 14에서 연결한다.
+워크플로는 요약 가능한 금융위원회 후보만 최대 3개 남긴다. OpenAI가 거절하거나 응답이 중간에 끊기거나 JSON 형식이 틀리면 게시하지 않는다. FastAPI가 근거 ID, 숫자와 금지 표현을 다시 검사하고, 실패한 항목은 한 번만 다시 요청한다.
 
-## 4. 중지
+## 5. 중지
 
 ```powershell
 docker compose --env-file automation/n8n/.env -f automation/n8n/compose.yml down

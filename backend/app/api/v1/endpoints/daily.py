@@ -8,10 +8,19 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.schemas.daily_briefing import (
     BriefingIngestRequest,
     BriefingIngestResponse,
+    CandidateEvidenceRequest,
+    CandidateEvidenceResponse,
     DailyCandidateCollectionResponse,
     DailyBriefingResponse,
+    EvidenceParagraph,
+    OpenAIResultIngestRequest,
 )
-from app.collectors.official_news import collect_official_candidates
+from app.collectors.official_news import (
+    CollectedCandidate,
+    OfficialCollectionError,
+    collect_candidate_evidence,
+    collect_official_candidates,
+)
 from app.services.daily_candidate_service import DailyCandidateService
 from app.services.daily_briefing_service import DailyBriefingInputError, DailyBriefingService
 
@@ -70,6 +79,56 @@ def collect_daily_candidates(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="수집 후보의 중복 여부를 확인하지 못했습니다.",
+        ) from error
+
+
+@router.post("/internal/daily/candidates/evidence", response_model=CandidateEvidenceResponse)
+def prepare_candidate_evidence(
+    payload: CandidateEvidenceRequest,
+    request: Request,
+    ingest_secret: str | None = Header(default=None, alias="X-Very-Rich-Ingest-Secret"),
+) -> CandidateEvidenceResponse:
+    _require_ingest_secret(request, ingest_secret)
+    collector = getattr(request.app.state, "daily_evidence_collector", collect_candidate_evidence)
+    try:
+        result = collector(
+            CollectedCandidate(
+                source_code=payload.source_code,
+                source_item_id=payload.source_item_id,
+                original_title=payload.original_title,
+                canonical_url=payload.canonical_url,
+                published_at=payload.published_at,
+            )
+        )
+    except OfficialCollectionError as error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="공식 원문에서 요약 근거를 준비하지 못했습니다.",
+        ) from error
+    return CandidateEvidenceResponse(
+        **payload.model_dump(),
+        fetched_at=result.fetched_at,
+        content_sha256=result.content_sha256,
+        evidence=[EvidenceParagraph(id=f"p{index}", text=text) for index, text in enumerate(result.paragraphs, 1)],
+    )
+
+
+@router.post("/internal/daily/briefings/openai-result", response_model=BriefingIngestResponse)
+def ingest_openai_result(
+    payload: OpenAIResultIngestRequest,
+    request: Request,
+    ingest_secret: str | None = Header(default=None, alias="X-Very-Rich-Ingest-Secret"),
+) -> BriefingIngestResponse:
+    _require_ingest_secret(request, ingest_secret)
+    try:
+        with request.app.state.session_factory() as session:
+            return DailyBriefingService(session).ingest_openai_result(payload)
+    except DailyBriefingInputError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI 브리핑 결과를 저장하지 못했습니다.",
         ) from error
 
 

@@ -98,4 +98,60 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: '앞으로 가기' }))
     expect(screen.getByRole('heading', { name: '월별 납입 계획' })).toBeInTheDocument()
   })
+
+  it('opens several desktop apps and lists every window on the taskbar', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn())
+
+    render(<MemoryRouter><App /></MemoryRouter>)
+
+    await user.click(screen.getByRole('button', { name: '내 폴더' }))
+    const folder = screen.getByRole('region', { name: '내 폴더' })
+    await user.click(within(folder).getByRole('button', { name: '메모장' }))
+    await user.click(within(folder).getByRole('button', { name: '계산기' }))
+
+    expect(screen.getByRole('region', { name: '제목 없음 - 메모장' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '계산기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '열린 창: 제목 없음 - 메모장' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '열린 창: 계산기' })).toBeInTheDocument()
+  })
+
+  it('calculates with the playable retro calculator', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn())
+
+    render(<MemoryRouter><App /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: '내 폴더' }))
+    await user.click(within(screen.getByRole('region', { name: '내 폴더' })).getByRole('button', { name: '계산기' }))
+    const calculator = screen.getByRole('region', { name: '계산기' })
+    await user.click(within(calculator).getByRole('button', { name: '7' }))
+    await user.click(within(calculator).getByRole('button', { name: '+' }))
+    await user.click(within(calculator).getByRole('button', { name: '3' }))
+    await user.click(within(calculator).getByRole('button', { name: '=' }))
+
+    expect(within(calculator).getByLabelText('계산기 표시창')).toHaveTextContent('10')
+  })
+
+  it('shows both the current date and time in the taskbar', () => {
+    vi.stubGlobal('fetch', vi.fn())
+    render(<MemoryRouter><App /></MemoryRouter>)
+
+    expect(screen.getByLabelText(/현재 날짜.+현재 시각/)).toBeInTheDocument()
+  })
+
+  it('keeps utility apps inside My Folder instead of on the desktop', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn())
+    render(<MemoryRouter><App /></MemoryRouter>)
+
+    const desktop = screen.getByRole('navigation', { name: '바탕화면 바로가기' })
+    expect(within(desktop).queryByRole('button', { name: '메모장' })).not.toBeInTheDocument()
+    expect(within(desktop).queryByRole('button', { name: '그림판' })).not.toBeInTheDocument()
+    await user.click(within(desktop).getByRole('button', { name: '내 폴더' }))
+    const folder = screen.getByRole('region', { name: '내 폴더' })
+    expect(within(folder).getByRole('button', { name: '메모장' })).toBeInTheDocument()
+    expect(within(folder).getByRole('button', { name: '그림판' })).toBeInTheDocument()
+    expect(within(folder).getByRole('button', { name: '계산기' })).toBeInTheDocument()
+    expect(within(folder).getByRole('button', { name: '지뢰찾기' })).toBeInTheDocument()
+  })
 })

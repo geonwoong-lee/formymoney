@@ -1,5 +1,5 @@
 :root {
-  font-family: Tahoma, "MS Sans Serif", "Noto Sans KR", sans-serif;
+  font-family: "MS Sans Serif", Tahoma, "Noto Sans KR", sans-serif;
   color: #000;
   background: #008080;
   font-synthesis: none;
@@ -40,7 +40,8 @@ button,
 input,
 select,
 textarea {
-  font: inherit;
+  font-family: "MS Sans Serif", Tahoma, "Noto Sans KR", sans-serif;
+  font-size: inherit;
 }
 
 a:focus-visible,

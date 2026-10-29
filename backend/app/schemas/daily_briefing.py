@@ -143,3 +143,36 @@ class DailyCandidateCollectionResponse(CamelModel):
     candidates: list[DailyCandidateResponse]
     duplicate_count: int
     source_results: list[CandidateSourceResult]
+
+
+class CandidateEvidenceRequest(CamelModel):
+    source_code: str = Field(min_length=1, max_length=50)
+    source_item_id: str = Field(min_length=1, max_length=255)
+    original_title: str = Field(min_length=1, max_length=500)
+    canonical_url: str = Field(min_length=1, max_length=1_000)
+    published_at: datetime
+
+    @field_validator("published_at")
+    @classmethod
+    def evidence_date_requires_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("datetime must include timezone")
+        return value
+
+
+class CandidateEvidenceResponse(CandidateEvidenceRequest):
+    fetched_at: datetime
+    content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence: list[EvidenceParagraph] = Field(min_length=1, max_length=12)
+
+    @field_validator("fetched_at")
+    @classmethod
+    def fetched_date_requires_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("datetime must include timezone")
+        return value
+
+
+class OpenAIResultIngestRequest(CandidateEvidenceResponse):
+    openai_response: dict[str, object]
+    prompt_version: Literal["1.0"] = "1.0"
