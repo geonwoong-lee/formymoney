@@ -24,6 +24,7 @@ def create_app(
     database_url: str | None = None,
     auth_gateway: AuthGateway | None = None,
     create_schema_for_tests: bool = False,
+    n8n_ingest_secret: str | None = None,
 ) -> FastAPI:
     settings = get_settings()
     configured_url = database_url or settings.database_url
@@ -67,6 +68,7 @@ def create_app(
         settings.supabase_url,
         settings.supabase_anon_key,
     )
+    app.state.n8n_ingest_secret = n8n_ingest_secret or settings.n8n_ingest_secret
 
     app.add_middleware(
         CORSMiddleware,

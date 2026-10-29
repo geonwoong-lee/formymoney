@@ -31,7 +31,7 @@
 
 ## 2. 전체 Phase
 
-현재 v1의 **Phase 7 적금·투자 비교와 Phase 8 Supabase 운영 연결**을 완료했고 Phase 9 QA는 진행 중이다. v2는 **Phase 11 기준·출처 확정**을 완료했으며, 다음 v2 작업은 **Phase 12 — 브리핑 DB·API 기반**이다. 자동 테스트는 SQLite3를 사용하고 실제 서비스 기준 데이터는 Supabase PostgreSQL에서 조회한다.
+현재 v1의 **Phase 7 적금·투자 비교와 Phase 8 Supabase 운영 연결**을 완료했고 Phase 9 QA는 진행 중이다. v2는 **Phase 12 브리핑 DB·API 기반**까지 완료했으며, 다음 v2 작업은 **Phase 13 — n8n 공식 피드 수집**이다. 자동 테스트는 SQLite3를 사용하고 실제 서비스 기준 데이터는 Supabase PostgreSQL에서 조회한다.
 
 2026년 10월 28일, 공통 화면을 레트로 데스크톱 UI로 변경했다. 바탕화면 아이콘, 기능 창, 시작 메뉴와 작업표시줄은 기존 React 경로를 그대로 사용하며 금융 기능 범위에는 영향을 주지 않는다.
 

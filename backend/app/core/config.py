@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     frontend_origins: str = "http://localhost:5173"
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
+    n8n_ingest_secret: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

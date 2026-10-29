@@ -65,7 +65,8 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 완료: **Phase 8 핵심 작업 — Supabase PostgreSQL 연결·마이그레이션·상품 적재**
 - 진행 중: **Phase 9 — 계산 기준·출처 화면과 기준자료 갱신 자동화 완료, 오류·모바일·통합 QA 진행 예정**
 - 완료: **Phase 11 — 공식 출처·저장 범위·Scrapling 제한·AI 검증 기준 확정**
-- 다음: **Phase 12 — 브리핑 DB·API 기반**
+- 완료: **Phase 12 — 브리핑 DB·API 기반**
+- 다음: **Phase 13 — n8n 공식 피드 수집**
 - 현재 은행별 적금과 36개월 변동 납입을 계산하고, 같은 현금흐름을 QQQ·SCHD·QLD·BND·KODEX 코스닥150 과거 시계열과 한 화면에서 비교할 수 있습니다.
 
 Phase 0에서 확정한 내용은 다음과 같습니다.
@@ -142,7 +143,7 @@ Phase 1에서 준비한 내용은 다음과 같습니다.
 - [ ] Phase 9 — 출처·오류·통합 QA
 - [ ] Phase 10 — 사용자 테스트와 공개 준비
 - [x] Phase 11 — v2 기준·출처 확정
-- [ ] Phase 12 — 브리핑 DB·API 기반
+- [x] Phase 12 — 브리핑 DB·API 기반
 - [ ] Phase 13 — n8n 공식 피드 수집
 - [ ] Phase 14 — OpenAI 요약·사실 검증
 - [ ] Phase 15 — `/daily` 화면·오늘의 금융용어
@@ -224,6 +225,16 @@ npm.cmd run build
 - Supabase 비밀값은 백엔드 실행 환경에만 두고 React 코드에 포함하지 않습니다.
 - OpenAI API 키는 v2 개발 시 n8n Credential에만 등록하고 workflow JSON·React·Git에 포함하지 않습니다.
 - n8n과 FastAPI 사이의 내부 비밀값도 실제 값은 환경변수 또는 Credential로만 관리합니다.
+
+## 데일리 브리핑 API 기반
+
+Phase 12에서는 공식 출처·원문 메타데이터·검증 결과·AI 요약·검수된 금융용어를 Supabase에 저장하는 구조를 만들었습니다. 기사 전문과 수집에 사용한 근거 문단은 저장하지 않습니다.
+
+- `POST /api/v1/internal/daily/briefings`: n8n 전용 저장 API입니다. `X-Very-Rich-Ingest-Secret` 헤더 인증이 필요합니다.
+- `GET /api/v1/daily?date=YYYY-MM-DD`: 검증을 통과한 브리핑 최대 3개와 해당 날짜의 검수된 금융용어를 반환합니다. 날짜를 생략하면 한국 시간의 오늘을 사용합니다.
+- 동일한 공식 식별자·URL·본문 해시는 중복 저장하지 않습니다.
+- 출처 권한, 날짜 순서, 근거 문단, 숫자와 금지 표현 검증에 실패한 결과는 `rejected`로 남고 공개 API에는 표시되지 않습니다.
+- 실제 내부 비밀값은 `backend/.env`의 `VERY_RICH_N8N_INGEST_SECRET`에서만 관리합니다.
 
 ## 주의사항
 

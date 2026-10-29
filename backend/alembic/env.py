@@ -9,6 +9,10 @@ from app.db.base import Base
 from app.db.session import require_postgres_url
 from app.models import (
     BankSavingsProduct,
+    DailyBriefingItem,
+    DailyBriefingSource,
+    DailyTermAssignment,
+    FinancialTerm,
     InvestmentAsset,
     InvestmentMonthlyPoint,
     PreferentialCondition,
@@ -26,6 +30,10 @@ target_metadata = Base.metadata
 # 모델 import가 Alembic 메타데이터에 반영되도록 명시적으로 참조한다.
 _MODELS = (
     BankSavingsProduct,
+    DailyBriefingItem,
+    DailyBriefingSource,
+    DailyTermAssignment,
+    FinancialTerm,
     InvestmentAsset,
     InvestmentMonthlyPoint,
     PreferentialCondition,

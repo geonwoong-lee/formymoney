@@ -37,4 +37,4 @@ def test_alembic_has_single_initial_head() -> None:
     config = Config(backend_dir / "alembic.ini")
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["20261029_0002"]
+    assert script.get_heads() == ["20261029_0003"]
