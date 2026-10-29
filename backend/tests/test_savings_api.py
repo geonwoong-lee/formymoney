@@ -114,3 +114,59 @@ def test_same_request_is_deterministic(client: TestClient) -> None:
     second = _calculate(client).json()
 
     assert first == second
+
+
+def _calculate_cashflow(client: TestClient, **changes: object):
+    payload = {
+        "bankCode": "kb",
+        "monthlyAmounts": [500_000] * 36,
+        "fixedMonthlyAmount": 500_000,
+        "contributionType": "general",
+        "conditionAnswers": {},
+    }
+    payload.update(changes)
+    return client.post("/api/v1/savings/calculate-cashflow", json=payload)
+
+
+def test_cashflow_with_same_monthly_amount_matches_fixed_plan(client: TestClient) -> None:
+    response = _calculate_cashflow(client)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["termMonths"] == 36
+    assert body["result"]["principal"] == 18_000_000
+    assert body["result"]["expectedMaturityAmount"] == 20_550_750
+    assert body["fixedExpectedMaturityAmount"] == 20_550_750
+    assert body["differenceFromFixedPlan"] == 0
+
+
+def test_cashflow_zero_month_removes_principal_interest_and_contribution(client: TestClient) -> None:
+    monthly_amounts = [0] + [500_000] * 35
+    response = _calculate_cashflow(client, monthlyAmounts=monthly_amounts)
+
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["principal"] == sum(monthly_amounts)
+    assert result["depositInterest"] == 1_312_500
+    assert result["governmentContribution"] == 1_050_000
+    assert result["governmentContributionInterest"] == 78_750
+    assert result["expectedMaturityAmount"] == 19_941_250
+    assert response.json()["differenceFromFixedPlan"] == -609_500
+
+
+def test_cashflow_supports_reduced_and_multiple_changed_months(client: TestClient) -> None:
+    monthly_amounts = [250_000, 0, 100_000] + [500_000] * 33
+    response = _calculate_cashflow(client, monthlyAmounts=monthly_amounts)
+
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["principal"] == sum(monthly_amounts)
+    assert result["governmentContribution"] == round(sum(monthly_amounts) * 0.06)
+    assert result["expectedMaturityAmount"] < response.json()["fixedExpectedMaturityAmount"]
+
+
+def test_cashflow_rejects_wrong_month_count_and_invalid_amount(client: TestClient) -> None:
+    assert _calculate_cashflow(client, monthlyAmounts=[500_000] * 35).status_code == 422
+    assert _calculate_cashflow(client, monthlyAmounts=[500_000] * 35 + [-1]).status_code == 422
+    assert _calculate_cashflow(client, monthlyAmounts=[500_000] * 35 + [501_000]).status_code == 422
+    assert _calculate_cashflow(client, monthlyAmounts=[500_000] * 35 + [999]).status_code == 422

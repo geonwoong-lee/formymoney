@@ -1,7 +1,13 @@
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.schemas.savings import CalculationRequest, CalculationResponse, ProductsResponse
+from app.schemas.savings import (
+    CalculationRequest,
+    CalculationResponse,
+    CashflowCalculationRequest,
+    CashflowCalculationResponse,
+    ProductsResponse,
+)
 from app.services.savings_service import SavingsDataError, SavingsInputError, SavingsService
 
 
@@ -22,6 +28,20 @@ def calculate_savings(payload: CalculationRequest, request: Request) -> Calculat
     try:
         with request.app.state.session_factory() as session:
             return SavingsService(session).calculate(payload)
+    except SavingsInputError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
+    except (SavingsDataError, SQLAlchemyError) as error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+
+
+@router.post("/calculate-cashflow", response_model=CashflowCalculationResponse)
+def calculate_cashflow(
+    payload: CashflowCalculationRequest,
+    request: Request,
+) -> CashflowCalculationResponse:
+    try:
+        with request.app.state.session_factory() as session:
+            return SavingsService(session).calculate_cashflow(payload)
     except SavingsInputError as error:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
     except (SavingsDataError, SQLAlchemyError) as error:

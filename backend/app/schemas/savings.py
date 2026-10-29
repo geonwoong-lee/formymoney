@@ -110,3 +110,20 @@ class CalculationResponse(CamelModel):
     contribution_type: ContributionType
     tax_exempt: bool
     results: list[BankCalculationResult]
+
+
+class CashflowCalculationRequest(CamelModel):
+    bank_code: str
+    monthly_amounts: list[int] = Field(min_length=1)
+    fixed_monthly_amount: int = Field(ge=1_000, le=500_000)
+    contribution_type: ContributionType
+    condition_answers: dict[str, Answer] = Field(default_factory=dict)
+
+
+class CashflowCalculationResponse(CamelModel):
+    bank_code: str
+    term_months: int
+    monthly_amounts: list[int]
+    result: BankCalculationResult
+    fixed_expected_maturity_amount: int
+    difference_from_fixed_plan: int

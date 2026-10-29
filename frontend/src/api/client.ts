@@ -95,6 +95,15 @@ export interface SavingsCalculationResponse {
   results: BankCalculationResult[]
 }
 
+export interface CashflowCalculationResponse {
+  bankCode: string
+  termMonths: number
+  monthlyAmounts: number[]
+  result: BankCalculationResult
+  fixedExpectedMaturityAmount: number
+  differenceFromFixedPlan: number
+}
+
 export class ApiError extends Error {
   readonly status?: number
 
@@ -165,6 +174,20 @@ export function calculateSavings(payload: {
   currentBankCode?: string
 }): Promise<SavingsCalculationResponse> {
   return request<SavingsCalculationResponse>('/api/v1/savings/calculate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function calculateCashflow(payload: {
+  bankCode: string
+  monthlyAmounts: number[]
+  fixedMonthlyAmount: number
+  contributionType: ContributionType
+  conditionAnswers: Record<string, ConditionAnswer>
+}): Promise<CashflowCalculationResponse> {
+  return request<CashflowCalculationResponse>('/api/v1/savings/calculate-cashflow', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

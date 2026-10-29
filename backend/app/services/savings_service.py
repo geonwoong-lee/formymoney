@@ -2,12 +2,14 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.calculators.savings import calculate_fixed_monthly_savings
+from app.calculators.savings import calculate_fixed_monthly_savings, calculate_variable_monthly_savings
 from app.models.savings_product import BankSavingsProduct, PreferentialCondition
 from app.repositories.savings_repository import SavingsRepository
 from app.schemas.savings import (
     Answer,
     BankCalculationResult,
+    CashflowCalculationRequest,
+    CashflowCalculationResponse,
     CalculationRequest,
     CalculationResponse,
     ConditionResponse,
@@ -82,6 +84,54 @@ class SavingsService:
             contribution_type=request.contribution_type,
             tax_exempt=policy.tax_exempt,
             results=results,
+        )
+
+    def calculate_cashflow(self, request: CashflowCalculationRequest) -> CashflowCalculationResponse:
+        policy = self.repository.get_policy()
+        if policy is None:
+            raise SavingsDataError("공식 상품 정책을 불러오지 못했습니다.")
+        if len(request.monthly_amounts) != policy.term_months:
+            raise SavingsInputError(f"월별 납입액은 {policy.term_months}개월분이어야 합니다.")
+        invalid_amounts = [
+            amount for amount in request.monthly_amounts
+            if amount < 0
+            or amount > policy.maximum_monthly_amount
+            or (amount != 0 and amount < policy.minimum_monthly_amount)
+        ]
+        if invalid_amounts:
+            raise SavingsInputError(
+                f"월별 납입액은 0원 또는 {policy.minimum_monthly_amount:,}원부터 "
+                f"{policy.maximum_monthly_amount:,}원 사이여야 합니다."
+            )
+
+        fixed_request = CalculationRequest(
+            monthly_amount=request.fixed_monthly_amount,
+            contribution_type=request.contribution_type,
+            condition_answers={request.bank_code: request.condition_answers},
+            bank_codes=[request.bank_code],
+        )
+        fixed_result = self.calculate(fixed_request).results[0]
+        contribution_rate = self._contribution_rate(request.contribution_type, policy)
+        amounts = calculate_variable_monthly_savings(
+            request.monthly_amounts,
+            Decimal(str(fixed_result.expected_rate)),
+            Decimal(str(fixed_result.base_rate)),
+            contribution_rate,
+        )
+        variable_result = fixed_result.model_copy(update={
+            "principal": amounts.principal,
+            "deposit_interest": amounts.deposit_interest,
+            "government_contribution": amounts.government_contribution,
+            "government_contribution_interest": amounts.government_contribution_interest,
+            "expected_maturity_amount": amounts.expected_maturity_amount,
+        })
+        return CashflowCalculationResponse(
+            bank_code=request.bank_code,
+            term_months=policy.term_months,
+            monthly_amounts=request.monthly_amounts,
+            result=variable_result,
+            fixed_expected_maturity_amount=fixed_result.expected_maturity_amount,
+            difference_from_fixed_plan=amounts.expected_maturity_amount - fixed_result.expected_maturity_amount,
         )
 
     def _calculate_product(

@@ -15,7 +15,7 @@
 | 백엔드 | FastAPI |
 | 운영 DB | Supabase PostgreSQL |
 | 개발·테스트 DB | SQLite3 |
-| 현재 단계 | Phase 4 은행 비교 완료, 다음 단계 Phase 5 월별 납입 기능 |
+| 현재 단계 | Phase 5 월별 납입 완료, 다음 단계 Phase 6 투자 데이터·계산 |
 
 출처: [컨슈머인사이트 금융플랫폼 기획조사](https://www.consumerinsight.co.kr/up_files/2606_finance.pdf)
 
