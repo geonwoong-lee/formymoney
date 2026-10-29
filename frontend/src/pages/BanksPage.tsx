@@ -40,7 +40,13 @@ export function BanksPage() {
             <span className="rank">{index + 1}</span>
             <div><strong>{bank.bankName}</strong><small>{bank.productName}</small></div>
             <div className="rate"><strong>{bank.expectedRate}%</strong><small>최고 {bank.maximumRate}%</small></div>
-            <div className="maturity"><strong>{money.format(bank.expectedMaturityAmount)}원</strong><small>원금 {money.format(bank.principal)}원</small></div>
+            <div className="maturity">
+              <strong>{money.format(bank.expectedMaturityAmount)}원</strong>
+              <small>원금 {money.format(bank.principal)}원</small>
+              {bank.differenceFromCurrentBank !== null && <small className={`difference ${bank.differenceFromCurrentBank > 0 ? 'difference--plus' : bank.differenceFromCurrentBank < 0 ? 'difference--minus' : ''}`}>
+                {bank.differenceFromCurrentBank === 0 ? '현재 주거래 은행' : `현재 은행보다 ${bank.differenceFromCurrentBank > 0 ? '+' : ''}${money.format(bank.differenceFromCurrentBank)}원`}
+              </small>}
+            </div>
             <Link className="button button--small" to={`/banks/${bank.bankCode}`}>상세</Link>
           </li>)}
         </ol>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSavingsProducts, type ConditionAnswer, type SavingsProductsResponse } from '../api/client'
 import { answerKey, commonAnswerKey } from '../features/savingsDraft'
-import { loadDraft, saveDraft, type VeryRichDraft } from '../storage/draftStorage'
+import { clearDraft, emptyDraft, loadDraft, saveDraft, type VeryRichDraft } from '../storage/draftStorage'
 
 export function ConditionsPage() {
   const navigate = useNavigate()
@@ -38,6 +38,19 @@ export function ConditionsPage() {
 
   const monthlyAmount = draft.plan.monthlyAmount ?? 500_000
   const contributionType = draft.plan.contributionType ?? 'general'
+  const enrollmentStatus = draft.plan.enrollmentStatus ?? 'considering'
+  const transitionStatus = draft.plan.transitionStatus ?? 'unknown'
+  const canCompare = Boolean(
+    data
+    && monthlyAmount >= 1_000
+    && monthlyAmount <= 500_000
+    && (enrollmentStatus !== 'enrolled' || draft.plan.startMonth),
+  )
+
+  function resetAll() {
+    clearDraft()
+    setDraft(emptyDraft)
+  }
 
   return (
     <section className="page page--wide">
@@ -46,6 +59,12 @@ export function ConditionsPage() {
       <p className="lead">모르면 ‘모름’을 선택하세요. 최고금리가 아니라 지금 답변으로 받을 수 있는 예상금리를 계산합니다.</p>
 
       <div className="retro-form summary-controls">
+        <label>현재 가입 상태
+          <select value={enrollmentStatus} onChange={(event) => update({ ...draft, plan: { ...draft.plan, enrollmentStatus: event.target.value as VeryRichDraft['plan']['enrollmentStatus'] } })}>
+            <option value="considering">가입 전·검토 중</option>
+            <option value="enrolled">이미 가입함</option>
+          </select>
+        </label>
         <label>매달 넣을 금액
           <input type="number" min="1000" max="500000" step="1000" value={monthlyAmount}
             onChange={(event) => update({ ...draft, plan: { ...draft.plan, monthlyAmount: Number(event.target.value) } })} />
@@ -57,7 +76,26 @@ export function ConditionsPage() {
             <option value="none">기여금 제외</option>
           </select>
         </label>
+        <label>청년도약계좌 전환 여부
+          <select value={transitionStatus} onChange={(event) => update({ ...draft, plan: { ...draft.plan, transitionStatus: event.target.value as VeryRichDraft['plan']['transitionStatus'] } })}>
+            <option value="unknown">모름·해당 없음</option>
+            <option value="yes">전환 가입</option>
+            <option value="no">전환 아님</option>
+          </select>
+        </label>
+        {enrollmentStatus === 'enrolled' && <label>가입한 달
+          <input type="month" value={draft.plan.startMonth ?? ''} onChange={(event) => update({ ...draft, plan: { ...draft.plan, startMonth: event.target.value } })} />
+        </label>}
+        <label>현재 주거래 은행
+          <select value={draft.plan.currentBankCode ?? ''} onChange={(event) => update({ ...draft, plan: { ...draft.plan, currentBankCode: event.target.value || undefined } })}>
+            <option value="">선택 안 함</option>
+            {data?.products.map((product) => <option key={product.bankCode} value={product.bankCode}>{product.bankName}</option>)}
+          </select>
+        </label>
       </div>
+
+      {(monthlyAmount < 1_000 || monthlyAmount > 500_000) && <p className="field-error">월 납입액은 1천원부터 50만원까지 입력해 주세요.</p>}
+      {enrollmentStatus === 'enrolled' && !draft.plan.startMonth && <p className="field-error">이미 가입했다면 가입한 달을 입력해 주세요.</p>}
 
       {error && <p className="notice notice--error">{error}</p>}
       {!data && !error && <p className="notice">14개 은행의 우대조건을 불러오는 중입니다.</p>}
@@ -98,8 +136,10 @@ export function ConditionsPage() {
         ))}
       </div>
       <div className="actions actions--sticky">
-        <button className="button" type="button" disabled={!data || monthlyAmount < 1_000 || monthlyAmount > 500_000} onClick={() => navigate('/banks')}>지금 답변으로 14개 비교하기</button>
+        <button className="button" type="button" disabled={!canCompare} onClick={() => navigate('/banks')}>지금 답변으로 14개 비교하기</button>
+        <button className="button button--secondary" type="button" onClick={resetAll}>처음부터 다시 입력</button>
       </div>
+      <p className="privacy-note">입력값은 이 브라우저에만 임시 저장됩니다. 공용 기기에서는 사용 후 초기화해 주세요.</p>
     </section>
   )
 }

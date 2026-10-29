@@ -5,9 +5,10 @@ export type ConditionAnswer = 'yes' | 'no' | 'unknown'
 export interface VeryRichDraft {
   version: 1
   plan: {
-    enrollmentStatus?: string
+    enrollmentStatus?: 'considering' | 'enrolled'
     monthlyAmount?: number
     startMonth?: string
+    transitionStatus?: 'yes' | 'no' | 'unknown'
     contributionType?: 'none' | 'general' | 'preferred'
     currentBankCode?: string
   }
