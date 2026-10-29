@@ -7,7 +7,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import require_postgres_url
-from app.models import BankSavingsProduct, PreferentialCondition, ReferenceItem, SavingsPolicy
+from app.models import (
+    BankSavingsProduct,
+    InvestmentAsset,
+    InvestmentMonthlyPoint,
+    PreferentialCondition,
+    ReferenceItem,
+    SavingsPolicy,
+)
 
 
 config = context.config
@@ -17,7 +24,14 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # 모델 import가 Alembic 메타데이터에 반영되도록 명시적으로 참조한다.
-_MODELS = (BankSavingsProduct, PreferentialCondition, ReferenceItem, SavingsPolicy)
+_MODELS = (
+    BankSavingsProduct,
+    InvestmentAsset,
+    InvestmentMonthlyPoint,
+    PreferentialCondition,
+    ReferenceItem,
+    SavingsPolicy,
+)
 
 
 def get_database_url() -> str:

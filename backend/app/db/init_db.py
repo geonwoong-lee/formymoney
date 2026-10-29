@@ -1,15 +1,19 @@
+import json
 from decimal import Decimal
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionFactory
+from app.models.investment import InvestmentAsset, InvestmentMonthlyPoint
 from app.models.reference_item import ReferenceItem
 from app.models.savings_product import BankSavingsProduct, PreferentialCondition, SavingsPolicy
 
 POLICY_SOURCE_URL = "https://www.kinfa.or.kr/financialProduct/youthFutureSavings.do"
 RATE_SOURCE_URL = "https://portal.kfb.or.kr/compare/receiving_youth_future.php"
 RATE_SOURCE_DATE = "2026-10-13"
+MARKET_SNAPSHOT_PATH = Path(__file__).resolve().parents[1] / "data" / "investment_market_snapshot.json"
 
 
 def initialize_database(session_factory: SessionFactory) -> None:
@@ -31,7 +35,25 @@ def initialize_database(session_factory: SessionFactory) -> None:
 
         for product in _all_products():
             _upsert_bank_product(session, product)
+        _initialize_investments(session)
         session.commit()
+
+
+def _initialize_investments(session: Session) -> None:
+    snapshot = json.loads(MARKET_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    for data in snapshot["assets"]:
+        values = dict(data)
+        points = values.pop("points")
+        asset = session.scalar(select(InvestmentAsset).where(InvestmentAsset.code == values["code"]))
+        if asset is None:
+            asset = InvestmentAsset(**values)
+            session.add(asset)
+        else:
+            for field, value in values.items():
+                setattr(asset, field, value)
+            asset.points.clear()
+            session.flush()
+        asset.points.extend(InvestmentMonthlyPoint(**point) for point in points)
 
 
 def _upsert_bank_product(session: Session, data: dict[str, object]) -> None:
