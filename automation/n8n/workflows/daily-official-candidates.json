@@ -1,0 +1,113 @@
+{
+  "name": "Very Rich - 공식 금융뉴스 후보 수집",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2b53c6f3-1ae2-4e62-bd82-0a2507a88901",
+      "name": "수동 실행",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-440, 80]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "88453f0a-1e96-4587-a390-1c9f3c6b6ac2",
+      "name": "매일 오전 7시 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-440, -80]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.VERY_RICH_API_BASE_URL}}/api/v1/internal/daily/candidates/collect",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "date",
+              "value": "={{$now.setZone('Asia/Seoul').minus({days: 1}).toISODate()}}"
+            },
+            {
+              "name": "maxCandidates",
+              "value": "3"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Very-Rich-Ingest-Secret",
+              "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "013eb9c6-a640-4509-ab20-c9018cc51158",
+      "name": "FastAPI 공식 후보 수집",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-160, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json;\nif (response.error) {\n  return [{ json: { status: 'request_failed', candidates: [], sourceResults: [] } }];\n}\nconst candidates = (response.candidates ?? [])\n  .filter((candidate) => candidate.eligibleForSummary === true)\n  .slice(0, 3);\nreturn [{ json: {\n  status: response.status,\n  targetDate: response.targetDate,\n  candidates,\n  discoveryOnlyCount: (response.candidates ?? []).filter((candidate) => !candidate.eligibleForSummary).length,\n  duplicateCount: response.duplicateCount ?? 0,\n  sourceResults: response.sourceResults ?? []\n} }];"
+      },
+      "id": "8944e54d-0038-4283-be24-f1abfcd1fd3c",
+      "name": "공개 후보 최대 3개",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [100, 0]
+    },
+    {
+      "parameters": {},
+      "id": "11196b1f-dab2-49c8-b75e-f63cc445a1e5",
+      "name": "Phase 14 요약 입력 대기",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [360, 0]
+    }
+  ],
+  "connections": {
+    "수동 실행": {
+      "main": [[{"node": "FastAPI 공식 후보 수집", "type": "main", "index": 0}]]
+    },
+    "매일 오전 7시 KST": {
+      "main": [[{"node": "FastAPI 공식 후보 수집", "type": "main", "index": 0}]]
+    },
+    "FastAPI 공식 후보 수집": {
+      "main": [[{"node": "공개 후보 최대 3개", "type": "main", "index": 0}]]
+    },
+    "공개 후보 최대 3개": {
+      "main": [[{"node": "Phase 14 요약 입력 대기", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "Asia/Seoul",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 120
+  },
+  "versionId": "324a4e45-2256-48ba-ab7a-7d71ead0bacc",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

@@ -8,8 +8,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.schemas.daily_briefing import (
     BriefingIngestRequest,
     BriefingIngestResponse,
+    DailyCandidateCollectionResponse,
     DailyBriefingResponse,
 )
+from app.collectors.official_news import collect_official_candidates
+from app.services.daily_candidate_service import DailyCandidateService
 from app.services.daily_briefing_service import DailyBriefingInputError, DailyBriefingService
 
 
@@ -46,6 +49,27 @@ def ingest_daily_briefing(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="브리핑 데이터를 저장하지 못했습니다.",
+        ) from error
+
+
+@router.get("/internal/daily/candidates/collect", response_model=DailyCandidateCollectionResponse)
+def collect_daily_candidates(
+    request: Request,
+    target_date: date | None = Query(default=None, alias="date"),
+    max_candidates: int = Query(default=3, ge=1, le=10, alias="maxCandidates"),
+    ingest_secret: str | None = Header(default=None, alias="X-Very-Rich-Ingest-Secret"),
+) -> DailyCandidateCollectionResponse:
+    _require_ingest_secret(request, ingest_secret)
+    selected_date = target_date or datetime.now(ZoneInfo("Asia/Seoul")).date()
+    collector = getattr(request.app.state, "daily_candidate_collector", collect_official_candidates)
+    try:
+        batch = collector(selected_date)
+        with request.app.state.session_factory() as session:
+            return DailyCandidateService(session).prepare(selected_date, batch, max_candidates)
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="수집 후보의 중복 여부를 확인하지 못했습니다.",
         ) from error
 
 

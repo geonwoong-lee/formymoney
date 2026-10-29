@@ -48,6 +48,22 @@ class DailyBriefingRepository:
         self.session.flush()
         return item
 
+    def find_metadata_duplicate(
+        self,
+        source_id: int,
+        source_item_id: str,
+        canonical_url: str,
+    ) -> DailyBriefingItem | None:
+        return self.session.scalar(
+            select(DailyBriefingItem).where(
+                or_(
+                    (DailyBriefingItem.source_id == source_id)
+                    & (DailyBriefingItem.source_item_id == source_item_id),
+                    DailyBriefingItem.canonical_url == canonical_url,
+                )
+            )
+        )
+
     def list_published_for_date(self, briefing_date: date, limit: int = 3) -> list[DailyBriefingItem]:
         start = datetime.combine(briefing_date, time.min, tzinfo=timezone.utc)
         end = datetime.combine(briefing_date, time.max, tzinfo=timezone.utc)

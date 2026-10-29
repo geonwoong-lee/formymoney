@@ -116,3 +116,30 @@ class DailyBriefingResponse(CamelModel):
     generated_at: datetime | None
     items: list[DailyBriefingItemResponse]
     term: FinancialTermResponse | None
+
+
+class DailyCandidateResponse(CamelModel):
+    source_code: str
+    source_name: str
+    source_item_id: str
+    original_title: str
+    canonical_url: str
+    published_at: datetime
+    usage_status: Literal["summary_allowed", "discovery_only"]
+    eligible_for_summary: bool
+
+
+class CandidateSourceResult(CamelModel):
+    source_code: str
+    status: Literal["ok", "fallback", "failed"]
+    candidate_count: int
+    detail: str
+
+
+class DailyCandidateCollectionResponse(CamelModel):
+    target_date: date
+    generated_at: datetime
+    status: Literal["ok", "partial", "all_failed", "no_candidates"]
+    candidates: list[DailyCandidateResponse]
+    duplicate_count: int
+    source_results: list[CandidateSourceResult]
