@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ApiError, askAssistant } from '../api/client'
 import dogImage from '../assets/icons/assistant-dog.svg'
 import { findAnswer, GREETING, type AssistantAnswer } from './assistantAnswers'
 import './Assistant.css'
@@ -46,6 +47,8 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [happy, setHappy] = useState(false)
+  const [thinking, setThinking] = useState(false)
+  const requestId = useRef(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const drag = useRef<{ pointerId: number; startX: number; startY: number; baseX: number; baseY: number; moved: boolean } | null>(null)
   const justDragged = useRef(false)
@@ -91,11 +94,33 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
     setOpen(true)
   }
 
-  function search(event?: FormEvent) {
+  async function search(event?: FormEvent) {
     event?.preventDefault()
     setOptionsOpen(false)
-    setAnswer(findAnswer(query))
-    setHappy(true)
+    const question = query.trim()
+    const fallback = findAnswer(question)
+    if (!question || fallback.recommendation) {
+      setAnswer(fallback)
+      setHappy(true)
+      return
+    }
+    const current = ++requestId.current
+    setThinking(true)
+    setAnswer(null)
+    try {
+      const reply = await askAssistant(question)
+      if (current !== requestId.current) return
+      setAnswer({ text: reply.answer, links: reply.links, ai: reply.source === 'ai' })
+    } catch (cause) {
+      if (current !== requestId.current) return
+      const busy = cause instanceof ApiError && cause.status === 429
+      setAnswer({ ...fallback, notice: busy ? cause.message : undefined })
+    } finally {
+      if (current === requestId.current) {
+        setThinking(false)
+        setHappy(true)
+      }
+    }
   }
 
   function go(to: string) {
@@ -149,15 +174,18 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
         />
         <div className="assistant-bubble__buttons">
           <button type="button" onClick={() => setOptionsOpen((current) => !current)} aria-expanded={optionsOpen}>옵션(O)</button>
-          <button type="submit">찾기(S)</button>
+          <button type="submit" disabled={thinking}>찾기(S)</button>
         </div>
       </form>
       {optionsOpen && <div className="assistant-bubble__options" role="menu">
         <button type="button" role="menuitem" onClick={hide}>도우미 숨기기</button>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); setOptionsOpen(false) }}>말풍선 닫기</button>
       </div>}
+      {thinking && <p className="assistant-bubble__thinking" role="status">생각하는 중이에요…</p>}
       {answer && <div className="assistant-bubble__answer" role="status">
+        {answer.notice && <p className="assistant-bubble__notice">{answer.notice}</p>}
         <p>{answer.text}</p>
+        {answer.ai && <p className="assistant-bubble__ai">AI가 쓴 답변이라 틀릴 수 있어요. 정확한 내용은 공식 자료로 확인하세요.</p>}
         <div className="assistant-bubble__links">
           {answer.links.map((link) => <button type="button" key={link.to} onClick={() => go(link.to)}>{link.label}</button>)}
         </div>

@@ -216,6 +216,12 @@ export interface NewsHeadlinesResponse {
   items: NewsHeadline[]
 }
 
+export interface AssistantChatResponse {
+  answer: string
+  links: { to: string; label: string }[]
+  source: 'ai' | 'rule'
+}
+
 export class ApiError extends Error {
   readonly status?: number
 
@@ -332,6 +338,15 @@ export function calculateComparison(payload: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+  })
+}
+
+export function askAssistant(message: string, signal?: AbortSignal): Promise<AssistantChatResponse> {
+  return request<AssistantChatResponse>('/api/v1/assistant/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+    signal,
   })
 }
 

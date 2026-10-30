@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Assistant, ASSISTANT_HIDDEN_KEY, ASSISTANT_SEEN_KEY } from './Assistant'
 import { findAnswer } from './assistantAnswers'
 
@@ -17,8 +17,19 @@ function renderAssistant(greet = false) {
   )
 }
 
-beforeEach(() => window.localStorage.clear())
-afterEach(cleanup)
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+  status, headers: { 'Content-Type': 'application/json' },
+})
+const aiReply = (answer: string, links: { to: string; label: string }[] = []) => json({ answer, links, source: 'ai' })
+
+beforeEach(() => {
+  window.localStorage.clear()
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ error: { code: 'http_error', message: '도우미 답변 기능이 설정되지 않았습니다.' } }, 503)))
+})
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 describe('Assistant', () => {
   it('stays closed until the dog is clicked, then asks the greeting question', async () => {
@@ -35,12 +46,14 @@ describe('Assistant', () => {
 
   it('answers with a link and navigates when it is chosen', async () => {
     const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(aiReply('월별 납입 계획에서 빠뜨린 달을 반영해 다시 계산해요.', [{ to: '/cashflow', label: '월별 납입 계획' }])))
     renderAssistant()
     await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
 
     await user.type(screen.getByRole('textbox'), '이번 달 납입을 빠뜨렸어요{Enter}')
-    expect(screen.getByRole('status')).toHaveTextContent('빠뜨린 달을 반영')
-    await user.click(within(screen.getByRole('status')).getByRole('button', { name: '월별 납입 계획' }))
+    const answer = await screen.findByText(/빠뜨린 달을 반영/)
+    expect(answer.closest('[role="status"]')).toHaveTextContent('AI가 쓴 답변이라 틀릴 수 있어요')
+    await user.click(await screen.findByRole('button', { name: '월별 납입 계획' }))
 
     expect(screen.getByTestId('where')).toHaveTextContent('/cashflow')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -55,6 +68,7 @@ describe('Assistant', () => {
     await user.click(screen.getByRole('button', { name: '찾기(S)' }))
 
     expect(screen.getByRole('status')).toHaveTextContent('추천하거나 가입을 권하지 않아요')
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it('falls back to the list of topics when nothing matches', async () => {
@@ -64,7 +78,7 @@ describe('Assistant', () => {
 
     await user.type(screen.getByRole('textbox'), '날씨 어때요{Enter}')
 
-    const answer = screen.getByRole('status')
+    const answer = await screen.findByText(/잘 모르겠어요/).then((node) => node.closest('[role="status"]') as HTMLElement)
     expect(answer).toHaveTextContent('잘 모르겠어요')
     expect(within(answer).getAllByRole('button')).toHaveLength(6)
   })
@@ -105,6 +119,36 @@ describe('Assistant', () => {
     await user.keyboard('{Escape}')
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('Assistant AI answers', () => {
+  it('shows a thinking state, then the answer without AI notice for rule replies', async () => {
+    const user = userEvent.setup()
+    let release: (value: Response) => void = () => undefined
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise<Response>((resolve) => { release = resolve })))
+    renderAssistant()
+    await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
+
+    await user.type(screen.getByRole('textbox'), '환율이 뭐예요{Enter}')
+    expect(await screen.findByText('생각하는 중이에요…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '찾기(S)' })).toBeDisabled()
+    release(json({ answer: '지금은 질문에 답하기 어려워요.', links: [], source: 'rule' }))
+
+    expect(await screen.findByText('지금은 질문에 답하기 어려워요.')).toBeInTheDocument()
+    expect(screen.queryByText(/AI가 쓴 답변/)).not.toBeInTheDocument()
+  })
+
+  it('tells the user when they ask too often and still shows the local answer', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ error: { code: 'http_error', message: '질문이 너무 많아요. 잠시 후 다시 물어봐 주세요.' } }, 429)))
+    renderAssistant()
+    await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
+
+    await user.type(screen.getByRole('textbox'), '납입을 빠뜨렸어요{Enter}')
+
+    expect(await screen.findByText('질문이 너무 많아요. 잠시 후 다시 물어봐 주세요.')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('빠뜨린 달을 반영')
   })
 })
 

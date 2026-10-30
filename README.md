@@ -65,6 +65,7 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 완료: **Phase 8 핵심 작업 — Supabase PostgreSQL 연결·마이그레이션·상품 적재**
 - 완료: **Phase 9 — 오류 응답·입력 유지·360px 모바일·계산 회귀 테스트·회원가입 동작 확인**
 - 완료: **Phase 15 — `/daily` 화면, 국내·해외 뉴스 헤드라인(해외는 AI 한국어 번역·요약), 오늘의 금융용어 12개 공개(저장 30개 중 점검 통과분)**
+- 도우미 머니독의 AI 답변(`POST /api/v1/assistant/chat`)도 `VERY_RICH_OPENAI_API_KEY`가 필요하며, 키가 없으면 키워드 답변만 합니다. 접속 주소별 분당 5회·하루 60회로 제한합니다.
 - 해외 헤드라인 한국어 해석에는 `backend/.env`의 `VERY_RICH_OPENAI_API_KEY`가 필요합니다.
 - 헤드라인 수집: `cd backend && python -m scripts.collect_news_headlines` (네이버 키는 `backend/.env`의 `VERY_RICH_NAVER_*`에 입력, 하루 한 번 실행)
 - 다음: Phase 16 통합 QA와 Phase 10 사용자 테스트
@@ -159,6 +160,7 @@ Phase 1에서 준비한 내용은 다음과 같습니다.
 - [x] Phase 14 — OpenAI 요약·사실 검증
 - [x] Phase 15 — `/daily` 화면·오늘의 금융용어
 - [ ] Phase 16 — v2 통합 QA·운영 준비
+- [x] Phase 19 — 도우미 머니독 AI 질문 답변
 
 각 Phase의 상세 작업과 완료 조건은 [개발 계획](docs/plan.md)에서 확인할 수 있습니다.
 

@@ -18,6 +18,7 @@ from app.db.session import (
     verify_database_connection,
 )
 from app.services.auth_gateway import AuthGateway, SupabaseAuthGateway
+from app.services.rate_limiter import SlidingWindowLimiter
 
 
 def create_app(
@@ -69,6 +70,7 @@ def create_app(
         settings.supabase_anon_key,
     )
     app.state.n8n_ingest_secret = n8n_ingest_secret or settings.n8n_ingest_secret
+    app.state.assistant_limiter = SlidingWindowLimiter([(60, 5), (86_400, 60)])
 
     app.add_middleware(
         CORSMiddleware,

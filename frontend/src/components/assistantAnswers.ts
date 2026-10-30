@@ -6,6 +6,9 @@ export interface AssistantLink {
 export interface AssistantAnswer {
   text: string
   links: AssistantLink[]
+  /** True when a model wrote the text; the bubble then shows a "may be wrong" notice. */
+  ai?: boolean
+  notice?: string
 }
 
 interface AnswerRule {
@@ -23,10 +26,14 @@ export const QUICK_LINKS: AssistantLink[] = [
   { to: '/about', label: '계산 기준' },
 ]
 
+export interface LocalAnswer extends AssistantAnswer {
+  recommendation?: boolean
+}
+
 // The first matching rule wins, so the more specific topics come first.
 const RULES: AnswerRule[] = [
   {
-    keywords: ['추천', '뭐가 좋', '어디가 좋', '사야', '가입해야', '가입할까', '수익 보장', '확실'],
+    keywords: ['추천', '뭐가 좋', '어디가 좋', '사야', '가입해야', '가입할까', '수익 보장'],
     text: '저는 특정 상품을 추천하거나 가입을 권하지 않아요. 같은 기준으로 계산해서 비교하는 것만 도와드려요.',
     links: [{ to: '/banks', label: '은행 비교 보기' }, { to: '/about', label: '계산 기준 보기' }],
   },
@@ -73,9 +80,9 @@ export const FALLBACK: AssistantAnswer = {
   links: QUICK_LINKS,
 }
 
-export function findAnswer(query: string): AssistantAnswer {
+export function findAnswer(query: string): LocalAnswer {
   const normalized = query.trim().toLowerCase()
   if (!normalized) return FALLBACK
   const rule = RULES.find((entry) => entry.keywords.some((keyword) => normalized.includes(keyword)))
-  return rule ? { text: rule.text, links: rule.links } : FALLBACK
+  return rule ? { text: rule.text, links: rule.links, recommendation: rule === RULES[0] } : FALLBACK
 }

@@ -220,3 +220,19 @@
     height: 72px;
   }
 }
+
+.assistant-bubble__thinking {
+  margin: 10px 0 0;
+  color: #555;
+}
+
+.assistant-bubble__ai,
+.assistant-bubble__notice {
+  font-size: 12px;
+  color: #800000;
+}
+
+.assistant-bubble button:disabled {
+  color: #808080;
+  cursor: wait;
+}
