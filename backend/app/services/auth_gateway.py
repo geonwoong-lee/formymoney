@@ -25,6 +25,10 @@ class AuthUnavailableError(AuthGatewayError):
     pass
 
 
+class AuthRateLimitError(AuthGatewayError):
+    pass
+
+
 class AuthGateway(Protocol):
     def sign_up(self, email: str, password: str, display_name: str) -> dict[str, Any]: ...
 
@@ -74,6 +78,8 @@ class SupabaseAuthGateway:
             with urlopen(request, timeout=10) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
+            if error.code == 429:
+                raise AuthRateLimitError("요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.") from error
             if conflict_on_400 and error.code in {400, 422}:
                 raise AuthConflictError("이미 가입된 이메일이거나 가입할 수 없는 주소입니다.") from error
             if error.code in {400, 401, 403, 422}:

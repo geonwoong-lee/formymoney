@@ -16,6 +16,9 @@ class AuthService:
     def sign_up(self, email: str, password: str, display_name: str) -> AuthSessionResponse:
         data = self.gateway.sign_up(email, password, display_name)
         user_data = data.get("user")
+        if not isinstance(user_data, dict) and "id" in data and "email" in data:
+            # 이메일 확인이 켜져 있으면 Supabase는 세션 없이 사용자 정보를 최상위로 돌려준다.
+            user_data = data
         if not isinstance(user_data, dict):
             raise AuthResponseError("회원 정보를 확인하지 못했습니다.")
         return self._session_response(data, user_data)

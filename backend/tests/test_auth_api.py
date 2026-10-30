@@ -14,6 +14,14 @@ class FakeAuthGateway:
         del password
         if email == "existing@example.com":
             raise AuthConflictError("이미 가입된 이메일입니다.")
+        if email == "confirm@example.com":
+            # 이메일 확인이 켜진 Supabase는 user 래핑 없이 사용자 정보를 최상위로 반환한다.
+            return {
+                "id": "user-2",
+                "email": email,
+                "created_at": "2026-10-28T00:00:00Z",
+                "user_metadata": {"display_name": display_name},
+            }
         return {
             "user": {
                 "id": "user-1",
@@ -72,6 +80,40 @@ def test_signup_returns_201_and_never_returns_password(auth_client: TestClient) 
     assert response.json()["user"]["email"] == "user@example.com"
     assert response.json()["needsEmailConfirmation"] is True
     assert "password" not in response.text
+
+
+def test_signup_accepts_top_level_user_when_email_confirmation_is_required(auth_client: TestClient) -> None:
+    response = auth_client.post(
+        "/api/v1/auth/signup",
+        json={"email": "confirm@example.com", "password": "safe-password", "displayName": "사용자"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["user"]["email"] == "confirm@example.com"
+    assert response.json()["needsEmailConfirmation"] is True
+    assert response.json()["accessToken"] is None
+
+
+def test_gateway_rate_limit_becomes_429_with_clear_message(
+    auth_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from urllib.error import HTTPError
+
+    from app.services.auth_gateway import SupabaseAuthGateway
+
+    def raise_429(*args: Any, **kwargs: Any) -> None:
+        raise HTTPError("https://example.test", 429, "Too Many Requests", {}, None)
+
+    monkeypatch.setattr("app.services.auth_gateway.urlopen", raise_429)
+    auth_client.app.state.auth_gateway = SupabaseAuthGateway("https://example.test", "anon")
+
+    response = auth_client.post(
+        "/api/v1/auth/signup",
+        json={"email": "limit@example.com", "password": "safe-password", "displayName": "사용자"},
+    )
+
+    assert response.status_code == 429
+    assert "잠시 후 다시 시도" in response.json()["error"]["message"]
 
 
 def test_signup_validates_input_and_reports_conflict(auth_client: TestClient) -> None:

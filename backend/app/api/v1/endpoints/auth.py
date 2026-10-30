@@ -5,6 +5,7 @@ from app.services.auth_gateway import (
     AuthConfigurationError,
     AuthConflictError,
     AuthCredentialsError,
+    AuthRateLimitError,
     AuthUnavailableError,
 )
 from app.services.auth_service import AuthResponseError, AuthService
@@ -23,6 +24,8 @@ def sign_up(payload: SignUpRequest, request: Request) -> AuthSessionResponse:
         )
     except AuthConflictError as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+    except AuthRateLimitError as error:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(error)) from error
     except AuthConfigurationError as error:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
     except (AuthUnavailableError, AuthResponseError) as error:
@@ -35,6 +38,8 @@ def login(payload: LoginRequest, request: Request) -> AuthSessionResponse:
         return AuthService(request.app.state.auth_gateway).login(payload.email, payload.password)
     except AuthCredentialsError as error:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error)) from error
+    except AuthRateLimitError as error:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(error)) from error
     except AuthConfigurationError as error:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
     except (AuthUnavailableError, AuthResponseError) as error:
@@ -48,6 +53,8 @@ def get_me(request: Request, authorization: str | None = Header(default=None)) -
         return AuthService(request.app.state.auth_gateway).get_user(access_token)
     except AuthCredentialsError as error:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error)) from error
+    except AuthRateLimitError as error:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(error)) from error
     except AuthConfigurationError as error:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
     except (AuthUnavailableError, AuthResponseError) as error:
