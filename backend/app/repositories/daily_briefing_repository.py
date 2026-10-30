@@ -1,4 +1,5 @@
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
@@ -8,6 +9,8 @@ from app.models.daily_briefing import (
     DailyBriefingSource,
     DailyTermAssignment,
 )
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class DailyBriefingRepository:
@@ -65,8 +68,8 @@ class DailyBriefingRepository:
         )
 
     def list_published_for_date(self, briefing_date: date, limit: int = 3) -> list[DailyBriefingItem]:
-        start = datetime.combine(briefing_date, time.min, tzinfo=timezone.utc)
-        end = datetime.combine(briefing_date, time.max, tzinfo=timezone.utc)
+        start = datetime.combine(briefing_date, time.min, tzinfo=KST)
+        end = datetime.combine(briefing_date, time.max, tzinfo=KST)
         query = (
             select(DailyBriefingItem)
             .options(joinedload(DailyBriefingItem.source))

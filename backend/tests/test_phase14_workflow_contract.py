@@ -48,4 +48,4 @@ def test_workflow_limits_daily_candidates_and_records_prompt_version() -> None:
     assert "slice(0, 3)" in serialized
     assert "max_output_tokens:900" in serialized
     assert "promptVersion:'1.0'" in serialized
-    assert "gpt-6-luna" in serialized
+    assert "gpt-5.6-luna" in serialized

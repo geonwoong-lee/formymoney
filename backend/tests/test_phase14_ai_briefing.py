@@ -43,7 +43,7 @@ def _openai_response(summary: dict[str, object] | None = None) -> dict[str, obje
     return {
         "id": "resp_test_phase14",
         "status": "completed",
-        "model": "gpt-6-luna",
+        "model": "gpt-5.6-luna",
         "output": [
             {
                 "type": "message",
@@ -121,7 +121,7 @@ def test_completed_structured_output_is_validated_stored_and_published(client: T
     assert response.json()["status"] == "published"
     assert public.json()["items"][0]["plainHeadline"] == "금융소비자 지원 정책이 발표됐어요"
     assert item is not None
-    assert item.model_name == "gpt-6-luna"
+    assert item.model_name == "gpt-5.6-luna"
     assert item.input_tokens == 420
     assert item.output_tokens == 120
 

@@ -86,6 +86,20 @@ def test_valid_briefing_is_published_and_publicly_readable(client: TestClient) -
     assert body["term"] is None
 
 
+def test_midnight_kst_briefing_belongs_to_korean_date(client: TestClient) -> None:
+    payload = _payload(
+        publishedAt="2026-10-29T00:00:00+09:00",
+        fetchedAt="2026-10-29T01:00:00+09:00",
+    )
+    client.post(INGEST_URL, json=payload, headers=INGEST_HEADERS)
+
+    korean_date = client.get("/api/v1/daily", params={"date": "2026-10-29"})
+    previous_date = client.get("/api/v1/daily", params={"date": "2026-10-28"})
+
+    assert len(korean_date.json()["items"]) == 1
+    assert previous_date.json()["items"] == []
+
+
 def test_repeated_ingest_is_idempotent(client: TestClient) -> None:
     first = client.post(INGEST_URL, json=_payload(), headers=INGEST_HEADERS)
     second = client.post(INGEST_URL, json=_payload(), headers=INGEST_HEADERS)

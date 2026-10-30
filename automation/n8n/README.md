@@ -9,7 +9,7 @@
 - `N8N_ENCRYPTION_KEY`: n8n Credential 암호화용 임의 문자열
 - `VERY_RICH_N8N_INGEST_SECRET`: `backend/.env`와 같은 내부 API 비밀값
 - `VERY_RICH_API_BASE_URL`: 기본값을 사용하며 FastAPI 포트를 바꾼 경우만 수정
-- `OPENAI_MODEL`: 기본값 `gpt-6-luna`. API 키가 아니라 공개 가능한 모델 이름
+- `OPENAI_MODEL`: 기본값 `gpt-5.6-luna`. API 키가 아니라 공개 가능한 모델 이름
 
 실제 값이 든 `.env`는 Git에 포함하지 않는다.
 
@@ -49,3 +49,14 @@ docker compose --env-file automation/n8n/.env -f automation/n8n/compose.yml down
 ```
 
 영구 볼륨은 기본적으로 유지한다. 삭제 명령은 이 문서에서 제공하지 않는다.
+
+## 6. `access to env vars denied` 해결
+
+이 워크플로는 FastAPI 주소, 내부 인증값과 모델 이름을 `$env`로 읽는다. 해당 오류가 나오면 다음을 확인한다.
+
+1. 실제 실행 중인 컨테이너가 이 폴더의 `compose.yml`로 생성됐는지 확인한다.
+2. n8n 컨테이너 환경에 `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`가 있는지 확인한다.
+3. 설정을 바꾼 뒤 단순 재시작이 아니라 컨테이너를 재생성한다.
+4. `VERY_RICH_API_BASE_URL`, `VERY_RICH_N8N_INGEST_SECRET`, `OPENAI_MODEL`이 n8n 컨테이너에 전달됐는지 값은 출력하지 않고 존재 여부만 확인한다.
+
+OpenAI API 키는 `$env`로 읽지 않고 기존처럼 n8n Credential에만 등록한다. 환경변수 접근을 허용하면 워크플로 편집자가 n8n 프로세스의 다른 환경값도 읽을 수 있으므로 이 인스턴스를 신뢰할 수 있는 로컬 개발 용도로만 사용한다.
