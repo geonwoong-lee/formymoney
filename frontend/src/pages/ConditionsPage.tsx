@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ErrorNotice } from '../components/ErrorNotice'
 import { getSavingsProducts, type ConditionAnswer, type SavingsProductsResponse } from '../api/client'
 import { answerKey, commonAnswerKey } from '../features/savingsDraft'
 import { clearDraft, emptyDraft, loadDraft, saveDraft, type VeryRichDraft } from '../storage/draftStorage'
@@ -12,6 +13,7 @@ export function ConditionsPage() {
   const [data, setData] = useState<SavingsProductsResponse | null>(null)
   const [draft, setDraft] = useState<VeryRichDraft>(() => loadDraft())
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -20,7 +22,12 @@ export function ConditionsPage() {
       setError(cause instanceof Error ? cause.message : '상품 정보를 불러오지 못했습니다.')
     })
     return () => controller.abort()
-  }, [])
+  }, [reloadKey])
+
+  function retryLoad() {
+    setError('')
+    setReloadKey((key) => key + 1)
+  }
 
   function update(next: VeryRichDraft) {
     setDraft(next)
@@ -111,7 +118,7 @@ export function ConditionsPage() {
       {enrollmentStatus === 'enrolled' && draft.plan.startMonth && !validEnrollmentMonth && <p className="field-error">가입한 달은 이번 달보다 이후일 수 없습니다.</p>}
       {enrollmentStatus === 'enrolled' && !draft.plan.currentBankCode && <p className="field-error">현재 가입한 은행을 선택해 주세요.</p>}
 
-      {error && <p className="notice notice--error">{error}</p>}
+      {error && <ErrorNotice message={`${error} 입력한 답변은 이 브라우저에 그대로 남아 있습니다.`} onRetry={retryLoad} />}
       {!data && !error && <p className="notice">14개 은행의 우대조건을 불러오는 중입니다.</p>}
       {data && <section className="common-questions" aria-labelledby="common-question-title">
         <h2 id="common-question-title">모든 은행에 공통인 질문</h2>

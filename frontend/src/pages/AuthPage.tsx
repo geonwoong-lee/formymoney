@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ApiError, login, signUp } from '../api/client'
-import { saveAuthSession } from '../storage/authStorage'
+import { isSignedIn, saveAuthSession } from '../storage/authStorage'
 import './AuthPage.css'
 
 type Mode = 'login' | 'signup'
@@ -36,6 +36,8 @@ export function AuthPage() {
       setSubmitting(false)
     }
   }
+
+  if (isSignedIn()) return <Navigate to="/me" replace />
 
   return (
     <section className="page auth-page">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getHealth, type HealthResponse } from '../api/client'
+import { isSignedIn } from '../storage/authStorage'
 
 type HealthState =
   | { kind: 'loading' }
@@ -9,6 +10,7 @@ type HealthState =
 
 export function HomePage() {
   const [health, setHealth] = useState<HealthState>({ kind: 'loading' })
+  const [signedIn] = useState(() => isSignedIn())
 
   useEffect(() => {
     const controller = new AbortController()
@@ -47,9 +49,9 @@ export function HomePage() {
         <Link className="button button--secondary" to="/about">
           계산 원칙 보기
         </Link>
-        <Link className="button button--secondary" to="/auth">
-          로그인 · 회원가입
-        </Link>
+        {signedIn
+          ? <Link className="button button--secondary" to="/me">내 정보 보기</Link>
+          : <Link className="button button--secondary" to="/auth">로그인 · 회원가입</Link>}
       </div>
       <div className="status-card" aria-live="polite">
         <p className="status-card__label">개발 연결 상태</p>

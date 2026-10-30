@@ -8,6 +8,7 @@ import {
   type InvestmentAssetsResponse,
   type SavingsProductsResponse,
 } from '../api/client'
+import { ErrorNotice } from '../components/ErrorNotice'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
 
@@ -27,6 +28,7 @@ export function AlternativesPage() {
   const [result, setResult] = useState<ComparisonResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   async function requestComparison(
     productData: SavingsProductsResponse,
@@ -68,7 +70,13 @@ export function AlternativesPage() {
       })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false; controller.abort() }
-  }, [])
+  }, [reloadKey])
+
+  function retryLoad() {
+    setError('')
+    setLoading(true)
+    setReloadKey((key) => key + 1)
+  }
 
   function toggleAsset(code: string) {
     setResult(null)
@@ -114,7 +122,7 @@ export function AlternativesPage() {
       </div>}
 
       {selectedAssets.length === 0 && assets && <p className="field-error">비교할 투자 대안을 하나 이상 선택해 주세요.</p>}
-      {error && <p className="notice notice--error">{error}</p>}
+      {error && <ErrorNotice message={error} onRetry={products && assets ? undefined : retryLoad} />}
       {loading && !error && <p className="notice">적금과 과거 투자 결과를 계산하는 중입니다.</p>}
 
       {result && <>

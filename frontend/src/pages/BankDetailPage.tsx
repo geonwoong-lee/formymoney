@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { calculateSavings, getSavingsProducts, type BankCalculationResult } from '../api/client'
+import { ErrorNotice } from '../components/ErrorNotice'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
 
@@ -10,6 +11,7 @@ export function BankDetailPage() {
   const { bankId } = useParams()
   const [bank, setBank] = useState<BankCalculationResult | null>(null)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (!bankId) return
@@ -24,11 +26,17 @@ export function BankDetailPage() {
         bankCodes: [bankId],
       })
     }).then((response) => setBank(response.results[0])).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : '상세 계산을 불러오지 못했습니다.'))
-  }, [bankId])
+  }, [bankId, reloadKey])
+
+  function retry() {
+    setError('')
+    setBank(null)
+    setReloadKey((key) => key + 1)
+  }
 
   return <section className="page page--wide">
     <p className="eyebrow">Bank detail</p>
-    {error && <p className="notice notice--error">{error}</p>}
+    {error && <ErrorNotice message={error} onRetry={retry}><Link to="/banks">비교 목록으로</Link></ErrorNotice>}
     {!bank && !error && <p className="notice">계산 근거를 불러오는 중입니다.</p>}
     {bank && <>
       <h1>{bank.bankName}</h1>

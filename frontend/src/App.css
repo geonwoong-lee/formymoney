@@ -607,16 +607,16 @@
   }
 
   .desktop-icons {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(66px, 1fr));
+    display: flex;
     overflow-x: auto;
     width: 100%;
     gap: 5px;
-    padding-bottom: 12px;
+    padding-bottom: 8px;
   }
 
   .desktop-shortcut {
-    width: auto;
+    flex: 0 0 66px;
+    width: 66px;
     min-width: 66px;
   }
 

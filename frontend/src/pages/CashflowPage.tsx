@@ -6,6 +6,7 @@ import {
   type CashflowCalculationResponse,
   type SavingsProductsResponse,
 } from '../api/client'
+import { ErrorNotice } from '../components/ErrorNotice'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft, saveDraft } from '../storage/draftStorage'
 
@@ -43,6 +44,7 @@ export function CashflowPage() {
   const [result, setResult] = useState<CashflowCalculationResponse | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -60,7 +62,12 @@ export function CashflowPage() {
       setError(cause instanceof Error ? cause.message : '상품 정보를 불러오지 못했습니다.')
     })
     return () => controller.abort()
-  }, [draft.plan.monthlyAmount])
+  }, [draft.plan.monthlyAmount, reloadKey])
+
+  function retryProducts() {
+    setError('')
+    setReloadKey((key) => key + 1)
+  }
 
   useEffect(() => {
     const nextDraft = {
@@ -126,7 +133,7 @@ export function CashflowPage() {
       <h1>월별 납입 계획</h1>
       <p className="lead">덜 넣은 달과 쉬어간 달까지 반영해 실제에 가까운 만기 금액을 확인하세요.</p>
 
-      {error && <p className="notice notice--error">{error}</p>}
+      {error && <ErrorNotice message={error} onRetry={products ? undefined : retryProducts} />}
       {!products && !error && <p className="notice">상품 기준을 불러오는 중입니다.</p>}
 
       {products && <>
@@ -171,7 +178,7 @@ export function CashflowPage() {
           <div><dt>예상 만기 수령액</dt><dd>{money.format(result.result.expectedMaturityAmount)}원</dd></div>
           <div><dt>매달 기본금액 납입 대비</dt><dd className={result.differenceFromFixedPlan < 0 ? 'difference--minus' : 'difference--plus'}>{result.differenceFromFixedPlan > 0 ? '+' : ''}{money.format(result.differenceFromFixedPlan)}원</dd></div>
         </dl>
-        <p className="source-note">예상금리 {result.result.expectedRate}% · 모든 금액은 입력값과 현재 상품 기준으로 계산한 예상치입니다.</p>
+        <p className="source-note">예상금리 {result.result.expectedRate}% · 공시 확인일 {result.result.sourceDate} · <a href={result.result.sourceUrl} target="_blank" rel="noreferrer">공시 원문</a> · 모든 금액은 입력값과 현재 상품 기준으로 계산한 예상치이며 개인별 세금, 은행의 최종 서류 심사와 공시 이후 바뀐 조건은 반영하지 않았습니다.</p>
         <div className="actions"><Link className="button" to="/alternatives">같은 돈으로 대안 비교하기</Link></div>
       </section>}
     </section>

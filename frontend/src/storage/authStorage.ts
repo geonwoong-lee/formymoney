@@ -42,6 +42,11 @@ export function loadAuthSession(storage: Storage = window.localStorage): StoredA
   }
 }
 
+export function isSignedIn(storage: Storage = window.localStorage): boolean {
+  const session = loadAuthSession(storage)
+  return session !== null && (session.expiresAt === null || session.expiresAt > Date.now())
+}
+
 export function clearAuthSession(storage: Storage = window.localStorage) {
   storage.removeItem(AUTH_STORAGE_KEY)
 }

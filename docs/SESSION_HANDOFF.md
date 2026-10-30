@@ -1,6 +1,6 @@
 # Very Rich? 세션 인수인계 명세서
 
-> 마지막 정리일: 2026-10-29 · 다른 세션에서 이 문서만 먼저 읽어도 현재 상태와 다음 작업을 파악할 수 있도록 작성했다.
+> 마지막 정리일: 2026-10-30 · 다른 세션에서 이 문서만 먼저 읽어도 현재 상태와 다음 작업을 파악할 수 있도록 작성했다.
 
 ## 1. 새 세션이 가장 먼저 할 일
 
@@ -46,7 +46,7 @@
 | 테스트 DB | SQLite3 | 독립된 자동 테스트 전용 |
 | 인증 | Supabase Auth | 이메일 회원가입·로그인·현재 사용자 조회 |
 | 마이그레이션 | Alembic | 운영 테이블 생성·변경 |
-| 자동화 | n8n 2.44.7 Docker | 오전 7시 수집, OpenAI 호출, 재시도·분기 |
+| 자동화 | n8n Docker | 오전 7시 수집, OpenAI 호출, 재시도·분기. 저장소 Compose는 2.44.7, 현재 로컬 실행 인스턴스는 2.31.6 |
 | AI | OpenAI Responses API | 공식 자료의 Structured Outputs 요약 초안 |
 
 주요 폴더는 다음과 같다.
@@ -131,9 +131,9 @@ docs/              기획·동작·개발·수집 정책 문서
 ### v1
 
 - Phase 0~8: 완료
-- Phase 9: 진행 중
-  - 완료: `/about` 출처·계산 기준, 투자자료 자동 갱신, 적금 공시 변경 감지
-  - 남음: 공통 오류 응답, 실패 시 입력 유지, 360px 모바일, 전체 통합 QA
+- Phase 9: 완료(2026-10-30)
+  - 완료: `/about` 출처·계산 기준, 투자자료 자동 갱신, 적금 공시 변경 감지, 공통 오류 응답·다시 시도, 360px 모바일, 계산 회귀 테스트, 회원가입·로그인 확인
+  - 주의: 개발 중 Supabase `Confirm email`을 꺼 두었다. 공개 전에 다시 켠다.
 - Phase 10: 미착수
   - 가입 예정자·유보자 5명 사용자 테스트와 공개 준비
 
@@ -143,8 +143,9 @@ docs/              기획·동작·개발·수집 정책 문서
 - Phase 12: 브리핑 DB·내부 저장 API·공개 조회 API 완료
 - Phase 13: n8n 공식 피드 수집·중복·부분 실패 처리 완료
 - Phase 14: **코드와 자동검증까지 구현, 아직 완료 아님**
-  - 완료: 금융위 상세 근거 추출, Responses API JSON Schema 요청, FastAPI 숫자·근거·금지 표현 검증, 실패 1회 재시도
-  - 남음: n8n OpenAI Credential 연결, 공식 자료 10건 실호출 평가, 실제 비용 확인, 모델 최종 확정
+  - 완료: 금융위 상세 근거 추출, Responses API JSON Schema 요청, FastAPI 숫자·근거·금지 표현 검증, 실패 1회 재시도, 로컬 n8n 환경 연결, 후보 수집 API 실호출
+  - 확인됨: n8n과 FastAPI 상태 200, n8n 컨테이너에서 후보 수집 API HTTP 200·`ok`
+  - 남음: OpenAI 노드를 포함한 전체 워크플로 성공 확인, 공식 자료 10건 실호출 평가, 실제 비용 확인, 모델 최종 확정
 - Phase 15: 미착수 — React `/daily` 화면과 검수된 금융용어
 - Phase 16: 미착수 — 예약 실행부터 화면까지 통합 QA와 운영 위치 결정
 
@@ -152,16 +153,19 @@ Phase 14가 끝나기 전 Phase 15를 완료 처리하지 않는다.
 
 ## 10. Phase 14의 정확한 다음 작업
 
-마지막 확인 시 `automation/n8n/.env`와 프로젝트 내 OpenAI API 키는 설정되어 있지 않았다. 키를 채팅·코드·문서에 붙여 넣지 않는다.
+현재 로컬 n8n에는 `Very Rich - 공식 금융뉴스 수집·AI 검증` 워크플로가 있으며 ID는 `KtHPTUxW71kO71Jr`다. 후보 수집까지만 실호출을 확인했고, 2026-10-29 기준 공개 API의 최종 항목은 0개였다. 따라서 Phase 14를 완료 처리하면 안 된다.
 
-1. 실행 중인 로컬 n8n `http://localhost:5678`을 연다.
-2. `automation/n8n/workflows/daily-official-candidates.json`을 가져온다.
-3. n8n `Credentials`에서 OpenAI API Credential을 만들고 사용자가 키를 화면에 직접 입력한다.
-4. `OpenAI Structured Output`, `OpenAI 한 번 재시도` 노드에 같은 Credential을 선택한다.
-5. FastAPI를 실행하고 워크플로를 수동 실행한다.
-6. 금융위원회 공식 자료 10건에서 JSON 형식, 근거 ID, 원문에 없는 숫자, 금지 표현과 토큰 사용량을 기록한다.
-7. 기본 `gpt-6-luna`의 통과율이 부족하면 모델을 비교한다. 비용보다 사실 검증 통과율을 우선한다.
-8. 검증이 끝나야 `docs/plan.md`에서 Phase 14를 완료 처리하고 해당 변경만 커밋·푸시한다.
+1. `http://localhost:5678/workflow/KtHPTUxW71kO71Jr`에서 워크플로를 연다.
+2. OpenAI Credential이 `OpenAI Structured Output`, `OpenAI 한 번 재시도` 두 노드에 선택되어 있는지 값 노출 없이 확인한다.
+3. `Execute workflow`로 전체 흐름을 수동 실행한다.
+4. `FastAPI 공식 후보 수집` → `원문 근거 준비` → `OpenAI Structured Output` → `FastAPI 검증·저장` 순서로 각 OUTPUT을 확인한다.
+5. 최종 저장 노드가 `accepted`인지 확인하고 `http://localhost:8000/api/v1/daily`의 `items`가 생겼는지 확인한다.
+6. Supabase Table Editor의 `daily_briefing_items`와 `daily_briefing_sources`에서도 저장 여부를 확인한다.
+7. 금융위원회 공식 자료 10건에서 JSON 형식, 근거 ID, 원문에 없는 숫자, 금지 표현과 토큰 사용량을 기록한다.
+8. 기본 `gpt-5.6-luna`의 통과율이 부족하면 모델을 비교한다. 비용보다 사실 검증 통과율을 우선한다.
+9. 검증이 끝나야 `docs/plan.md`에서 Phase 14를 완료 처리하고 해당 변경만 커밋·푸시한다.
+
+2026-10-30 진행: 전체 워크플로 실행에 성공해 3건이 게시됐다(Code 노드를 항목별 실행 모드로 수정, `/daily` 조회를 KST 날짜 기준으로 수정). 위 1~6번은 확인됐고 7~9번(10건 평가·모델 확정)이 남았다. 이미 떠 있는 FastAPI는 재시작해야 날짜 수정이 반영된다.
 
 개발 제한은 후보 최대 3건, 항목별 최대 2회 호출, 출력 최대 900토큰, 개발 운영 기준 하루 미화 0.02달러 이하다.
 
@@ -204,6 +208,22 @@ npm.cmd run dev
 
 설정과 가져오기 방법은 `automation/n8n/README.md`를 따른다. 로컬 PC가 꺼지면 예약도 멈추므로 로컬 Docker는 운영 환경으로 간주하지 않는다.
 
+현재 PC에서 실제 실행 중인 n8n은 저장소의 `automation/n8n/compose.yml`이 아니라 `C:\n8n\compose.yaml`로 만든 별도 인스턴스다. 데이터 볼륨은 `n8n_n8n_2nd_data`이며 삭제하지 않는다. 현재 확인된 설정은 다음과 같다.
+
+- n8n: `http://localhost:5678`
+- FastAPI: `http://localhost:8000`
+- `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`
+- `VERY_RICH_API_BASE_URL`, `VERY_RICH_N8N_INGEST_SECRET`, `OPENAI_MODEL`이 현재 n8n 컨테이너에 전달됨
+- n8n과 FastAPI 상태 200, 후보 수집 API HTTP 200·`ok`
+
+현재 내부 인증값은 컨테이너 재생성 시 `backend/.env`를 Compose 입력으로 전달했다. 값을 출력하지 말고 다음과 같이 재생성한다.
+
+```powershell
+docker compose --env-file C:\Users\aicam\Desktop\formymoney\backend\.env -f C:\n8n\compose.yaml up -d --force-recreate n8n
+```
+
+`access to env vars denied`가 다시 나오면 실행 중인 컨테이너가 어느 Compose 파일에서 만들어졌는지와 `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` 반영 여부를 확인한다. `Invalid URL: /api/...`가 나오면 `VERY_RICH_API_BASE_URL`이 빠진 것이다. OpenAI API 키는 환경변수가 아니라 n8n Credential에만 둔다.
+
 ## 13. 검증 명령
 
 ```powershell
@@ -233,6 +253,7 @@ cd backend
 | `backend/.env` | PostgreSQL Session pooler URL, Supabase URL·anon key, CORS origin, n8n 내부 비밀값 |
 | `frontend/.env` | `VITE_API_BASE_URL` |
 | `automation/n8n/.env` | n8n 암호화 키, FastAPI 주소, n8n 내부 비밀값, 공개 가능한 모델명 |
+| 현재 로컬 `C:\n8n\compose.yaml` | 실행 중인 별도 n8n 인스턴스 설정. 내부 인증값은 출력하지 않고 Compose 실행 시 전달 |
 | n8n Credential | OpenAI API 키 |
 
 예시는 각 폴더의 `.env.example`을 사용한다. `.env`, 토큰과 전체 연결 문자열은 Git에 올리지 않는다.
@@ -240,6 +261,7 @@ cd backend
 ## 15. 아직 확인하지 못했거나 결정하지 않은 것
 
 - Phase 14 실제 OpenAI 10건 품질·비용 평가
+- n8n 전체 워크플로 실행 후 `daily_briefing_items` 저장 성공 여부. 마지막 확인 때 `/api/v1/daily` 항목은 0개였음
 - n8n 운영 위치: n8n Cloud 또는 항상 켜진 별도 서버
 - Phase 15 금융용어 자료의 가공 허용 여부와 검수된 30개 용어
 - 당일 생성 실패 시 이전 날짜 브리핑을 화면에 보여줄지 여부
