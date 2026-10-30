@@ -90,3 +90,25 @@ class DailyTermAssignment(Base):
     term_id: Mapped[int] = mapped_column(ForeignKey("financial_terms.id"))
 
     term: Mapped[FinancialTerm] = relationship(back_populates="assignments")
+
+
+class NewsHeadline(Base):
+    """Title-and-link only headline from a news search API; rows expire after a retention window."""
+
+    __tablename__ = "news_headlines"
+    __table_args__ = (
+        CheckConstraint("region IN ('domestic', 'international')", name="ck_news_headline_region"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(String(30))
+    region: Mapped[str] = mapped_column(String(20), index=True)
+    topic: Mapped[str] = mapped_column(String(100))
+    title: Mapped[str] = mapped_column(String(500))
+    publisher: Mapped[str] = mapped_column(String(255))
+    url: Mapped[str] = mapped_column(String(1000), unique=True)
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    title_ko: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    summary_ko: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_model: Mapped[str | None] = mapped_column(String(120), nullable=True)

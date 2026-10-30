@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
     n8n_ingest_secret: str | None = None
+    naver_client_id: str | None = None
+    naver_client_secret: str | None = None
+    naver_hub_key_id: str | None = None
+    naver_hub_key: str | None = None
+    openai_api_key: str | None = None
+    openai_model: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

@@ -176,3 +176,19 @@ class CandidateEvidenceResponse(CandidateEvidenceRequest):
 class OpenAIResultIngestRequest(CandidateEvidenceResponse):
     openai_response: dict[str, object]
     prompt_version: Literal["1.0"] = "1.0"
+
+
+class NewsHeadlineResponse(CamelModel):
+    title: str
+    publisher: str
+    url: str
+    published_at: datetime
+    topic: str
+    provider: str
+    title_ko: str | None = None
+    summary_ko: str | None = None
+
+
+class NewsHeadlinesResponse(CamelModel):
+    region: str
+    items: list[NewsHeadlineResponse]

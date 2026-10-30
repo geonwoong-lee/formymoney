@@ -161,6 +161,60 @@ export interface ComparisonResponse {
   notice: string
 }
 
+export interface DailySummaryPoint {
+  text: string
+  evidenceIds: string[]
+}
+
+export interface DailyBriefingItem {
+  id: number
+  sourceCode: string
+  sourceName: string
+  sourceItemId: string
+  originalTitle: string
+  canonicalUrl: string
+  publishedAt: string
+  generatedAt: string
+  plainHeadline: string
+  summaryPoints: DailySummaryPoint[]
+  whyItMatters: DailySummaryPoint
+  relatedTerms: string[]
+  caution: string
+  aiGenerated: boolean
+}
+
+export interface DailyTerm {
+  slug: string
+  name: string
+  shortDefinition: string
+  example: string
+  sourceName: string
+  sourceUrl: string
+}
+
+export interface DailyBriefingResponse {
+  date: string
+  generatedAt: string | null
+  items: DailyBriefingItem[]
+  term: DailyTerm | null
+}
+
+export interface NewsHeadline {
+  title: string
+  publisher: string
+  url: string
+  publishedAt: string
+  topic: string
+  provider: string
+  titleKo: string | null
+  summaryKo: string | null
+}
+
+export interface NewsHeadlinesResponse {
+  region: 'domestic' | 'international'
+  items: NewsHeadline[]
+}
+
 export class ApiError extends Error {
   readonly status?: number
 
@@ -249,6 +303,14 @@ export function calculateCashflow(payload: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
+}
+
+export function getDaily(signal?: AbortSignal): Promise<DailyBriefingResponse> {
+  return request<DailyBriefingResponse>('/api/v1/daily', { signal })
+}
+
+export function getNewsHeadlines(region: 'domestic' | 'international', signal?: AbortSignal): Promise<NewsHeadlinesResponse> {
+  return request<NewsHeadlinesResponse>(`/api/v1/daily/headlines?region=${region}&limit=10`, { signal })
 }
 
 export function getInvestmentAssets(signal?: AbortSignal): Promise<InvestmentAssetsResponse> {

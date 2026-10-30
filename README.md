@@ -64,7 +64,10 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 완료: **Phase 7 — 적금·투자 비교 화면 완성**
 - 완료: **Phase 8 핵심 작업 — Supabase PostgreSQL 연결·마이그레이션·상품 적재**
 - 완료: **Phase 9 — 오류 응답·입력 유지·360px 모바일·계산 회귀 테스트·회원가입 동작 확인**
-- 다음: Phase 15 `/daily` 화면, 이후 Phase 16 통합 QA와 Phase 10 사용자 테스트
+- 완료: **Phase 15 — `/daily` 화면, 국내·해외 뉴스 헤드라인(해외는 AI 한국어 번역·요약), 오늘의 금융용어 12개 공개(저장 30개 중 점검 통과분)**
+- 해외 헤드라인 한국어 해석에는 `backend/.env`의 `VERY_RICH_OPENAI_API_KEY`가 필요합니다.
+- 헤드라인 수집: `cd backend && python -m scripts.collect_news_headlines` (네이버 키는 `backend/.env`의 `VERY_RICH_NAVER_*`에 입력, 하루 한 번 실행)
+- 다음: Phase 16 통합 QA와 Phase 10 사용자 테스트
 - 완료: **Phase 11 — 공식 출처·저장 범위·Scrapling 제한·AI 검증 기준 확정**
 - 완료: **Phase 12 — 브리핑 DB·API 기반**
 - 완료: **Phase 13 — n8n 공식 피드 수집**
@@ -154,7 +157,7 @@ Phase 1에서 준비한 내용은 다음과 같습니다.
 - [x] Phase 12 — 브리핑 DB·API 기반
 - [x] Phase 13 — n8n 공식 피드 수집
 - [x] Phase 14 — OpenAI 요약·사실 검증
-- [ ] Phase 15 — `/daily` 화면·오늘의 금융용어
+- [x] Phase 15 — `/daily` 화면·오늘의 금융용어
 - [ ] Phase 16 — v2 통합 QA·운영 준비
 
 각 Phase의 상세 작업과 완료 조건은 [개발 계획](docs/plan.md)에서 확인할 수 있습니다.

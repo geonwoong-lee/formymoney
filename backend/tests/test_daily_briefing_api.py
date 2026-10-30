@@ -192,3 +192,63 @@ def test_database_does_not_have_raw_article_body_columns(client: TestClient) -> 
     assert "raw_html" not in columns
     assert "raw_body" not in columns
     assert "evidence" not in columns
+
+
+def _add_terms(client: TestClient, count: int, reviewed: bool = True) -> None:
+    with client.app.state.session_factory() as session:
+        for number in range(count):
+            session.add(FinancialTerm(
+                slug=f"term-{number}",
+                name=f"용어{number}",
+                short_definition="테스트용 설명입니다.",
+                example="테스트용 예시입니다.",
+                source_name="이용 허용 확인용 공식 자료",
+                source_url=f"https://example.go.kr/terms/{number}",
+                reviewed_at=datetime(2026, 10, 29, tzinfo=timezone.utc) if reviewed else None,
+                is_reviewed=reviewed,
+            ))
+        session.commit()
+
+
+def _term_name(client: TestClient, day: str) -> str | None:
+    term = client.get("/api/v1/daily", params={"date": day}).json()["term"]
+    return term["name"] if term else None
+
+
+def test_same_date_always_shows_same_term_without_writing(client: TestClient) -> None:
+    _add_terms(client, 30)
+
+    first = _term_name(client, "2026-10-30")
+    second = _term_name(client, "2026-10-30")
+    with client.app.state.session_factory() as session:
+        assignments = session.scalar(select(func.count()).select_from(DailyTermAssignment))
+
+    assert first is not None and first == second
+    assert assignments == 0
+
+
+def test_terms_rotate_through_every_reviewed_term_before_repeating(client: TestClient) -> None:
+    _add_terms(client, 30)
+
+    names = [_term_name(client, f"2026-11-{day:02d}") for day in range(1, 31)]
+
+    assert len(set(names)) == 30
+    assert _term_name(client, "2026-12-01") == names[0]
+
+
+def test_unreviewed_or_missing_terms_show_nothing(client: TestClient) -> None:
+    assert _term_name(client, "2026-10-30") is None
+
+    _add_terms(client, 5, reviewed=False)
+
+    assert _term_name(client, "2026-10-30") is None
+
+
+def test_operator_assignment_overrides_rotation(client: TestClient) -> None:
+    _add_terms(client, 3)
+    with client.app.state.session_factory() as session:
+        target = session.scalar(select(FinancialTerm).where(FinancialTerm.slug == "term-2"))
+        session.add(DailyTermAssignment(briefing_date=date(2026, 10, 30), term_id=target.id))
+        session.commit()
+
+    assert _term_name(client, "2026-10-30") == "용어2"

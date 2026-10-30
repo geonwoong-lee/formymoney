@@ -13,6 +13,7 @@ from app.schemas.daily_briefing import (
     DailyCandidateCollectionResponse,
     DailyBriefingResponse,
     EvidenceParagraph,
+    NewsHeadlinesResponse,
     OpenAIResultIngestRequest,
 )
 from app.collectors.official_news import (
@@ -22,6 +23,7 @@ from app.collectors.official_news import (
     collect_official_candidates,
 )
 from app.services.daily_candidate_service import DailyCandidateService
+from app.services.news_headline_service import NewsHeadlineService
 from app.services.daily_briefing_service import DailyBriefingInputError, DailyBriefingService
 
 
@@ -146,3 +148,20 @@ def get_daily_briefing(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="오늘의 머니 브리핑을 불러오지 못했습니다.",
         ) from error
+
+
+@router.get("/daily/headlines", response_model=NewsHeadlinesResponse)
+def get_news_headlines(
+    request: Request,
+    region: str = Query(default="domestic", pattern="^(domestic|international)$"),
+    limit: int = Query(default=10, ge=1, le=30),
+) -> NewsHeadlinesResponse:
+    try:
+        with request.app.state.session_factory() as session:
+            items = NewsHeadlineService(session).list_recent(region, limit)
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="뉴스 헤드라인을 불러오지 못했습니다.",
+        ) from error
+    return NewsHeadlinesResponse(region=region, items=items)

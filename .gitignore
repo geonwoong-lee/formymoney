@@ -37,3 +37,10 @@ temp/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# 외부 용어집 원본 (재배포하지 않음)
+/*.xlsx
+/*경제금융용어*.pdf
+
+# 수집 로그
+backend/logs/

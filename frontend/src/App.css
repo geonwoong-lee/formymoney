@@ -95,6 +95,11 @@
   background-position: 100% 50%;
 }
 
+.pixel-icon--daily {
+  background-position: center;
+  background-size: 76%;
+}
+
 .desktop-glyph {
   display: block;
   width: 48px;

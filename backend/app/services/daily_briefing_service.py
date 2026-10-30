@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
 from app.data.daily_sources import DAILY_SOURCE_POLICIES
-from app.models.daily_briefing import DailyBriefingItem, DailyBriefingSource
+from app.models.daily_briefing import DailyBriefingItem, DailyBriefingSource, FinancialTerm
 from app.repositories.daily_briefing_repository import DailyBriefingRepository
 from app.schemas.daily_briefing import (
     BriefingIngestRequest,
@@ -112,17 +112,17 @@ class DailyBriefingService:
 
     def get_daily(self, briefing_date: date) -> DailyBriefingResponse:
         items = self.repository.list_published_for_date(briefing_date)
-        assignment = self.repository.get_term_assignment(briefing_date)
         generated_at = max((item.generated_at for item in items), default=None)
+        term_row = self._term_for(briefing_date)
         term = None
-        if assignment is not None:
+        if term_row is not None:
             term = FinancialTermResponse(
-                slug=assignment.term.slug,
-                name=assignment.term.name,
-                short_definition=assignment.term.short_definition,
-                example=assignment.term.example,
-                source_name=assignment.term.source_name,
-                source_url=assignment.term.source_url,
+                slug=term_row.slug,
+                name=term_row.name,
+                short_definition=term_row.short_definition,
+                example=term_row.example,
+                source_name=term_row.source_name,
+                source_url=term_row.source_url,
             )
         return DailyBriefingResponse(
             date=briefing_date,
@@ -130,6 +130,16 @@ class DailyBriefingService:
             items=[self._item_response(item) for item in items],
             term=term,
         )
+
+    def _term_for(self, briefing_date: date) -> FinancialTerm | None:
+        """운영자가 지정한 용어가 있으면 그것을, 없으면 날짜 순번으로 검수된 용어를 돌려가며 고른다."""
+        assignment = self.repository.get_term_assignment(briefing_date)
+        if assignment is not None:
+            return assignment.term
+        terms = self.repository.list_reviewed_terms()
+        if not terms:
+            return None
+        return terms[briefing_date.toordinal() % len(terms)]
 
     @staticmethod
     def _extract_output_text(response: dict[str, object]) -> str:

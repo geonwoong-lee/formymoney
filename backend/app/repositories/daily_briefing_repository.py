@@ -8,6 +8,7 @@ from app.models.daily_briefing import (
     DailyBriefingItem,
     DailyBriefingSource,
     DailyTermAssignment,
+    FinancialTerm,
 )
 
 KST = ZoneInfo("Asia/Seoul")
@@ -93,6 +94,10 @@ class DailyBriefingRepository:
         if assignment is None or not assignment.term.is_reviewed:
             return None
         return assignment
+
+    def list_reviewed_terms(self) -> list[FinancialTerm]:
+        query = select(FinancialTerm).where(FinancialTerm.is_reviewed.is_(True)).order_by(FinancialTerm.id)
+        return list(self.session.scalars(query).all())
 
     def commit(self) -> None:
         self.session.commit()

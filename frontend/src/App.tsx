@@ -8,6 +8,7 @@ import { BankDetailPage } from './pages/BankDetailPage'
 import { BanksPage } from './pages/BanksPage'
 import { CashflowPage } from './pages/CashflowPage'
 import { ConditionsPage } from './pages/ConditionsPage'
+import { DailyPage } from './pages/DailyPage'
 import { HomePage } from './pages/HomePage'
 import { AuthPage } from './pages/AuthPage'
 import { MyPage } from './pages/MyPage'
@@ -25,6 +26,7 @@ function App() {
         <Route path="/cashflow" element={<CashflowPage />} />
         <Route path="/alternatives" element={<AlternativesPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/daily" element={<DailyPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

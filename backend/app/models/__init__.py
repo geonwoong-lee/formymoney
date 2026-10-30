@@ -3,6 +3,7 @@ from app.models.daily_briefing import (
     DailyBriefingSource,
     DailyTermAssignment,
     FinancialTerm,
+    NewsHeadline,
 )
 from app.models.investment import InvestmentAsset, InvestmentMonthlyPoint
 from app.models.reference_item import ReferenceItem
@@ -16,6 +17,7 @@ __all__ = [
     "FinancialTerm",
     "InvestmentAsset",
     "InvestmentMonthlyPoint",
+    "NewsHeadline",
     "PreferentialCondition",
     "ReferenceItem",
     "SavingsPolicy",
