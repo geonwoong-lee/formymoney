@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import dashboardSprite from '../assets/icons/dashboard-sprite-v2.png'
 import dailyIcon from '../assets/icons/daily-mail.png'
 import startLogo from '../assets/icons/start-logo.svg'
+import { Assistant } from './Assistant'
 import { RetroUtilityApp, type UtilityId } from './RetroUtilityApps'
 
 type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'about' | 'daily'
@@ -251,6 +252,7 @@ export function AppLayout({ children }: PropsWithChildren) {
         </div>
         <div className="taskbar-clock" aria-label={`현재 날짜 ${dateLabel}, 현재 시각 ${timeLabel}`}><span>{dateLabel}</span><strong>{timeLabel}</strong></div>
       </footer>
+      <Assistant greetOnFirstVisit />
     </div>
   )
 }

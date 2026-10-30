@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 200" width="168" height="200">
+  <style>
+    .dog-lids { opacity: 0; animation: dog-blink 5s infinite; }
+    .dog-tail { transform-box: fill-box; transform-origin: 0% 50%; animation: dog-wag 2.2s ease-in-out infinite; }
+    .dog-page { transform-box: fill-box; transform-origin: 50% 100%; animation: dog-read 6s ease-in-out infinite; }
+    @keyframes dog-blink { 0%, 92%, 100% { opacity: 0; } 94%, 97% { opacity: 1; } }
+    @keyframes dog-wag { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(14deg); } }
+    @keyframes dog-read { 0%, 70%, 100% { transform: skewX(0deg); } 78% { transform: skewX(-8deg); } 86% { transform: skewX(0deg); } }
+    @media (prefers-reduced-motion: reduce) { .dog-lids, .dog-tail, .dog-page { animation: none; } }
+  </style>
+  <defs>
+    <linearGradient id="fur" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#ffe14a"/>
+      <stop offset="0.55" stop-color="#f7c01a"/>
+      <stop offset="1" stop-color="#dc9308"/>
+    </linearGradient>
+    <linearGradient id="ear" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd52e"/>
+      <stop offset="1" stop-color="#d98c06"/>
+    </linearGradient>
+    <linearGradient id="muzzle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffec8a"/>
+      <stop offset="1" stop-color="#f7cb3c"/>
+    </linearGradient>
+    <radialGradient id="eye" cx="0.4" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dfe6f2"/>
+    </radialGradient>
+  </defs>
+  <g stroke="#9a5f06" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- tail -->
+    <path class="dog-tail" d="M136 160 C152 154 160 160 158 170 C150 168 142 170 134 170 Z" fill="url(#fur)"/>
+    <!-- haunch and hind foot -->
+    <ellipse cx="114" cy="152" rx="30" ry="28" fill="url(#fur)"/>
+    <ellipse cx="120" cy="186" rx="27" ry="11" fill="url(#fur)"/>
+    <!-- body -->
+    <path d="M58 94 C42 122 44 162 62 178 L120 176 C144 160 142 120 112 94 Z" fill="url(#fur)"/>
+    <path d="M70 130 C64 150 66 166 74 176" fill="none" stroke="#c98206" stroke-width="1.4" opacity="0.7"/>
+    <!-- front foot -->
+    <ellipse cx="56" cy="186" rx="23" ry="10.5" fill="url(#fur)"/>
+    <path d="M44 186 C46 191 50 191 52 186 M54 187 C56 192 60 192 62 187" fill="none" stroke-width="1.2"/>
+    <!-- book -->
+    <g class="dog-page">
+      <path d="M16 148 L66 160 L112 148 L112 156 L66 170 L16 156 Z" fill="#b8261c"/>
+      <path d="M20 118 L68 128 L64 162 L16 150 Z" fill="#fff7e0"/>
+      <path d="M68 128 L108 118 L112 150 L64 162 Z" fill="#fffdf2"/>
+      <path d="M26 128 L58 135 M25 136 L57 143 M24 144 L55 151 M76 134 L102 128 M76 142 L104 136 M75 150 L105 144" fill="none" stroke="#b9a98a" stroke-width="1.2"/>
+    </g>
+    <!-- arm and hand holding the book -->
+    <path d="M58 100 C48 118 54 138 70 144 C80 146 88 140 84 132 C76 128 74 118 78 106 Z" fill="url(#fur)"/>
+    <ellipse cx="80" cy="140" rx="10" ry="8" fill="url(#fur)"/>
+    <!-- ears -->
+    <path d="M50 20 C30 16 22 50 30 80 C34 94 46 92 48 78 C50 62 54 44 58 30 Z" fill="url(#ear)"/>
+    <path d="M118 20 C138 16 146 50 138 80 C134 94 122 92 120 78 C118 62 114 44 110 30 Z" fill="url(#ear)"/>
+    <!-- head -->
+    <ellipse cx="84" cy="50" rx="41" ry="37" fill="url(#fur)"/>
+    <ellipse cx="84" cy="64" rx="23" ry="15" fill="url(#muzzle)" stroke="none"/>
+    <!-- collar -->
+    <path d="M58 86 C72 100 98 100 112 86 L114 96 C98 110 72 110 56 96 Z" fill="#d82424"/>
+    <circle cx="76" cy="106" r="5" fill="#fff0c0"/>
+    <!-- eyes -->
+    <g stroke="#6a4004" stroke-width="1.4">
+      <circle cx="68" cy="36" r="14.5" fill="url(#eye)"/>
+      <circle cx="102" cy="36" r="14.5" fill="url(#eye)"/>
+      <circle cx="66" cy="41" r="7" fill="#15110a" stroke="none"/>
+      <circle cx="100" cy="41" r="7" fill="#15110a" stroke="none"/>
+      <circle cx="64" cy="38.5" r="2" fill="#fff" stroke="none"/>
+      <circle cx="98" cy="38.5" r="2" fill="#fff" stroke="none"/>
+      <g class="dog-lids" fill="url(#fur)" stroke="none">
+        <ellipse cx="68" cy="36" rx="15.5" ry="15.5"/>
+        <ellipse cx="102" cy="36" rx="15.5" ry="15.5"/>
+      </g>
+    </g>
+    <!-- nose and mouth -->
+    <ellipse cx="84" cy="57" rx="12.5" ry="8.5" fill="#15110a" stroke="none"/>
+    <ellipse cx="80" cy="54" rx="4" ry="2" fill="#fff" stroke="none" opacity="0.55"/>
+    <path d="M84 66 L84 70 M74 72 C80 77 88 77 94 72" fill="none" stroke="#7a4806" stroke-width="1.8"/>
+  </g>
+</svg>

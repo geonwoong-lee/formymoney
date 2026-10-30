@@ -1,0 +1,222 @@
+.assistant,
+.assistant-recall {
+  position: fixed;
+  left: 14px;
+  bottom: 48px;
+  z-index: 40;
+}
+
+.assistant {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.assistant--flip {
+  align-items: flex-end;
+}
+
+.assistant > * {
+  pointer-events: auto;
+}
+
+.assistant__dog,
+.assistant-recall {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.assistant__dog:active {
+  cursor: grabbing;
+}
+
+.assistant__dog img {
+  display: block;
+  width: 84px;
+  height: 100px;
+  filter: drop-shadow(2px 3px 0 rgb(0 0 0 / 28%));
+  animation: assistant-bob 3.2s ease-in-out infinite;
+  transform-origin: 50% 100%;
+  user-select: none;
+}
+
+.assistant__dog--listening img {
+  animation: assistant-tilt 1.8s ease-in-out infinite;
+}
+
+.assistant__dog--happy img {
+  animation: assistant-hop 0.9s ease-out;
+}
+
+.assistant__dog:focus-visible,
+.assistant-recall:focus-visible {
+  outline: 2px dotted #000;
+  outline-offset: 2px;
+}
+
+.assistant-recall {
+  padding: 2px;
+  border: 2px solid #808080;
+  border-top-color: #fff;
+  border-left-color: #fff;
+  background: #c0c0c0;
+}
+
+.assistant-recall img {
+  display: block;
+  width: 30px;
+  height: 36px;
+}
+
+.assistant-bubble {
+  position: relative;
+  width: min(290px, calc(100vw - 28px));
+  padding: 10px 12px 12px;
+  border: 1px solid #000;
+  border-radius: 12px;
+  background: #ffffe1;
+  box-shadow: 2px 2px 0 rgb(0 0 0 / 35%);
+  font-size: 13px;
+}
+
+.assistant-bubble__title {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.assistant-bubble__input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 30px;
+  padding: 2px 6px;
+  border: 2px solid #808080;
+  border-right-color: #fff;
+  border-bottom-color: #fff;
+  background: #fff;
+  font: inherit;
+}
+
+.assistant-bubble__buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.assistant-bubble button,
+.assistant-bubble__options button {
+  min-height: 26px;
+  padding: 2px 12px;
+  border: 2px solid #fff;
+  border-right-color: #404040;
+  border-bottom-color: #404040;
+  background: #c0c0c0;
+  color: #000;
+  font: inherit;
+  cursor: pointer;
+}
+
+.assistant-bubble button:active {
+  border-color: #404040;
+  border-right-color: #fff;
+  border-bottom-color: #fff;
+}
+
+.assistant-bubble__options {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.assistant-bubble__answer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #808080;
+  line-height: 1.55;
+}
+
+.assistant-bubble__answer p {
+  margin: 0 0 8px;
+}
+
+.assistant-bubble__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.assistant-bubble__tail {
+  position: absolute;
+  left: 34px;
+  bottom: -11px;
+  width: 0;
+  height: 0;
+  border-top: 11px solid #000;
+  border-left: 9px solid transparent;
+  border-right: 0 solid transparent;
+}
+
+.assistant--flip .assistant-bubble__tail {
+  right: 34px;
+  left: auto;
+  border-right: 9px solid transparent;
+  border-left: 0 solid transparent;
+}
+
+.assistant-bubble__tail::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: -8px;
+  border-top: 10px solid #ffffe1;
+  border-left: 8px solid transparent;
+}
+
+.assistant--flip .assistant-bubble__tail::after {
+  right: -8px;
+  left: auto;
+  border-left: 0 solid transparent;
+  border-right: 8px solid transparent;
+}
+
+@keyframes assistant-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes assistant-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-5deg); }
+}
+
+@keyframes assistant-hop {
+  0% { transform: translateY(0) scale(1, 1); }
+  25% { transform: translateY(-16px) scale(0.96, 1.05); }
+  50% { transform: translateY(0) scale(1.06, 0.94); }
+  70% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant__dog img,
+  .assistant__dog--listening img,
+  .assistant__dog--happy img { animation: none; }
+}
+
+@media (max-width: 720px) {
+  .assistant,
+  .assistant-recall {
+    left: 8px;
+  }
+
+  .assistant__dog img {
+    width: 60px;
+    height: 72px;
+  }
+}
