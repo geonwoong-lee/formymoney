@@ -187,6 +187,7 @@ class NewsHeadlineResponse(CamelModel):
     provider: str
     title_ko: str | None = None
     summary_ko: str | None = None
+    reasons: list[str] = []
 
 
 class NewsHeadlinesResponse(CamelModel):

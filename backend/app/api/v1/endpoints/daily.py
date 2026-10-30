@@ -155,10 +155,12 @@ def get_news_headlines(
     request: Request,
     region: str = Query(default="domestic", pattern="^(domestic|international)$"),
     limit: int = Query(default=10, ge=1, le=30),
+    featured: bool = Query(default=False),
 ) -> NewsHeadlinesResponse:
     try:
         with request.app.state.session_factory() as session:
-            items = NewsHeadlineService(session).list_recent(region, limit)
+            service = NewsHeadlineService(session)
+            items = service.list_featured(region, min(limit, 10)) if featured else service.list_recent(region, limit)
     except SQLAlchemyError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

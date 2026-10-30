@@ -208,6 +208,7 @@ export interface NewsHeadline {
   provider: string
   titleKo: string | null
   summaryKo: string | null
+  reasons: string[]
 }
 
 export interface NewsHeadlinesResponse {
@@ -309,8 +310,10 @@ export function getDaily(signal?: AbortSignal): Promise<DailyBriefingResponse> {
   return request<DailyBriefingResponse>('/api/v1/daily', { signal })
 }
 
-export function getNewsHeadlines(region: 'domestic' | 'international', signal?: AbortSignal): Promise<NewsHeadlinesResponse> {
-  return request<NewsHeadlinesResponse>(`/api/v1/daily/headlines?region=${region}&limit=10`, { signal })
+export function getNewsHeadlines(
+  region: 'domestic' | 'international', signal?: AbortSignal, featured = false,
+): Promise<NewsHeadlinesResponse> {
+  return request<NewsHeadlinesResponse>(`/api/v1/daily/headlines?region=${region}&limit=${featured ? 5 : 10}${featured ? '&featured=true' : ''}`, { signal })
 }
 
 export function getInvestmentAssets(signal?: AbortSignal): Promise<InvestmentAssetsResponse> {

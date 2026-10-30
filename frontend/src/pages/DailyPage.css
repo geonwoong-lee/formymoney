@@ -191,3 +191,33 @@
 .daily-headlines__summary {
   font-size: 13px;
 }
+
+.daily-headlines h3 {
+  margin: 10px 0 4px;
+  font-size: 14px;
+}
+
+.daily-featured {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-left: 4px solid #008080;
+  background: #eef8f8;
+}
+
+.daily-headlines__reason {
+  display: block;
+  margin-top: 2px;
+  color: #006060;
+}
+
+.daily-term__easy {
+  padding: 8px 10px;
+  border-left: 4px solid #c8a000;
+  background: #fffbe0;
+  line-height: 1.6;
+}
+
+.daily-term__official summary {
+  cursor: pointer;
+  font-size: 13px;
+}

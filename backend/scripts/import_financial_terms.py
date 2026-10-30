@@ -23,6 +23,7 @@ if str(BACKEND_DIR) not in sys.path:
 from app.core.config import get_settings  # noqa: E402
 from app.db.session import create_database_engine, create_session_factory, require_postgres_url  # noqa: E402
 from app.models.daily_briefing import FinancialTerm  # noqa: E402
+from scripts.term_easy_explanations import EASY_EXPLANATIONS  # noqa: E402
 
 SOURCE_NAME = "경제교육포털 시사경제용어사전(재정경제부)"
 SOURCE_URL = "https://www.econedu.go.kr/user/playEcon/currEconTermDoc/menu/list"
@@ -111,8 +112,10 @@ def main() -> int:
                 is_reviewed=False,
             ))
             added += 1
+        for term in session.scalars(select(FinancialTerm).where(FinancialTerm.name.in_(EASY_EXPLANATIONS))):
+            term.example = EASY_EXPLANATIONS[term.name]
         session.commit()
-    print(f"새로 추가 {added}개, 이미 있음 {len(TERMS) - added}개 (모두 검수 전 상태)")
+    print(f"새로 추가 {added}개, 이미 있음 {len(TERMS) - added}개 (새로 넣은 용어는 검수 전 상태, 기존 용어의 공개 여부는 그대로)")
     return 0
 
 

@@ -73,8 +73,12 @@ function TermCard({ term }: { term: DailyTerm | null }) {
   return <section className="daily-term" aria-labelledby="daily-term-title">
     <h2 id="daily-term-title">오늘의 금융용어</h2>
     <p className="daily-term__name">{term.name}</p>
-    <p className="daily-term__definition">{term.shortDefinition}</p>
-    {term.example.trim() && <p className="daily-term__example"><b>쉬운 예시</b> {term.example}</p>}
+    {term.example.trim() && <p className="daily-term__easy"><b>쉽게 말하면</b> {term.example}</p>}
+    <details className="daily-term__official">
+      <summary>{term.example.trim() ? '공식 설명 보기' : '설명 보기'}</summary>
+      <p className="daily-term__definition">{term.shortDefinition}</p>
+    </details>
+    {term.example.trim() && <p className="daily-muted">'쉽게 말하면'은 이해를 돕기 위해 따로 쓴 설명이고, 정확한 정의는 공식 설명을 따릅니다.</p>}
     <p className="daily-muted">
       출처 {isOfficialLink(term.sourceUrl)
         ? <a href={term.sourceUrl} target="_blank" rel="noreferrer">{term.sourceName} ↗</a>
@@ -88,8 +92,21 @@ const HEADLINE_REGIONS = [
   { region: 'international', title: '해외 경제 헤드라인', provider: '공식 기관 RSS' },
 ] as const
 
+function HeadlineItem({ item }: { item: NewsHeadline }) {
+  return <li>
+    {isOfficialLink(item.url)
+      ? <a href={item.url} target="_blank" rel="noreferrer">{item.titleKo ?? item.title} ↗</a>
+      : <span>{item.titleKo ?? item.title}</span>}
+    <span className="daily-muted"> {item.publisher} · {formatPublished(item.publishedAt)}</span>
+    {item.titleKo && <span className="daily-muted daily-headlines__original">원문 제목: {item.title}</span>}
+    {item.summaryKo && <span className="daily-headlines__summary"><span className="daily-label daily-label--ai">AI 번역·요약</span> {item.summaryKo}</span>}
+    {item.reasons.length > 0 && <span className="daily-muted daily-headlines__reason">선정 이유: {item.reasons.join(' · ')}</span>}
+  </li>
+}
+
 function HeadlineList({ region, title, provider }: (typeof HEADLINE_REGIONS)[number]) {
   const [items, setItems] = useState<NewsHeadline[] | null>(null)
+  const [featured, setFeatured] = useState<NewsHeadline[]>([])
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
@@ -98,6 +115,7 @@ function HeadlineList({ region, title, provider }: (typeof HEADLINE_REGIONS)[num
       if (cause instanceof DOMException && cause.name === 'AbortError') return
       setFailed(true)
     })
+    getNewsHeadlines(region, controller.signal, true).then((body) => setFeatured(body.items)).catch(() => setFeatured([]))
     return () => controller.abort()
   }, [region])
 
@@ -106,16 +124,15 @@ function HeadlineList({ region, title, provider }: (typeof HEADLINE_REGIONS)[num
     {failed && <p className="daily-muted">헤드라인을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</p>}
     {!failed && items === null && <p className="daily-muted">헤드라인을 불러오는 중입니다.</p>}
     {items && items.length === 0 && <p className="daily-muted">아직 수집된 헤드라인이 없습니다.</p>}
+    {featured.length > 0 && <div className="daily-featured">
+      <h3>오늘 주요 뉴스</h3>
+      <ol className="daily-headlines__list">{featured.map((item) => <HeadlineItem key={item.url} item={item} />)}</ol>
+      <p className="daily-muted">정해진 규칙(관련 주제, 같은 소식을 다룬 언론 수, 발행 시각)으로 고른 것이며 AI 판단이나 투자·가입 권유가 아닙니다.</p>
+    </div>}
     {items && items.length > 0 && <>
+      <h3>전체 헤드라인</h3>
       <ul className="daily-headlines__list">
-        {items.map((item) => <li key={item.url}>
-          {isOfficialLink(item.url)
-            ? <a href={item.url} target="_blank" rel="noreferrer">{item.titleKo ?? item.title} ↗</a>
-            : <span>{item.titleKo ?? item.title}</span>}
-          <span className="daily-muted"> {item.publisher} · {formatPublished(item.publishedAt)}</span>
-          {item.titleKo && <span className="daily-muted daily-headlines__original">원문 제목: {item.title}</span>}
-          {item.summaryKo && <span className="daily-headlines__summary"><span className="daily-label daily-label--ai">AI 번역·요약</span> {item.summaryKo}</span>}
-        </li>)}
+        {items.map((item) => <HeadlineItem key={item.url} item={item} />)}
       </ul>
       <p className="daily-muted">{region === 'international'
         ? `AI가 공식 원문을 한국어로 옮기고 요약한 내용이며 번역에 오류가 있을 수 있습니다. 출처: ${provider}. 정확한 내용은 원문에서 확인하세요.`

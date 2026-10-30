@@ -38,16 +38,17 @@ const respond = (body: unknown, status = 200) => new Response(JSON.stringify(bod
 })
 
 const headline = (number: number, region = 'domestic') => ({
-  titleKo: null as string | null, summaryKo: null as string | null,
+  titleKo: null as string | null, summaryKo: null as string | null, reasons: [] as string[],
   title: `경제 헤드라인 ${number}`, publisher: 'example.co.kr', url: `https://example.co.kr/${region}/${number}`,
   publishedAt: '2026-10-30T05:38:41Z', topic: '기준금리', provider: 'naver',
 })
 
-function routeFetch(daily: () => Response, headlines: (region: string) => Response) {
+function routeFetch(daily: () => Response, headlines: (region: string, featured: boolean) => Response) {
   return vi.fn((input: RequestInfo | URL) => {
     const url = String(input)
     if (url.includes('/daily/headlines')) {
-      return Promise.resolve(headlines(new URL(url, 'http://localhost').searchParams.get('region') ?? 'domestic'))
+      const params = new URL(url, 'http://localhost').searchParams
+      return Promise.resolve(headlines(params.get('region') ?? 'domestic', params.get('featured') === 'true'))
     }
     return Promise.resolve(daily())
   })
@@ -122,14 +123,17 @@ describe('DailyPage', () => {
     const termCard = await screen.findByRole('region', { name: '오늘의 금융용어' })
     expect(termCard).toHaveTextContent('기준금리')
     expect(within(termCard).getByRole('link', { name: /금융위원회 금융용어사전/ })).toHaveAttribute('href', term.sourceUrl)
-    expect(termCard).toHaveTextContent('쉬운 예시')
+    expect(termCard).toHaveTextContent('쉽게 말하면')
+    expect(termCard).toHaveTextContent('기준금리가 바뀌면 예금 금리에도 영향을 줄 수 있습니다.')
+    expect(within(termCard).getByText('공식 설명 보기')).toBeInTheDocument()
+    expect(termCard).toHaveTextContent('중앙은행이 통화정책의 기준으로 삼는 금리입니다.')
     withTerm.unmount()
 
     stubDaily([], { ...term, example: '' })
     const withoutExample = renderPage()
     const plainCard = await screen.findByRole('region', { name: '오늘의 금융용어' })
     expect(plainCard).toHaveTextContent('중앙은행이 통화정책의 기준으로 삼는 금리입니다.')
-    expect(plainCard).not.toHaveTextContent('쉬운 예시')
+    expect(plainCard).not.toHaveTextContent('쉽게 말하면')
     withoutExample.unmount()
 
     stubDaily([], null)
@@ -171,7 +175,9 @@ describe('DailyPage', () => {
   it('lists headlines as title-and-link only and survives a headline failure', async () => {
     vi.stubGlobal('fetch', routeFetch(
       () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
-      (region) => region === 'domestic'
+      (region, featured) => featured
+        ? respond({ region, items: [] })
+        : region === 'domestic'
         ? respond({ region, items: [headline(1), { ...headline(2), url: 'http://insecure.example/2' }] })
         : respond({ error: { code: 'internal_error', message: '실패' } }, 500),
     ))
@@ -192,7 +198,7 @@ describe('DailyPage', () => {
   it('shows the Korean interpretation of an international headline with its original title', async () => {
     vi.stubGlobal('fetch', routeFetch(
       () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
-      (region) => region === 'international'
+      (region, featured) => region === 'international' && !featured
         ? respond({ region, items: [{
           ...headline(7, 'international'), title: 'Monetary policy decisions',
           titleKo: '통화정책 결정', summaryKo: '유럽중앙은행은 예금금리를 유지했습니다.',
@@ -207,5 +213,22 @@ describe('DailyPage', () => {
     expect(international).toHaveTextContent('AI 번역·요약')
     expect(international).toHaveTextContent('유럽중앙은행은 예금금리를 유지했습니다.')
     expect(international).toHaveTextContent('번역에 오류가 있을 수 있습니다')
+  })
+
+  it('puts the rule-picked top news first with its reasons and keeps the full list below', async () => {
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+      (region, featured) => featured
+        ? respond({ region, items: [{ ...headline(9), title: '청년미래적금 가입 시작', reasons: ['청년미래적금 관련', '3곳의 언론이 같은 소식을 다룸'] }] })
+        : respond({ region, items: [headline(1), headline(2)] }),
+    ))
+    renderPage()
+
+    const domestic = await screen.findByRole('region', { name: '국내 경제 헤드라인' })
+    expect(await within(domestic).findByRole('heading', { name: '오늘 주요 뉴스' })).toBeInTheDocument()
+    expect(domestic).toHaveTextContent('선정 이유: 청년미래적금 관련 · 3곳의 언론이 같은 소식을 다룸')
+    expect(domestic).toHaveTextContent('AI 판단이나 투자·가입 권유가 아닙니다')
+    expect(domestic).toHaveTextContent('전체 헤드라인')
+    expect(within(domestic).getAllByRole('link')).toHaveLength(3)
   })
 })
