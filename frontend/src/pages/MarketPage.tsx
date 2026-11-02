@@ -1,5 +1,5 @@
 import { useEffect, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { getMarket, type MarketItem, type MarketResponse } from '../api/client'
+import { getMarket, getProductRateChanges, type MarketItem, type MarketResponse, type ProductRateChanges } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
 import './MarketPage.css'
 
@@ -132,6 +132,48 @@ function RateTrend({ points }: { points: TrendPoint[] }) {
   </section>
 }
 
+const SHOWN_CHANGES = 20
+
+function formatDay(iso: string) {
+  const [year, month, day] = iso.split('-').map(Number)
+  return `${year}년 ${month}월 ${day}일`
+}
+
+// 금융감독원 disclosed rates: only what changed since the previous collection day, in %p. Hidden until collected.
+function ProductRateChangesSection() {
+  const [data, setData] = useState<ProductRateChanges | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    getProductRateChanges(controller.signal).then(setData).catch(() => setData(null))
+    return () => controller.abort()
+  }, [])
+  if (!data?.latestDay) return null
+  return <section className="market-group" aria-labelledby="market-product-rates">
+    <h2 id="market-product-rates">예·적금 공시 금리 변동</h2>
+    {!data.previousDay && <p className="market-muted">{formatDay(data.latestDay)}에 처음 모았어요. 다음 수집부터 바뀐 상품을 보여 드려요.</p>}
+    {data.previousDay && data.changes.length === 0 && <p>{formatDay(data.previousDay)}과 비교해 금리가 바뀐 상품이 없어요.</p>}
+    {data.previousDay && data.changes.length > 0 && <>
+      <p className="market-muted">{formatDay(data.previousDay)} → {formatDay(data.latestDay)} 사이 금리가 바뀐 상품 {data.changes.length}건이에요. 바뀐 폭이 큰 순서예요.</p>
+      <ul className="market-rate-changes" aria-label="금리가 바뀐 상품">
+        {data.changes.slice(0, SHOWN_CHANGES).map((item, index) => {
+          const up = Number(item.changePoint) > 0
+          return <li key={index}>
+            <span>{item.company} · {item.productName} ({item.kind === 'saving' ? '적금' : '예금'} {item.termMonths}개월{item.reserveType ? `, ${item.reserveType}` : ''})</span>
+            <span className={`market-change market-change--${up ? 'up' : 'down'}`}>
+              {item.fieldLabel} {formatNumber(item.before)}% → {formatNumber(item.after)}% ({up ? '▲ +' : '▼ '}{formatNumber(item.changePoint)}%p)
+            </span>
+          </li>
+        })}
+      </ul>
+      {data.changes.length > SHOWN_CHANGES && <p className="market-muted">그 밖에 {data.changes.length - SHOWN_CHANGES}건</p>}
+    </>}
+    <p className="market-muted">
+      공시 상품 {data.productCount.toLocaleString('ko-KR')}개 기준{data.previousDay ? ` · 새로 생긴 상품 ${data.added}개, 빠진 상품 ${data.removed}개` : ''} · 출처{' '}
+      <a href={data.sourceUrl} target="_blank" rel="noreferrer">{data.sourceName} ↗</a> · 금리 변동만 보여 주며 어느 상품도 권하지 않아요.
+    </p>
+  </section>
+}
+
 export function MarketPage() {
   const [data, setData] = useState<MarketResponse | null>(null)
   const [error, setError] = useState('')
@@ -170,6 +212,8 @@ export function MarketPage() {
       </section>)}
 
       {data && <RateTrend points={data.rateTrend} />}
+
+      {data && <ProductRateChangesSection />}
 
       {data && data.groups.length > 0 && <p className="market-muted market-source">
         출처: <a href={data.sourceUrl} target="_blank" rel="noreferrer">{data.sourceName} ↗</a>

@@ -97,3 +97,45 @@ describe('MarketPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('시장 지표를 불러오지 못했습니다.')
   })
 })
+
+describe('MarketPage product rate changes', () => {
+  const route = (rates: unknown) => vi.fn((input: RequestInfo | URL) => Promise.resolve(
+    String(input).includes('/product-rates/changes') ? respond(rates) : respond(market),
+  ))
+  const base = { productCount: 120, added: 1, removed: 2, sourceName: '금융감독원 금융상품 한눈에', sourceUrl: 'https://finlife.fss.or.kr/' }
+  const change = (company: string, before: string, after: string, point: string) => ({
+    kind: 'saving', group: '은행', company, productName: `${company} 적금`, termMonths: 12, rateType: '단리', reserveType: '정액적립식',
+    field: 'base_rate', fieldLabel: '기본금리', before, after, changePoint: point,
+  })
+
+  it('stays hidden until rates are collected, then shows only what changed in %p', async () => {
+    vi.stubGlobal('fetch', route({ ...base, latestDay: null, previousDay: null, changes: [] }))
+    renderPage()
+    await screen.findByRole('region', { name: '환율' })
+    expect(screen.queryByRole('region', { name: '예·적금 공시 금리 변동' })).not.toBeInTheDocument()
+
+    cleanup()
+    vi.stubGlobal('fetch', route({ ...base, latestDay: '2026-11-03', previousDay: '2026-11-02', changes: [
+      change('가나은행', '3.00', '3.20', '0.20'), change('다라은행', '4.50', '4.40', '-0.10'),
+    ] }))
+    renderPage()
+    const section = await screen.findByRole('region', { name: '예·적금 공시 금리 변동' })
+    const items = within(section).getAllByRole('listitem')
+    expect(items[0]).toHaveTextContent('가나은행 · 가나은행 적금 (적금 12개월, 정액적립식)기본금리 3% → 3.2% (▲ +0.2%p)')
+    expect(items[1]).toHaveTextContent('▼ -0.1%p')
+    expect(section).toHaveTextContent('새로 생긴 상품 1개, 빠진 상품 2개')
+    expect(section).toHaveTextContent('어느 상품도 권하지 않아요')
+    expect(within(section).getByRole('link', { name: /금융감독원/ })).toHaveAttribute('href', 'https://finlife.fss.or.kr/')
+  })
+
+  it('says so after the first collection and when nothing changed', async () => {
+    vi.stubGlobal('fetch', route({ ...base, latestDay: '2026-11-02', previousDay: null, changes: [] }))
+    renderPage()
+    expect(await screen.findByText(/처음 모았어요/)).toBeInTheDocument()
+
+    cleanup()
+    vi.stubGlobal('fetch', route({ ...base, latestDay: '2026-11-03', previousDay: '2026-11-02', changes: [] }))
+    renderPage()
+    expect(await screen.findByText(/금리가 바뀐 상품이 없어요/)).toBeInTheDocument()
+  })
+})

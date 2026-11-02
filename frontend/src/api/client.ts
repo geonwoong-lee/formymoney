@@ -509,6 +509,36 @@ export function getMarket(signal?: AbortSignal): Promise<MarketResponse> {
   return request<MarketResponse>('/api/v1/market', { signal })
 }
 
+export interface ProductRateChange {
+  kind: 'deposit' | 'saving'
+  group: string
+  company: string
+  productName: string
+  termMonths: number
+  rateType: string
+  reserveType: string
+  field: 'base_rate' | 'max_rate'
+  fieldLabel: string
+  before: string
+  after: string
+  changePoint: string
+}
+
+export interface ProductRateChanges {
+  latestDay: string | null
+  previousDay: string | null
+  productCount: number
+  changes: ProductRateChange[]
+  added: number
+  removed: number
+  sourceName: string
+  sourceUrl: string
+}
+
+export function getProductRateChanges(signal?: AbortSignal): Promise<ProductRateChanges> {
+  return request<ProductRateChanges>('/api/v1/market/product-rates/changes', { signal })
+}
+
 export function getNewsDigest(signal?: AbortSignal): Promise<NewsDigest> {
   return request<NewsDigest>('/api/v1/daily/digest', { signal })
 }

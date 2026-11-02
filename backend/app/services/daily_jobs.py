@@ -18,6 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.collectors.ecos import SERIES, EcosError, fetch_series
+from app.collectors.finlife import GROUPS as FINLIFE_GROUPS, FinlifeError, ProductRate, fetch_products
 from app.collectors.naver_news import NaverNewsError, fetch_headlines
 from app.collectors.official_rss import LINK_ONLY_FEEDS, OFFICIAL_FEEDS, OfficialRssError, fetch_feed
 from app.collectors.press_text import PressTextError, fetch_paragraphs
@@ -28,6 +29,7 @@ from app.services.market_service import MarketService
 from app.services.news_digest import DigestError, build_sources, korea_today, save_digest, write_digest
 from app.services.news_headline_service import NewsHeadlineService
 from app.services.openai_client import OpenAIError, embed_texts
+from app.services.product_rate_service import ProductRateService
 
 NEWS_TOPICS = ["예금 금리", "적금", "기준금리", "청년미래적금", "금융당국", "가계대출"]
 INTERPRET_LIMIT = 10
@@ -145,8 +147,35 @@ def run_market_job(settings: Settings, session: Session, fetch: FetchSeries = fe
             continue
         result.collected += len(points)
         result.saved += service.save(series.code, points)
+    collect_product_rates(settings, session, result, today)
     refresh_knowledge(settings, session, result)
     return result
+
+
+FetchProducts = Callable[[str, str, str], list[ProductRate]]
+
+
+def collect_product_rates(
+    settings: Settings, session: Session, result: JobResult, today, fetch: FetchProducts = fetch_products,
+) -> None:
+    """금감원 deposit and savings rates for banks and savings banks; skipped quietly until a key is set."""
+    if not settings.finlife_api_key:
+        result.notes.append("금감원 공시 금리: VERY_RICH_FINLIFE_API_KEY가 없어 건너뜀")
+        return
+    rates: list[ProductRate] = []
+    for kind in ("deposit", "saving"):
+        for group in FINLIFE_GROUPS:
+            result.attempted += 1
+            try:
+                found = fetch(settings.finlife_api_key, kind, group)
+            except FinlifeError as error:
+                result.fail(f"금감원:{kind}:{group}", error)
+                continue
+            result.collected += len(found)
+            rates += found
+    if rates:
+        stored = ProductRateService(session).save_snapshot(today, rates)
+        result.notes.append(f"금감원 공시 금리 {stored}개 상품·기간 저장")
 
 
 JOBS: dict[str, Callable[[Settings, Session], JobResult]] = {"news": run_news_job, "market": run_market_job}
