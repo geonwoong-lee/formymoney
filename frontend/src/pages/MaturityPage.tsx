@@ -1,10 +1,11 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   calculateSavings, getSavingsProducts, planAfterMaturity,
   type HoldingOutcome, type MaturityOption, type MaturityPlanResponse, type RiskProfile,
 } from '../api/client'
 import { MoneyInput } from '../components/MoneyInput'
+import { track } from '../features/analytics'
 import { buildMaturityIcs, downloadIcs, maturityMonth, REMINDER_DAYS } from '../features/maturityCalendar'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
@@ -97,6 +98,7 @@ export function MaturityPage() {
   const [plan, setPlan] = useState<MaturityPlanResponse | null>(null)
   const [error, setError] = useState('')
   const [importNote, setImportNote] = useState('')
+  const counted = useRef(false)  // one "plan_maturity" per visit, not one per slider move
   const [reminder, setReminder] = useState<{ startMonth: string; termMonths: number; bankName: string; productName: string } | null>(null)
 
   const amountValue = amount ?? 0
@@ -111,7 +113,11 @@ export function MaturityPage() {
       planAfterMaturity({
         amount: amountValue, months, profile,
         ...(mixAsset ? { mix: { assetCode: mixAsset, depositShare } } : {}),
-      }, controller.signal).then((body) => { setPlan(body); setError('') }).catch((cause: unknown) => {
+      }, controller.signal).then((body) => {
+        setPlan(body)
+        setError('')
+        if (!counted.current) { counted.current = true; track('plan_maturity') }
+      }).catch((cause: unknown) => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return
         setPlan(null)
         setError(cause instanceof Error ? cause.message : '계산하지 못했습니다.')
@@ -183,7 +189,7 @@ export function MaturityPage() {
         <p>예상 만기 달: <b>{monthLabel(maturityMonth(reminder.startMonth, reminder.termMonths) ?? '')}</b></p>
         <button type="button" className="button button--secondary" onClick={() => {
           const ics = buildMaturityIcs(reminder)
-          if (ics) downloadIcs(ics, 'very-rich-maturity.ics')
+          if (ics) { downloadIcs(ics, 'very-rich-maturity.ics'); track('download_reminder') }
         }}>캘린더에 만기 알림 넣기(.ics)</button>
         <p className="maturity-muted">휴대폰·구글·아웃룩 캘린더에서 열면 만기 {REMINDER_DAYS}일 전에 알려 줘요. 파일은 이 기기에서만 만들고 어디에도 보내지 않아요. 정확한 만기일은 가입한 은행에서 확인해 주세요.</p>
       </div>}

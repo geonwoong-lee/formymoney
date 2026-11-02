@@ -5,6 +5,7 @@ import {
   type InvestmentAssetsResponse,
   type SavingsProductsResponse,
 } from '../api/client'
+import { AnalyticsConsentToggle } from '../components/AnalyticsConsent'
 
 const SURVEY_URL = 'https://www.consumerinsight.co.kr/up_files/2606_finance.pdf'
 
@@ -135,6 +136,7 @@ export function AboutPage() {
           <li>공시 이후 바뀐 금리·정책·상품 조건</li>
           <li>미래 시장가격과 환율 예측</li>
         </ul>
+        <AnalyticsConsentToggle />
         <p className="reference-caution">계산 결과는 입력값과 현재 저장된 기준자료로 만든 예상치입니다. 가입 전 금융기관의 최신 공시를, 투자 전 각 운용사의 공식 위험 안내를 다시 확인하세요.</p>
       </section>
     </section>
