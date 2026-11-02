@@ -1,6 +1,159 @@
-.daily-date {
+.daily-glance {
   margin: 0 0 14px;
+  padding: 12px;
+  border: 2px solid #808080;
+  border-left: 6px solid #000080;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+.daily-glance h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.daily-glance__date {
+  margin: 0 0 6px;
   font-size: 14px;
+}
+
+.daily-glance__overview {
+  margin: 0 0 8px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.daily-glance__moves h3 {
+  margin: 8px 0 6px;
+  font-size: 13px;
+}
+
+.daily-glance__moves ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Korean convention: up is red, down is blue. The arrow and sign carry the meaning without colour. */
+.daily-move {
+  display: grid;
+  gap: 1px;
+  min-width: 118px;
+  padding: 5px 8px;
+  border: 2px solid #808080;
+  border-top-color: #fff;
+  border-left-color: #fff;
+  background: #c0c0c0;
+}
+
+.daily-move__name {
+  font-size: 12px;
+}
+
+.daily-move__value {
+  font-weight: 700;
+}
+
+.daily-move__change {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.daily-move--up .daily-move__change {
+  color: #b00000;
+}
+
+.daily-move--down .daily-move__change {
+  color: #0000b0;
+}
+
+.daily-tabs {
+  margin-top: 4px;
+}
+
+.daily-tabs__list {
+  display: flex;
+  gap: 2px;
+  padding-left: 4px;
+}
+
+.daily-tabs__tab {
+  position: relative;
+  top: 2px;
+  min-width: 72px;
+  padding: 4px 12px;
+  border: 2px solid #808080;
+  border-top-color: #fff;
+  border-left-color: #fff;
+  border-bottom: 0;
+  background: #c0c0c0;
+  color: #000;
+  font: inherit;
+  cursor: pointer;
+}
+
+.daily-tabs__tab[aria-selected="true"] {
+  z-index: 1;
+  top: 0;
+  padding-bottom: 6px;
+  font-weight: 700;
+}
+
+.daily-tabs__tab:focus-visible {
+  outline: 1px dotted #000;
+  outline-offset: -5px;
+}
+
+.daily-tabs__panel {
+  padding: 4px 10px 12px;
+  border: 2px solid #808080;
+  border-top-color: #fff;
+  border-left-color: #fff;
+  background: #c0c0c0;
+}
+
+.daily-tabs__panel[hidden] {
+  display: none;
+}
+
+.daily-tabs__panel:focus-visible {
+  outline: 1px dotted #000;
+  outline-offset: -4px;
+}
+
+.daily-tabs__panel > :first-child {
+  margin-top: 10px;
+}
+
+.daily-fold {
+  margin: 4px 0 8px;
+}
+
+.daily-fold > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.daily-notice {
+  margin-top: 18px;
+  padding: 8px 12px;
+  border: 1px solid #808080;
+  background: #f4f4f4;
+  font-size: 12px;
+  color: #333;
+}
+
+.daily-notice ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.daily-notice li {
+  margin: 2px 0;
 }
 
 .daily-list {
@@ -308,10 +461,6 @@
   font-size: 16px;
 }
 
-.daily-digest__overview {
-  margin: 8px 0;
-  font-weight: 700;
-}
 
 .daily-digest__points {
   margin: 0 0 8px;

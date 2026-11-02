@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   getDaily, getMarket, getNewsDigest, getNewsHeadlines,
   type DailyBriefingItem, type DailyBriefingResponse, type DailyTerm, type DigestSource, type MarketItem, type MoneyNoteCategory,
@@ -140,16 +140,18 @@ function HeadlineList({ region, title, provider }: (typeof HEADLINE_REGIONS)[num
     {featured.length > 0 && <div className="daily-featured">
       <h3>오늘 주요 뉴스</h3>
       <ol className="daily-headlines__list">{featured.map((item) => <HeadlineItem key={item.url} item={item} />)}</ol>
-      <p className="daily-muted">정해진 규칙(관련 주제, 같은 소식을 다룬 언론 수, 발행 시각)으로 고른 것이며 AI 판단이나 투자·가입 권유가 아닙니다.</p>
+      <p className="daily-muted">관련 주제, 같은 소식을 다룬 언론 수, 발행 시각이라는 정해진 규칙으로 골랐어요.</p>
     </div>}
     {items && items.length > 0 && <>
-      <h3>전체 헤드라인</h3>
-      <ul className="daily-headlines__list">
-        {items.map((item) => <HeadlineItem key={item.url} item={item} />)}
-      </ul>
+      <details className="daily-fold">
+        <summary>전체 헤드라인 {items.length}개 보기</summary>
+        <ul className="daily-headlines__list">
+          {items.map((item) => <HeadlineItem key={item.url} item={item} />)}
+        </ul>
+      </details>
       <p className="daily-muted">{region === 'international'
-        ? `AI가 공식 원문을 한국어로 옮기고 요약한 내용이며 번역에 오류가 있을 수 있습니다. 출처: ${provider}. 정확한 내용은 원문에서 확인하세요.`
-        : `제목과 링크만 보여 주며 AI가 요약하지 않습니다. 제공: ${provider}. 기사 내용은 원문에서 확인하세요.`}</p>
+        ? `출처: ${provider} · AI 번역·요약은 틀릴 수 있어요`
+        : `제공: ${provider} · 제목과 링크만 보여 줘요(AI 요약 없음)`}</p>
     </>}
   </section>
 }
@@ -169,15 +171,15 @@ function NewsDigestCard({ digest }: { digest: NewsDigest | null }) {
   if (!digest) return null
   return <section className="daily-digest" aria-labelledby="daily-digest-title">
     <h2 id="daily-digest-title">오늘의 경제 뉴스 요약</h2>
+    {/* The one-line overview is already at the top of the page in "오늘 한눈에". */}
     <p className="daily-muted">{formatDate(digest.digestDate)} · <span className="daily-label daily-label--ai">AI 요약</span></p>
-    <p className="daily-digest__overview">{digest.overview}</p>
     <ol className="daily-digest__points">
       {digest.points.map((point) => <li key={point.text}>
         <p>{point.text}</p>
         <SourceLinks sources={point.sources} />
       </li>)}
     </ol>
-    <p className="daily-muted">뉴스 제목과 검색 API가 제공한 짧은 요약문만 보고 AI가 정리한 내용이라 틀릴 수 있습니다. 기사 전문은 가져오지 않으며, 정확한 내용은 링크한 원문에서 확인하세요. 투자·가입 권유가 아닙니다.</p>
+    <p className="daily-muted">뉴스 제목과 짧은 요약문만 보고 AI가 정리했어요. 정확한 내용은 원문 링크에서 확인해 주세요.</p>
   </section>
 }
 
@@ -203,7 +205,7 @@ function BokPressList() {
         <span className="daily-muted"> {formatPublished(item.publishedAt)}</span>
       </li>)}
     </ul>
-    <p className="daily-muted">출처: 한국은행 보도자료. 제목과 원문 링크만 보여 주며 내용을 가져오거나 요약하지 않습니다. 자세한 내용은 한국은행 홈페이지 원문에서 확인하세요.</p>
+    <p className="daily-muted">출처: 한국은행 보도자료 · 제목과 원문 링크만 보여 주며 내용을 가져오거나 요약하지 않아요</p>
   </section>
 }
 
@@ -240,21 +242,12 @@ function TodayMoneyNotes({ digest }: { digest: NewsDigest | null }) {
         <SourceLinks sources={note.sources} />
       </li>)}
     </ul>
-    <p className="daily-muted"><span className="daily-label daily-label--ai">AI 정리</span> 뉴스 제목과 짧은 요약문만 보고 AI가 쓴 풀이라 틀릴 수 있어요. 원문도 함께 봐 주세요.</p>
+    <p className="daily-muted"><span className="daily-label daily-label--ai">AI 정리</span> AI가 쓴 풀이라 틀릴 수 있어요.</p>
   </>
 }
 
-function MoneyContextCard({ digest }: { digest: NewsDigest | null }) {
-  const [rates, setRates] = useState<MarketItem[]>([])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    getMarket(controller.signal)
-      .then((body) => setRates(body.groups.flatMap((group) => group.items).filter((item) => MONEY_RATE_CODES.includes(item.code))))
-      .catch(() => setRates([]))
-    return () => controller.abort()
-  }, [])
-
+function MoneyContextCard({ digest, market }: { digest: NewsDigest | null; market: MarketItem[] }) {
+  const rates = market.filter((item) => MONEY_RATE_CODES.includes(item.code))
   return <section className="daily-context" aria-labelledby="daily-context-title">
     <h2 id="daily-context-title">금리가 바뀌면 내 적금은 어떻게 될까요?</h2>
     <TeacherNote>
@@ -266,19 +259,130 @@ function MoneyContextCard({ digest }: { digest: NewsDigest | null }) {
         <span className="daily-muted"> ({formatMarketPeriod(item.period)} 기준)</span>
       </li>)}
     </ul>}
-    <h3 id="daily-context-basics">금리가 움직이면 보통 이렇게 돼요</h3>
-    <ul className="daily-context__points" aria-labelledby="daily-context-basics">
-      <li><b>새로 적금에 들 때</b> 기준금리가 오르면 은행이 새로 내놓는 예금과 적금의 이자도 대개 같이 올라요. 기준금리가 내려가면 새 상품의 이자도 낮아지는 일이 많아요.</li>
-      <li><b>이미 넣고 있는 적금</b> 대부분은 가입한 날 정한 이자율이 만기까지 그대로 가요. 그래서 기준금리가 바뀌어도 내 적금 이자는 그대로인 경우가 많아요. 중간에 이자율이 바뀌는 상품도 있으니, 가입할 때 받은 상품 설명서를 한번 꺼내 보세요.</li>
-      <li><b>빌린 돈이 있을 때</b> 변동금리 대출은 금리가 오르면 매달 내는 이자도 늘어날 수 있어요.</li>
-      <li><b>이번 달 덜 넣거나 쉬고 싶을 때</b> 한 달을 덜 넣거나 건너뛰면 만기에 받는 돈이 줄어들 수 있어요. 덜 넣거나 건너뛰었을 때 얼마나 달라지는지는 아래 버튼을 눌러 내 숫자로 계산해 볼 수 있어요. 아예 만기 전에 해지하면 약속받았던 우대금리나 정부가 보태 주는 돈을 못 받을 수 있는데, 해지할 때 받는 돈은 여기서 계산하지 않으니 가입한 은행에서 확인해 주세요.</li>
-    </ul>
+    <details className="daily-fold">
+      <summary>금리가 움직이면 보통 이렇게 돼요</summary>
+      <ul className="daily-context__points" aria-label="금리가 움직이면 보통 이렇게 돼요">
+        <li><b>새로 적금에 들 때</b> 기준금리가 오르면 은행이 새로 내놓는 예금과 적금의 이자도 대개 같이 올라요. 기준금리가 내려가면 새 상품의 이자도 낮아지는 일이 많아요.</li>
+        <li><b>이미 넣고 있는 적금</b> 대부분은 가입한 날 정한 이자율이 만기까지 그대로 가요. 그래서 기준금리가 바뀌어도 내 적금 이자는 그대로인 경우가 많아요. 중간에 이자율이 바뀌는 상품도 있으니, 가입할 때 받은 상품 설명서를 한번 꺼내 보세요.</li>
+        <li><b>빌린 돈이 있을 때</b> 변동금리 대출은 금리가 오르면 매달 내는 이자도 늘어날 수 있어요.</li>
+        <li><b>이번 달 덜 넣거나 쉬고 싶을 때</b> 한 달을 덜 넣거나 건너뛰면 만기에 받는 돈이 줄어들 수 있어요. 덜 넣거나 건너뛰었을 때 얼마나 달라지는지는 아래 버튼을 눌러 내 숫자로 계산해 볼 수 있어요. 아예 만기 전에 해지하면 약속받았던 우대금리나 정부가 보태 주는 돈을 못 받을 수 있는데, 해지할 때 받는 돈은 여기서 계산하지 않으니 가입한 은행에서 확인해 주세요.</li>
+      </ul>
+    </details>
     <p className="daily-context__links">
       <Link className="button button--secondary" to="/cashflow">이번 달 납입이 달라지면? 계산하기</Link>
       <Link className="button button--secondary" to="/market">시장 지표 더 보기</Link>
     </p>
-    <p className="daily-muted">오늘 소식 풀이와 아래 설명은 금리가 보통 어떻게 움직이는지 설명한 것이고, 앞으로 금리가 오를지 내릴지 예측하지 않아요. 적금을 계속 넣을지 해지할지는 각자 상황에 따라 다르니 직접 판단해 주세요. 가입이나 해지를 권하는 내용이 아니에요.</p>
   </section>
+}
+
+const GLANCE_LIMIT = 5
+
+function formatValue(item: MarketItem) {
+  const value = Number(item.value).toLocaleString('ko-KR', { maximumFractionDigits: 2 })
+  return item.unit === '%' ? `${value}%` : item.unit === '원' ? `${value}원` : value
+}
+
+// Rates move in percentage points; prices and indices in percent of the previous value.
+function formatChange(item: MarketItem) {
+  const change = Number(item.change)
+  const sign = change > 0 ? '+' : ''
+  if (item.unit === '%') return `${sign}${change.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}%p`
+  const percent = Number(item.changePercent ?? 0)
+  return `${percent > 0 ? '+' : ''}${percent.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}%`
+}
+
+// Ranked by change relative to the previous value for every series, so rates and prices share one scale.
+function changeSize(item: MarketItem) {
+  return Math.abs(Number(item.changePercent ?? 0))
+}
+
+// Daily series only: "어제와 달라진 것" compares with the previous business day.
+function TodayGlance({ date, generatedAt, digest, market }: {
+  date: string; generatedAt: string | null; digest: NewsDigest | null; market: MarketItem[]
+}) {
+  const daily = market.filter((item) => item.cycle === 'D' && item.change !== null && item.change !== undefined)
+  const moved = daily.filter((item) => Number(item.change) !== 0).sort((a, b) => changeSize(b) - changeSize(a))
+  const still = daily.length - moved.length
+  return <section className="daily-glance" aria-labelledby="daily-glance-title">
+    <h2 id="daily-glance-title">오늘 한눈에</h2>
+    <p className="daily-glance__date">
+      <b>{formatDate(date)}</b>
+      {generatedAt && <span className="daily-muted"> · 최종 갱신 {formatGenerated(generatedAt)}</span>}
+    </p>
+    {digest && <p className="daily-glance__overview">
+      <span className="daily-label daily-label--ai">AI 요약</span> {digest.overview}
+    </p>}
+    {daily.length > 0 && <div className="daily-glance__moves">
+      <h3>전 영업일보다 달라진 지표</h3>
+      {moved.length > 0 && <ul aria-label="달라진 지표">
+        {moved.slice(0, GLANCE_LIMIT).map((item) => {
+          const up = Number(item.change) > 0
+          return <li key={item.code} className={`daily-move daily-move--${up ? 'up' : 'down'}`}>
+            <span className="daily-move__name">{item.name}</span>
+            <span className="daily-move__value">{formatValue(item)}</span>
+            <span className="daily-move__change">{up ? '▲' : '▼'} {formatChange(item)}</span>
+          </li>
+        })}
+      </ul>}
+      <p className="daily-muted">
+        {moved.length > GLANCE_LIMIT && `그 밖에 달라진 지표 ${moved.length - GLANCE_LIMIT}개 · `}
+        {still > 0 && `변동 없음 ${still}개 · `}
+        <Link to="/market">시장 지표 전체 보기</Link>
+      </p>
+    </div>}
+  </section>
+}
+
+const TABS = [
+  { key: 'summary', label: '요약' },
+  { key: 'news', label: '뉴스' },
+  { key: 'term', label: '용어' },
+] as const
+type TabKey = (typeof TABS)[number]['key']
+
+function DailyTabs({ active, onChange, panels }: {
+  active: TabKey; onChange: (key: TabKey) => void; panels: Record<TabKey, ReactNode>
+}) {
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+    if (!step) return
+    event.preventDefault()
+    const index = (TABS.findIndex((tab) => tab.key === active) + step + TABS.length) % TABS.length
+    onChange(TABS[index].key)
+    document.getElementById(`daily-tab-${TABS[index].key}`)?.focus()
+  }
+  return <div className="daily-tabs">
+    <div className="daily-tabs__list" role="tablist" aria-label="오늘의 머니 보기" onKeyDown={onKeyDown}>
+      {TABS.map((tab) => <button
+        key={tab.key} id={`daily-tab-${tab.key}`} type="button" role="tab"
+        aria-selected={active === tab.key} aria-controls={`daily-panel-${tab.key}`} tabIndex={active === tab.key ? 0 : -1}
+        className="daily-tabs__tab" onClick={() => onChange(tab.key)}
+      >{tab.label}</button>)}
+    </div>
+    {TABS.map((tab) => <div
+      key={tab.key} className="daily-tabs__panel" role="tabpanel" id={`daily-panel-${tab.key}`}
+      aria-labelledby={`daily-tab-${tab.key}`} hidden={active !== tab.key} tabIndex={0}
+    >
+      {panels[tab.key]}
+    </div>)}
+  </div>
+}
+
+// The page-wide notices, said once here instead of under every card.
+function DailyNotice() {
+  return <section className="daily-notice" aria-label="안내">
+    <b>안내</b>
+    <ul>
+      <li>이 화면은 정보를 전하기 위한 것이에요. 특정 상품의 가입·해지·매수를 권하지 않고, 금리·환율·주가가 앞으로 어떻게 될지 예측하지 않아요.</li>
+      <li>적금을 계속 넣을지 해지할지는 각자 상황에 따라 다르니 직접 판단해 주세요.</li>
+      <li>AI 표시가 있는 글은 AI가 공식 자료나 뉴스 제목·짧은 요약문을 보고 쓴 것이라 틀릴 수 있어요. 기사 전문은 가져오지 않으니 정확한 내용은 원문 링크에서 확인해 주세요.</li>
+      <li>시장 지표는 한국은행 경제통계시스템(ECOS) 공식 통계이며 실시간 시세가 아니에요.</li>
+    </ul>
+  </section>
+}
+
+function isTabKey(value: string | null): value is TabKey {
+  return TABS.some((tab) => tab.key === value)
 }
 
 export function DailyPage() {
@@ -286,11 +390,23 @@ export function DailyPage() {
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [digest, setDigest] = useState<NewsDigest | null>(null)
+  const [market, setMarket] = useState<MarketItem[]>([])
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requested = searchParams.get('tab')
+  const tab: TabKey = isTabKey(requested) ? requested : 'summary'
+
+  function changeTab(key: TabKey) {
+    setSearchParams(key === 'summary' ? {} : { tab: key }, { replace: true })
+  }
 
   useEffect(() => {
     const controller = new AbortController()
     // No digest yet (404) or a failure hides the digest card and today's notes; everything else still shows.
     getNewsDigest(controller.signal).then(setDigest).catch(() => setDigest(null))
+    // A market failure only hides the changed-indicator chips and the rate line.
+    getMarket(controller.signal)
+      .then((body) => setMarket(body.groups.flatMap((group) => group.items)))
+      .catch(() => setMarket([]))
     return () => controller.abort()
   }, [])
 
@@ -313,29 +429,28 @@ export function DailyPage() {
     <section className="page page--wide daily-page">
       <p className="eyebrow">Daily money</p>
       <h1>오늘의 머니</h1>
-      <p className="lead">금융위원회가 공개한 공식 자료를 AI가 쉽게 풀어쓴 요약입니다. 특정 상품의 가입·매수를 권유하지 않으며 미래 수익을 예측하지 않습니다.</p>
+      <p className="lead">오늘 경제 소식과 그 소식이 내 돈에 어떻게 닿는지 한곳에서 봐요.</p>
 
       {error && <ErrorNotice message={error} onRetry={retry} />}
       {!data && !error && <p className="notice">오늘의 브리핑을 불러오는 중입니다.</p>}
 
       {data && <>
-        <p className="daily-date">
-          <b>{formatDate(data.date)}</b>
-          {data.generatedAt && <span> · 최종 갱신 {formatGenerated(data.generatedAt)}</span>}
-        </p>
+        <TodayGlance date={data.date} generatedAt={data.generatedAt} digest={digest} market={market} />
 
-        <NewsDigestCard digest={digest} />
-        <MoneyContextCard digest={digest} />
-
-        {data.items.length === 0
-          ? <p className="notice daily-empty">오늘 발행된 브리핑이 없습니다. 공식 자료가 없거나 검증을 통과한 요약이 없는 날입니다.</p>
-          : <div className="daily-list">{data.items.map((item) => <BriefingCard key={item.id} item={item} />)}</div>}
-
-        <TermCard term={data.term} />
-
-        {HEADLINE_REGIONS.map((entry) => <HeadlineList key={entry.region} {...entry} />)}
-
-        <BokPressList />
+        <DailyTabs active={tab} onChange={changeTab} panels={{
+          summary: <>
+            <NewsDigestCard digest={digest} />
+            <MoneyContextCard digest={digest} market={market} />
+            {data.items.length === 0
+              ? <p className="daily-muted daily-empty">오늘 발행된 브리핑이 없습니다. 공식 자료가 없거나 검증을 통과한 요약이 없는 날입니다.</p>
+              : <div className="daily-list">{data.items.map((item) => <BriefingCard key={item.id} item={item} />)}</div>}
+          </>,
+          news: <>
+            {HEADLINE_REGIONS.map((entry) => <HeadlineList key={entry.region} {...entry} />)}
+            <BokPressList />
+          </>,
+          term: <TermCard term={data.term} />,
+        }} />
 
         <nav className="daily-links" aria-label="관련 계산 화면">
           <b>내 계산으로 이어서 보기</b>
@@ -345,6 +460,8 @@ export function DailyPage() {
           <Link className="button button--secondary" to="/about">계산 기준</Link>
         </nav>
       </>}
+
+      <DailyNotice />
     </section>
   )
 }
