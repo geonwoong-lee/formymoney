@@ -284,6 +284,81 @@ export function getEvents(signal?: AbortSignal, days = 60): Promise<EventsRespon
   return request<EventsResponse>(`/api/v1/events?days=${days}`, { signal })
 }
 
+export type RiskProfile = 'stable' | 'balanced' | 'aggressive'
+
+export interface HoldingOutcome {
+  windows: number
+  firstStart: string
+  lastStart: string
+  averagePercent: string
+  bestPercent: string
+  worstPercent: string
+  lossWindows: number
+  averageValue: number
+  bestValue: number
+  worstValue: number
+}
+
+export interface MaturityOption {
+  code: string
+  name: string
+  kind: 'deposit' | 'bond' | 'dividend' | 'index' | 'leveraged'
+  riskLevel: number
+  riskLabel: string
+  principalProtected: boolean
+  fitsProfile: boolean
+  summary: string
+  warning: string
+  deposit: { ratePercent: string; ratePeriod: string; interest: number; tax: number; endingValue: number; endingValueAfterTax: number } | null
+  history: HoldingOutcome | null
+  sourceName: string
+  sourceUrl: string
+}
+
+export interface MaturityPlanResponse {
+  amount: number
+  months: number
+  profile: RiskProfile
+  dataStart: string
+  dataEnd: string
+  options: MaturityOption[]
+  mix: { assetCode: string; assetName: string; depositShare: number; history: HoldingOutcome } | null
+  notes: string[]
+  checkedOn: string
+}
+
+export function planAfterMaturity(payload: {
+  amount: number
+  months: 12 | 24
+  profile: RiskProfile
+  mix?: { assetCode: string; depositShare: number }
+}, signal?: AbortSignal): Promise<MaturityPlanResponse> {
+  return request<MaturityPlanResponse>('/api/v1/maturity-plan', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal,
+  })
+}
+
+export interface RateScenarioCase {
+  key: 'up' | 'same' | 'down'
+  ratePercent: string
+  principal: number
+  interest: number
+  tax: number
+  afterTax: number
+  differenceFromSame: number
+}
+
+export function calculateRateScenario(payload: {
+  monthlyAmount: number
+  months: number
+  ratePercent: string
+  step: string
+}, signal?: AbortSignal): Promise<{ monthlyAmount: number; months: number; step: string; cases: RateScenarioCase[] }> {
+  return request('/api/v1/rate-scenario', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal,
+  })
+}
+
 export interface AssistantChatResponse {
   answer: string
   links: { to: string; label: string }[]

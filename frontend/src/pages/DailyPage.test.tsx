@@ -57,6 +57,7 @@ function routeFetch(
   return vi.fn((input: RequestInfo | URL) => {
     const url = String(input)
     if (url.includes('/api/v1/events')) return Promise.resolve(events())
+    if (url.includes('/rate-scenario')) return Promise.resolve(respond({ monthlyAmount: 500_000, months: 12, step: '0.25', cases: [] }))
     if (url.includes('/daily/digest')) return Promise.resolve(digest())
     if (url.includes('/market')) return Promise.resolve(market())
     if (url.includes('provider=bok_press')) return Promise.resolve(bok())
