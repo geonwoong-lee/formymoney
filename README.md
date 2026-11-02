@@ -3,9 +3,9 @@
 > **Hello ChatGPT, How to be rich, very rich?**
 > 청년미래적금의 실제 우대조건과 월별 납입 흐름을 계산하고, 같은 돈을 다른 선택에 사용했을 때의 차이를 비교하는 금융 의사결정 도구입니다.
 
-[![Hello ChatGPT, How to be rich, very rich? YouTube Shorts](https://img.youtube.com/vi/1CQJrG-Z6XI/hqdefault.jpg)](https://youtube.com/shorts/1CQJrG-Z6XI?si=UaGlE4YFqL7Dh_Aq)
+[![Hello ChatGPT, How to be rich, very rich? YouTube Shorts](https://img.youtube.com/vi/wOGZ5JctSFE/hqdefault.jpg)](https://www.youtube.com/shorts/wOGZ5JctSFE)
 
-[YouTube Shorts에서 영상 보기](https://youtube.com/shorts/1CQJrG-Z6XI?si=UaGlE4YFqL7Dh_Aq)
+[YouTube Shorts에서 영상 보기](https://www.youtube.com/shorts/wOGZ5JctSFE)
 
 ## 프로젝트 소개
 
