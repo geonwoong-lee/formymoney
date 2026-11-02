@@ -116,14 +116,39 @@ def test_a_named_day_lifts_that_days_news_above_closer_wording(client: TestClien
     embed = FakeEmbed()
     with client.app.state.session_factory() as session:
         _seed(session)
-        sync(session, embed)
+        sync(session, embed, datetime(2026, 11, 2, 3, tzinfo=timezone.utc))
         question = "어제 가계대출 금리 소식 알려줘"
 
-        plain = retrieve(session, question, embed, TODAY, day_aware=False)
-        aware = retrieve(session, question, embed, TODAY)
+        news = lambda found: [item for item in found if item.chunk.source_type == "digest"]  # noqa: E731
+        plain = news(retrieve(session, question, embed, TODAY, day_aware=False))
+        aware = news(retrieve(session, question, embed, TODAY))
 
     assert plain[0].chunk.published_on == TODAY  # wording alone prefers today's loan story
     assert aware[0].chunk.published_on == TODAY - timedelta(days=1)
+
+
+def test_asking_when_next_puts_the_nearest_upcoming_meeting_first(client: TestClient) -> None:
+    embed = FakeEmbed()
+    with client.app.state.session_factory() as session:
+        sync(session, embed, datetime(2026, 11, 2, 3, tzinfo=timezone.utc))
+        found = retrieve(session, "다음 미국 연준 FOMC 정례회의 언제야?", embed, TODAY)
+        events = [item.chunk.published_on for item in found if item.chunk.source_type == "event"]
+
+    assert events[0] == date(2026, 12, 9)  # the nearest meeting, not a 2027 one with the same wording
+
+
+def test_upcoming_events_are_searchable_and_drop_off_once_past(client: TestClient) -> None:
+    embed = FakeEmbed()
+    with client.app.state.session_factory() as session:
+        documents = {document.key: document for document in build_documents(session, TODAY)}
+        later = {document.key for document in build_documents(session, date(2026, 11, 27))}
+
+    bok = documents["event:bok-2026-11-26"]
+    assert bok.content.startswith("2026년 11월 26일(목) 한국은행 금융통화위원회(금통위) 기준금리 결정.")
+    assert bok.url.startswith("https://www.bok.or.kr/") and bok.published_on == date(2026, 11, 26)
+    assert "잠정" in documents["event:fomc-2027-01-27"].content
+    assert "event:bok-2026-11-26" not in later and "event:fomc-2026-12-09" in later
+    assert embed.calls == []
 
 
 @pytest.mark.parametrize("question, expected", [
@@ -131,12 +156,24 @@ def test_a_named_day_lifts_that_days_news_above_closer_wording(client: TestClien
     ("어제 무슨 일 있었어?", date(2026, 11, 1)),
     ("그저께 환율", date(2026, 10, 31)),
     ("10월 30일 금리", date(2026, 10, 30)),
-    ("12월 25일 소식", date(2025, 12, 25)),
+    ("11월 26일 금통위 일정 알려줘", date(2026, 11, 26)),
+    ("12월 25일 소식", date(2026, 12, 25)),
+    ("5월 1일 뉴스", date(2026, 5, 1)),
     ("2월 30일", None),
     ("기준금리가 뭐야?", None),
 ])
 def test_mentioned_day(question: str, expected: date | None) -> None:
     assert mentioned_day(question, TODAY) == expected
+
+
+def test_mentioned_day_reads_a_late_december_day_in_january_as_last_year() -> None:
+    assert mentioned_day("12월 30일 뉴스", date(2027, 1, 5)) == date(2026, 12, 30)
+
+
+def test_mentioned_day_finds_the_latest_leap_day() -> None:
+    assert mentioned_day("2월 29일 뉴스", date(2027, 3, 1)) == date(2024, 2, 29)
+    assert mentioned_day("2월 29일 뉴스", date(2028, 1, 10)) == date(2028, 2, 29)  # soon ahead
+    assert mentioned_day("2월 29일 뉴스", date(2028, 3, 1)) == date(2028, 2, 29)
 
 
 def test_assistant_answers_from_retrieved_chunks_and_shows_only_cited_ones(client: TestClient) -> None:

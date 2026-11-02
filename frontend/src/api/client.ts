@@ -260,6 +260,30 @@ export interface NewsDigest {
   createdAt: string
 }
 
+export type EventKind = 'rate_decision' | 'fomc' | 'statistics' | 'election'
+
+export interface UpcomingEvent {
+  key: string
+  date: string
+  dDay: number
+  kind: EventKind
+  title: string
+  why: string
+  sourceName: string
+  sourceUrl: string
+  checkedOn: string
+  tentative: boolean
+}
+
+export interface EventsResponse {
+  today: string
+  items: UpcomingEvent[]
+}
+
+export function getEvents(signal?: AbortSignal, days = 60): Promise<EventsResponse> {
+  return request<EventsResponse>(`/api/v1/events?days=${days}`, { signal })
+}
+
 export interface AssistantChatResponse {
   answer: string
   links: { to: string; label: string }[]

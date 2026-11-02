@@ -1,9 +1,9 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  getDaily, getMarket, getNewsDigest, getNewsHeadlines,
-  type DailyBriefingItem, type DailyBriefingResponse, type DailyTerm, type DigestSource, type MarketItem, type MoneyNoteCategory,
-  type NewsDigest, type NewsHeadline,
+  getDaily, getEvents, getMarket, getNewsDigest, getNewsHeadlines,
+  type DailyBriefingItem, type DailyBriefingResponse, type DailyTerm, type DigestSource, type EventKind, type MarketItem,
+  type MoneyNoteCategory, type NewsDigest, type NewsHeadline, type UpcomingEvent,
 } from '../api/client'
 import teacherImage from '../assets/icons/finance-teacher.png'
 import { ErrorNotice } from '../components/ErrorNotice'
@@ -276,6 +276,48 @@ function MoneyContextCard({ digest, market }: { digest: NewsDigest | null; marke
 }
 
 const GLANCE_LIMIT = 5
+const WEEKDAYS = '일월화수목금토'
+
+const EVENT_KIND_LABELS: Record<EventKind, string> = {
+  rate_decision: '기준금리 결정',
+  fomc: '미국 금리 결정',
+  statistics: '경제 통계 발표',
+  election: '선거',
+}
+
+function formatEventDate(isoDate: string) {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  return `${month}월 ${day}일(${WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]})`
+}
+
+function dDayLabel(dDay: number) {
+  return dDay === 0 ? '오늘' : `D-${dDay}`
+}
+
+// Official dates only, each with its source; political dates say what is decided, never a view on it.
+function EventList({ events }: { events: UpcomingEvent[] | null }) {
+  return <section className="daily-events" aria-labelledby="daily-events-title">
+    <h2 id="daily-events-title">다가올 일정</h2>
+    {events === null && <p className="daily-muted">일정을 불러오지 못했어요. 잠시 후 다시 확인해 주세요.</p>}
+    {events && events.length === 0 && <p className="daily-muted">앞으로 60일 안에 넣어 둔 공식 일정이 없어요.</p>}
+    {events && events.length > 0 && <ol className="daily-events__list">
+      {events.map((event) => <li key={event.key} className="daily-event">
+        <span className={`daily-event__dday${event.dDay === 0 ? ' daily-event__dday--today' : ''}`}>{dDayLabel(event.dDay)}</span>
+        <div>
+          <p className="daily-event__head">
+            <b>{formatEventDate(event.date)}</b> <span className="daily-chip">{EVENT_KIND_LABELS[event.kind] ?? '일정'}</span>
+          </p>
+          <p className="daily-event__title">{event.title}{event.tentative && <span className="daily-muted"> (잠정)</span>}</p>
+          <p className="daily-event__why">{event.why}</p>
+          <p className="daily-muted">출처 {isOfficialLink(event.sourceUrl)
+            ? <a href={event.sourceUrl} target="_blank" rel="noreferrer">{event.sourceName} ↗</a>
+            : event.sourceName}</p>
+        </div>
+      </li>)}
+    </ol>}
+    <p className="daily-muted">각 기관이 공개한 일정이며 사정에 따라 바뀔 수 있어요. 결과를 예측하거나 해석하지 않아요.</p>
+  </section>
+}
 
 function formatValue(item: MarketItem) {
   const value = Number(item.value).toLocaleString('ko-KR', { maximumFractionDigits: 2 })
@@ -297,8 +339,9 @@ function changeSize(item: MarketItem) {
 }
 
 // Daily series only: "어제와 달라진 것" compares with the previous business day.
-function TodayGlance({ date, generatedAt, digest, market }: {
+function TodayGlance({ date, generatedAt, digest, market, nextEvent, onShowEvents }: {
   date: string; generatedAt: string | null; digest: NewsDigest | null; market: MarketItem[]
+  nextEvent: UpcomingEvent | null; onShowEvents: () => void
 }) {
   const daily = market.filter((item) => item.cycle === 'D' && item.change !== null && item.change !== undefined)
   const moved = daily.filter((item) => Number(item.change) !== 0).sort((a, b) => changeSize(b) - changeSize(a))
@@ -311,6 +354,11 @@ function TodayGlance({ date, generatedAt, digest, market }: {
     </p>
     {digest && <p className="daily-glance__overview">
       <span className="daily-label daily-label--ai">AI 요약</span> {digest.overview}
+    </p>}
+    {nextEvent && <p className="daily-glance__event">
+      <span className="daily-event__dday">{dDayLabel(nextEvent.dDay)}</span>{' '}
+      다가올 일정: <b>{formatEventDate(nextEvent.date)} {nextEvent.title}</b>{' '}
+      <button type="button" className="daily-link-button" onClick={onShowEvents}>일정 더 보기</button>
     </p>}
     {daily.length > 0 && <div className="daily-glance__moves">
       <h3>전 영업일보다 달라진 지표</h3>
@@ -336,6 +384,7 @@ function TodayGlance({ date, generatedAt, digest, market }: {
 const TABS = [
   { key: 'summary', label: '요약' },
   { key: 'news', label: '뉴스' },
+  { key: 'events', label: '일정' },
   { key: 'term', label: '용어' },
 ] as const
 type TabKey = (typeof TABS)[number]['key']
@@ -377,6 +426,7 @@ function DailyNotice() {
       <li>적금을 계속 넣을지 해지할지는 각자 상황에 따라 다르니 직접 판단해 주세요.</li>
       <li>AI 표시가 있는 글은 AI가 공식 자료나 뉴스 제목·짧은 요약문을 보고 쓴 것이라 틀릴 수 있어요. 기사 전문은 가져오지 않으니 정확한 내용은 원문 링크에서 확인해 주세요.</li>
       <li>시장 지표는 한국은행 경제통계시스템(ECOS) 공식 통계이며 실시간 시세가 아니에요.</li>
+      <li>다가올 일정은 각 기관이 공개한 날짜만 옮긴 것이며 결과를 예측하거나 정치적으로 해석하지 않아요.</li>
     </ul>
   </section>
 }
@@ -391,6 +441,7 @@ export function DailyPage() {
   const [reloadKey, setReloadKey] = useState(0)
   const [digest, setDigest] = useState<NewsDigest | null>(null)
   const [market, setMarket] = useState<MarketItem[]>([])
+  const [events, setEvents] = useState<UpcomingEvent[] | null>([])
   const [searchParams, setSearchParams] = useSearchParams()
   const requested = searchParams.get('tab')
   const tab: TabKey = isTabKey(requested) ? requested : 'summary'
@@ -407,6 +458,10 @@ export function DailyPage() {
     getMarket(controller.signal)
       .then((body) => setMarket(body.groups.flatMap((group) => group.items)))
       .catch(() => setMarket([]))
+    getEvents(controller.signal).then((body) => setEvents(body.items)).catch((cause: unknown) => {
+      if (cause instanceof DOMException && cause.name === 'AbortError') return
+      setEvents(null)
+    })
     return () => controller.abort()
   }, [])
 
@@ -435,7 +490,10 @@ export function DailyPage() {
       {!data && !error && <p className="notice">오늘의 브리핑을 불러오는 중입니다.</p>}
 
       {data && <>
-        <TodayGlance date={data.date} generatedAt={data.generatedAt} digest={digest} market={market} />
+        <TodayGlance
+          date={data.date} generatedAt={data.generatedAt} digest={digest} market={market}
+          nextEvent={events?.[0] ?? null} onShowEvents={() => changeTab('events')}
+        />
 
         <DailyTabs active={tab} onChange={changeTab} panels={{
           summary: <>
@@ -449,6 +507,7 @@ export function DailyPage() {
             {HEADLINE_REGIONS.map((entry) => <HeadlineList key={entry.region} {...entry} />)}
             <BokPressList />
           </>,
+          events: <EventList events={events} />,
           term: <TermCard term={data.term} />,
         }} />
 

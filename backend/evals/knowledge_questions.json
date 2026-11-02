@@ -22,5 +22,9 @@
   {"question": "미국 주가지수는 어떻게 움직였어?", "expected": ["market:world_usa"]},
   {"question": "오늘 경제 뉴스 요약해 줘", "expected": ["digest:{today}"]},
   {"question": "오늘 뉴스가 내 적금이나 대출에 어떤 영향이 있어?", "expected": ["money_note:{today}", "digest:{today}"]},
-  {"question": "오늘 가계대출 관련 소식 있었어?", "expected": ["digest:{today}", "money_note:{today}"]}
+  {"question": "오늘 가계대출 관련 소식 있었어?", "expected": ["digest:{today}", "money_note:{today}"]},
+  {"question": "다음 금통위 언제야?", "expected": ["event:bok-2026-11-26"]},
+  {"question": "미국 연준 금리 결정 회의는 다음에 언제 열려?", "expected": ["event:fomc-2026-12-09"]},
+  {"question": "11월 물가 발표는 언제 나와?", "expected": ["event:stats-2026-12-02-cpi"]},
+  {"question": "미국 중간선거 날짜 알려줘", "expected": ["event:election-us-2026-11-03"]}
 ]

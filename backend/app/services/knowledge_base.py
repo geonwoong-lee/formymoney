@@ -1,7 +1,7 @@
 """Knowledge base for 머니독: what it may answer from, embedded once and searched per question.
 
 Only text we wrote or may publish goes in: the site guide, published easy term explanations, the AI news
-digests and money notes we already show, and Bank of Korea ECOS market values. Article bodies, the Naver
+digests and money notes we already show, Bank of Korea ECOS market values and upcoming official dates. Article bodies, the Naver
 snippet and Bank of Korea press release text are never stored here.
 
 Search: pgvector cosine distance on PostgreSQL, the same cosine in Python elsewhere (tests). When the question
@@ -23,7 +23,9 @@ from sqlalchemy.orm import Session
 
 from app.models.daily_briefing import FinancialTerm, NewsDigest
 from app.models.knowledge import KnowledgeChunk
+from app.services.events import EVENTS
 from app.services.market_service import MarketService
+from app.services.news_digest import korea_today
 from app.services.openai_client import EMBEDDING_MODEL
 from app.services.site_guide import GUIDE
 
@@ -33,7 +35,11 @@ SEARCH_LIMIT = 5
 CANDIDATES = 20
 SAME_DAY_BOOST = 0.15
 OTHER_DAY_PENALTY = 0.05
-DATED_TYPES = {"digest", "money_note"}
+SOON_BOOST = 0.1  # "다음 금통위 언제야?": among upcoming dates, the nearer the better
+SOON_DAYS = 120
+SOON_WORDS = ("다음", "언제", "예정", "앞으로", "곧")
+DATED_TYPES = {"digest", "money_note", "event"}
+WEEKDAYS = "월화수목금토일"
 MONEY_NOTE_LABELS = {
     "new_savings": "새로 드는 예금·적금",
     "current_savings": "이미 넣고 있는 적금",
@@ -155,14 +161,32 @@ def _market_documents(session: Session) -> list[Document]:
     return documents
 
 
-def build_documents(session: Session) -> list[Document]:
-    return [*_guide_documents(), *_term_documents(session), *_digest_documents(session), *_market_documents(session)]
+def _event_documents(today: date) -> list[Document]:
+    # Only dates still ahead; the daily refresh drops each one after it passes.
+    documents = []
+    for event in EVENTS:
+        if event.day < today:
+            continue
+        when = f"{_korean_date(event.day)}({WEEKDAYS[event.day.weekday()]})"
+        note = " 날짜는 잠정이며 직전 회의에서 확정돼요." if event.tentative else ""
+        documents.append(Document(
+            f"event:{event.key}", "event", f"다가올 일정 {event.title}",
+            f"{when} {event.title}. {event.why}{note} 출처: {event.source_name}.", event.source_url, event.day,
+        ))
+    return documents
+
+
+def build_documents(session: Session, today: date | None = None) -> list[Document]:
+    return [
+        *_guide_documents(), *_term_documents(session), *_digest_documents(session), *_market_documents(session),
+        *_event_documents(today or korea_today()),
+    ]
 
 
 def sync(session: Session, embed: Embed, now: datetime | None = None) -> SyncResult:
     """Make the table match build_documents(); only new or changed text is sent for embedding."""
     now = now or datetime.now(timezone.utc)
-    documents = build_documents(session)
+    documents = build_documents(session, korea_today(now))
     existing = {chunk.source_key: chunk for chunk in session.scalars(select(KnowledgeChunk))}
     stale = [
         document for document in documents
@@ -202,12 +226,18 @@ def mentioned_day(question: str, today: date) -> date | None:
     if "어제" in question:
         return today - timedelta(days=1)
     if match := DAY_PATTERN.search(question):
+        # A day soon ahead is an upcoming date ("11월 26일 금통위"); anything else is the latest past one (news).
         month, day = int(match.group(1)), int(match.group(2))
-        try:
-            found = date(today.year, month, day)
-        except ValueError:
-            return None
-        return found if found <= today else date(today.year - 1, month, day)
+        candidates = []
+        # Eight years back always reaches a leap year, so "2월 29일" still finds its latest past day.
+        for year in range(today.year - 8, today.year + 2):
+            try:
+                candidates.append(date(year, month, day))
+            except ValueError:
+                continue
+        soon = [found for found in candidates if 0 <= (found - today).days <= SOON_DAYS]
+        past = [found for found in candidates if found <= today]
+        return soon[0] if soon else max(past, default=None)
     if "오늘" in question:
         return today
     return None
@@ -251,10 +281,15 @@ def retrieve(
         for chunk in session.scalars(select(KnowledgeChunk).where(KnowledgeChunk.published_on == day)):
             if chunk.id not in candidates and chunk.embedding:
                 candidates[chunk.id] = Retrieved(chunk, _cosine(vector, chunk.embedding))
+    asks_soon = day_aware and any(word in question for word in SOON_WORDS)
     ranked = []
     for item in candidates.values():
         score = item.score
         if day is not None and item.chunk.source_type in DATED_TYPES:
             score += SAME_DAY_BOOST if item.chunk.published_on == day else -OTHER_DAY_PENALTY
+        if asks_soon and item.chunk.source_type == "event" and item.chunk.published_on is not None:
+            ahead = (item.chunk.published_on - today).days
+            if ahead >= 0:
+                score += SOON_BOOST * max(0.0, 1 - ahead / SOON_DAYS)
         ranked.append(Retrieved(item.chunk, score))
     return sorted(ranked, key=lambda item: item.score, reverse=True)[:limit]
