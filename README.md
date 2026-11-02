@@ -70,6 +70,7 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 해외 헤드라인 한국어 해석에는 `backend/.env`의 `VERY_RICH_OPENAI_API_KEY`가 필요합니다.
 - 시장 지표(`/market`): 환율·코스피·코스닥·금리·해외 주요국 지수(월간)와 금리 흐름 그래프. 수집은 `cd backend && python -m scripts.collect_market_data`이며 `backend/.env`에 `VERY_RICH_ECOS_API_KEY`(한국은행 ECOS 인증키)가 필요합니다.
 - 매일 자동 수집: n8n 워크플로 `automation/n8n/workflows/daily-market-news-jobs.json`이 오전 7시 30분에 시장 지표와 뉴스·요약 작업을 FastAPI 내부 API(`POST /api/v1/internal/daily/jobs/{market|news}`)로 실행하고 결과를 실행 기록에 남깁니다. 설정은 `automation/n8n/README.md` 8절.
+- `/daily`는 맨 위 "오늘 한눈에"(AI 한 줄 요약, 전 영업일보다 달라진 지표 ▲/▼)와 `요약 | 뉴스 | 용어` 탭으로 나뉘고, 권유·예측 안내는 맨 아래 한 곳에 모았습니다.
 - `/daily`의 금리 관계 설명과 오늘의 금융용어는 "금융 선생님"이 쉬운 말로 풀어 줍니다. 금리 관계 설명 맨 위의 "오늘 소식과 내 돈"은 매일 뉴스 요약을 만들 때 AI가 함께 쓰며(예측·권유 표현과 근거 없는 숫자는 서버가 거절), 그 아래 일반 설명은 고정 문장입니다. 쉬운 설명 문구를 고친 뒤 DB에 반영하려면 `cd backend && python -m scripts.import_financial_terms --explanations-only`를 실행합니다.
 - 헤드라인 수집: `cd backend && python -m scripts.collect_news_headlines` (네이버 키는 `backend/.env`의 `VERY_RICH_NAVER_*`에 입력, 하루 한 번 실행). 같은 실행에서 AI가 "오늘의 경제 뉴스 요약"(한 줄 개요와 3~5개 항목, 항목마다 원문 링크)을 만들어 `/daily` 맨 위에 보여 줍니다.
 - 진행 중: **Phase 16 로컬 범위 — 수집 실행 기록·상태 API(`/internal/daily/runs`), 하루 토큰 상한 표시, 비밀값 검사 완료**. 운영 위치 결정, 예약 실행 3회 연속 성공, n8n 워크플로 기록 노드 연결, 360px 전체 QA는 남았습니다.
