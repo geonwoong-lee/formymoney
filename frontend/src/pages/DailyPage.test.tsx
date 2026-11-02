@@ -46,14 +46,17 @@ const headline = (number: number, region = 'domestic') => ({
 const noBok = () => respond({ region: 'domestic', items: [] })
 const noMarket = () => respond({ groups: [], rateTrend: [], sourceName: 'ECOS', sourceUrl: 'https://ecos.bok.or.kr/', updatedAt: null })
 const noDigest = () => respond({ error: { code: 'not_found', message: '아직 경제 뉴스 요약이 없습니다.' } }, 404)
+const noEvents = () => respond({ today: '2026-11-02', items: [] })
 
 function routeFetch(
   daily: () => Response, headlines: (region: string, featured: boolean) => Response, digest: () => Response = noDigest,
   market: () => Response = noMarket,
   bok: () => Response = noBok,
+  events: () => Response = noEvents,
 ) {
   return vi.fn((input: RequestInfo | URL) => {
     const url = String(input)
+    if (url.includes('/api/v1/events')) return Promise.resolve(events())
     if (url.includes('/daily/digest')) return Promise.resolve(digest())
     if (url.includes('/market')) return Promise.resolve(market())
     if (url.includes('provider=bok_press')) return Promise.resolve(bok())
@@ -475,6 +478,75 @@ describe('DailyPage', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(screen.getByRole('region', { name: '안내' })).toHaveTextContent('예측하지 않아요')
     expect(fetch.mock.calls.filter(([input]) => String(input).includes('/market'))).toHaveLength(1)
+  })
+
+  it('shows the nearest official date at the top and the full list in the events tab', async () => {
+    const user = userEvent.setup()
+    const event = (key: string, date: string, dDay: number, kind: string, title: string, sourceUrl: string, tentative = false) => ({
+      key, date, dDay, kind, title, why: `${title} 설명`, sourceName: `${title} 출처`, sourceUrl, checkedOn: '2026-11-02', tentative,
+    })
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-11-02', generatedAt: null, items: [], term: null }),
+      noHeadlines, noDigest, noMarket, noBok,
+      () => respond({ today: '2026-11-02', items: [
+        event('election-us', '2026-11-03', 1, 'election', '미국 중간선거', 'https://www.ncsbe.gov/x'),
+        event('bok', '2026-11-26', 24, 'rate_decision', '한국은행 기준금리 결정', 'https://www.bok.or.kr/x'),
+        event('fomc', '2027-01-27', 86, 'fomc', '미국 FOMC', 'javascript:alert(1)', true),
+      ] }),
+    ))
+    renderPage()
+
+    const glance = await screen.findByRole('region', { name: '오늘 한눈에' })
+    expect(await within(glance).findByText(/다가올 일정/)).toHaveTextContent('D-1 다가올 일정: 11월 3일(화) 미국 중간선거')
+    await user.click(within(glance).getByRole('button', { name: '일정 더 보기' }))
+
+    expect(screen.getByRole('tab', { name: '일정' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByTestId('where')).toHaveTextContent('/daily?tab=events')
+    const list = screen.getByRole('region', { name: '다가올 일정' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items.map((item) => item.querySelector('.daily-event__dday')?.textContent)).toEqual(['D-1', 'D-24', 'D-86'])
+    expect(items[1]).toHaveTextContent('11월 26일(목) 기준금리 결정한국은행 기준금리 결정')
+    expect(within(items[1]).getByRole('link', { name: /한국은행 기준금리 결정 출처/ })).toHaveAttribute('href', 'https://www.bok.or.kr/x')
+    expect(items[2]).toHaveTextContent('(잠정)')
+    expect(within(items[2]).queryByRole('link')).not.toBeInTheDocument()
+    expect(list).toHaveTextContent('결과를 예측하거나 해석하지 않아요')
+  })
+
+  it('marks a date that is today and says so when nothing is coming up', async () => {
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-11-26', generatedAt: null, items: [], term: null }),
+      noHeadlines, noDigest, noMarket, noBok,
+      () => respond({ today: '2026-11-26', items: [{
+        key: 'bok', date: '2026-11-26', dDay: 0, kind: 'rate_decision', title: '한국은행 기준금리 결정', why: '설명',
+        sourceName: '출처', sourceUrl: 'https://www.bok.or.kr/x', checkedOn: '2026-11-02', tentative: false,
+      }] }),
+    ))
+    const today = renderPage('events')
+    const badge = (await screen.findByRole('region', { name: '다가올 일정' })).querySelector('.daily-event__dday')
+    expect(badge).toHaveTextContent('오늘')
+    expect(badge).toHaveClass('daily-event__dday--today')
+    expect(screen.getByRole('region', { name: '오늘 한눈에' })).toHaveTextContent('오늘 다가올 일정: 11월 26일(목)')
+    today.unmount()
+
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-11-26', generatedAt: null, items: [], term: null }), noHeadlines,
+    ))
+    renderPage('events')
+    expect(await screen.findByText('앞으로 60일 안에 넣어 둔 공식 일정이 없어요.')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '오늘 한눈에' })).not.toHaveTextContent('다가올 일정')
+  })
+
+  it('says so in the events tab when the dates cannot be loaded, without an alert', async () => {
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-11-02', generatedAt: null, items: [], term: null }),
+      noHeadlines, noDigest, noMarket, noBok,
+      () => respond({ error: { code: 'internal_error', message: '실패' } }, 500),
+    ))
+    renderPage('events')
+
+    expect(await screen.findByText('일정을 불러오지 못했어요. 잠시 후 다시 확인해 주세요.')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '오늘 한눈에' })).not.toHaveTextContent('다가올 일정')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('lists Bank of Korea press releases as title and link only', async () => {
