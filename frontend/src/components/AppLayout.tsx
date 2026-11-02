@@ -3,11 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import dashboardSprite from '../assets/icons/dashboard-sprite-v2.png'
 import dailyIcon from '../assets/icons/daily-mail.png'
 import marketIcon from '../assets/icons/market-monitor.png'
+import maturityIcon from '../assets/icons/maturity-keys.png'
 import startLogo from '../assets/icons/start-logo.svg'
 import { Assistant } from './Assistant'
 import { RetroUtilityApp, type UtilityId } from './RetroUtilityApps'
 
-type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'about' | 'daily' | 'market'
+type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'maturity' | 'about' | 'daily' | 'market'
 interface DesktopApp { to: string; label: string; windowTitle: string; icon: IconKind }
 interface UtilityAppDefinition { id: UtilityId; label: string; windowTitle: string }
 interface Rect { x: number; y: number; width: number; height: number }
@@ -18,6 +19,7 @@ const desktopApps: DesktopApp[] = [
   { to: '/banks', label: '은행 비교', windowTitle: '은행 비교 탐색기', icon: 'banks' },
   { to: '/cashflow', label: '납입 계획', windowTitle: '월별 납입 계획', icon: 'cashflow' },
   { to: '/alternatives', label: '대안 비교', windowTitle: '같은 돈, 다른 선택', icon: 'alternatives' },
+  { to: '/maturity', label: '만기 후 계획', windowTitle: '만기 후 계획', icon: 'maturity' },
   { to: '/about', label: '계산 기준', windowTitle: '계산 기준 및 출처', icon: 'about' },
   { to: '/daily', label: '오늘의 머니', windowTitle: '오늘의 머니', icon: 'daily' },
   { to: '/market', label: '시장 지표', windowTitle: '시장 지표', icon: 'market' },
@@ -36,8 +38,10 @@ function getCurrentApp(pathname: string) {
   return desktopApps.find((app) => app.to === pathname) ?? desktopApps[0]
 }
 
+const SINGLE_ICONS: Partial<Record<IconKind, string>> = { daily: dailyIcon, market: marketIcon, maturity: maturityIcon }
+
 function PixelIcon({ kind, className = '' }: { kind: IconKind; className?: string }) {
-  return <span className={`pixel-icon pixel-icon--${kind} ${className}`.trim()} style={{ backgroundImage: `url("${kind === 'daily' ? dailyIcon : kind === 'market' ? marketIcon : dashboardSprite}")` }} aria-hidden="true" />
+  return <span className={`pixel-icon pixel-icon--${kind} ${className}`.trim()} style={{ backgroundImage: `url("${SINGLE_ICONS[kind] ?? dashboardSprite}")` }} aria-hidden="true" />
 }
 
 function UtilityGlyph({ kind, className = '' }: { kind: UtilityId; className?: string }) {

@@ -100,7 +100,8 @@
   background-size: 76%;
 }
 
-.pixel-icon--market {
+.pixel-icon--market,
+.pixel-icon--maturity {
   background-position: center;
   background-size: 76%;
 }

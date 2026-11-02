@@ -1,0 +1,248 @@
+.maturity-step {
+  margin-top: 16px;
+  padding: 12px;
+  border: 2px solid #808080;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+.maturity-step h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.maturity-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.maturity-inputs label {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.maturity-inputs input,
+.maturity-inputs select {
+  min-width: 0;
+  font: inherit;
+}
+
+.maturity-muted {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #555;
+}
+
+.maturity-error {
+  margin: 6px 0;
+  color: #800000;
+  font-size: 13px;
+}
+
+.maturity-profiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.maturity-profile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 6px;
+  padding: 8px 10px;
+  border: 2px solid #808080;
+  border-top-color: #fff;
+  border-left-color: #fff;
+  background: #c0c0c0;
+  cursor: pointer;
+}
+
+.maturity-profile span {
+  grid-column: 2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.maturity-profile--active {
+  border-color: #000080;
+  background: #dfe6f5;
+}
+
+.maturity-quiz {
+  margin-top: 8px;
+}
+
+.maturity-quiz > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.maturity-quiz fieldset {
+  margin: 8px 0;
+  border: 1px solid #808080;
+}
+
+.maturity-quiz legend {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.maturity-quiz label {
+  display: block;
+  margin: 2px 0;
+  font-size: 13px;
+}
+
+.maturity-options {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.maturity-option {
+  padding: 10px 12px;
+  border: 2px solid #808080;
+  border-left-width: 6px;
+  background: #f4f4f4;
+}
+
+/* The left edge darkens with risk; the badge and label carry the meaning without colour. */
+.maturity-option--risk0 { border-left-color: #1f4e9c; }
+.maturity-option--risk1 { border-left-color: #6d8fc4; }
+.maturity-option--risk2 { border-left-color: #b08a2e; }
+.maturity-option--risk3 { border-left-color: #c2560e; }
+.maturity-option--risk4 { border-left-color: #8b1a1a; }
+
+.maturity-option__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.maturity-option h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.maturity-option p {
+  margin: 4px 0;
+}
+
+.maturity-badge {
+  padding: 1px 8px;
+  border: 1px solid #800000;
+  background: #fff;
+  color: #800000;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.maturity-badge--safe {
+  border-color: #1f4e9c;
+  background: #1f4e9c;
+  color: #fff;
+}
+
+.maturity-amount {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.maturity-warning {
+  font-size: 12px;
+  color: #800000;
+}
+
+.maturity-range {
+  position: relative;
+  height: 14px;
+  margin: 8px 0 4px;
+  border: 1px solid #808080;
+  background: #fff;
+}
+
+.maturity-range__bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: #9eb6dd;
+}
+
+.maturity-range__avg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1px;
+  background: #1f4e9c;
+}
+
+.maturity-range__zero {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: #000;
+}
+
+.maturity-history {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px 12px;
+  margin: 4px 0;
+}
+
+.maturity-history div {
+  display: grid;
+}
+
+.maturity-history dt {
+  font-size: 12px;
+  color: #555;
+}
+
+.maturity-history dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.maturity-history p {
+  grid-column: 1 / -1;
+}
+
+.maturity-others > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.maturity-mix {
+  padding: 8px 10px;
+  border: 1px dotted #808080;
+}
+
+.maturity-notes {
+  margin-top: 16px;
+  padding: 8px 12px;
+  border: 1px solid #808080;
+  background: #f4f4f4;
+  font-size: 12px;
+}
+
+.maturity-notes ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.maturity-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
