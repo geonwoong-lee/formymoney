@@ -4,6 +4,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.collectors.naver_news import Headline
+from app.collectors.official_rss import LINK_ONLY_HOSTS, LINK_ONLY_PROVIDERS
 from app.models.daily_briefing import NewsHeadline
 from app.schemas.daily_briefing import NewsHeadlineResponse
 from app.services.headline_ranking import Candidate, rank
@@ -56,9 +57,14 @@ class NewsHeadlineService:
 
     def list_featured(self, region: str, limit: int = 5, now: datetime | None = None) -> list[NewsHeadlineResponse]:
         moment = now or datetime.now(timezone.utc)
+        # Link-only sources never feed the rule-picked list or the AI digest built from it.
         rows = self.session.scalars(
             select(NewsHeadline)
-            .where(NewsHeadline.region == region, NewsHeadline.published_at >= moment - timedelta(days=FEATURED_WINDOW_DAYS))
+            .where(
+                NewsHeadline.region == region,
+                NewsHeadline.published_at >= moment - timedelta(days=FEATURED_WINDOW_DAYS),
+                NewsHeadline.provider.not_in(LINK_ONLY_PROVIDERS),
+            )
             .order_by(NewsHeadline.published_at.desc())
             .limit(FEATURED_POOL)
         ).all()
@@ -77,11 +83,17 @@ class NewsHeadlineService:
             ))
         return featured
 
-    def list_recent(self, region: str, limit: int = 10, now: datetime | None = None) -> list[NewsHeadlineResponse]:
+    def list_recent(
+        self, region: str, limit: int = 10, now: datetime | None = None, provider: str | None = None,
+    ) -> list[NewsHeadlineResponse]:
         cutoff = (now or datetime.now(timezone.utc)) - timedelta(days=HEADLINE_RETENTION_DAYS)
+        source = NewsHeadline.provider == provider if provider else NewsHeadline.provider.not_in(LINK_ONLY_PROVIDERS)
+        if provider in LINK_ONLY_HOSTS:
+            # A link-only source may only link to its own official site; checked before the limit.
+            source = source & NewsHeadline.url.startswith(f"https://{LINK_ONLY_HOSTS[provider]}/", autoescape=True)
         rows = self.session.scalars(
             select(NewsHeadline)
-            .where(NewsHeadline.region == region, NewsHeadline.fetched_at >= cutoff)
+            .where(NewsHeadline.region == region, NewsHeadline.fetched_at >= cutoff, source)
             .order_by(NewsHeadline.published_at.desc(), NewsHeadline.id.desc())
             .limit(limit)
         ).all()

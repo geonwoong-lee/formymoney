@@ -43,9 +43,20 @@ const headline = (number: number, region = 'domestic') => ({
   publishedAt: '2026-10-30T05:38:41Z', topic: '기준금리', provider: 'naver',
 })
 
-function routeFetch(daily: () => Response, headlines: (region: string, featured: boolean) => Response) {
+const noBok = () => respond({ region: 'domestic', items: [] })
+const noMarket = () => respond({ groups: [], rateTrend: [], sourceName: 'ECOS', sourceUrl: 'https://ecos.bok.or.kr/', updatedAt: null })
+const noDigest = () => respond({ error: { code: 'not_found', message: '아직 경제 뉴스 요약이 없습니다.' } }, 404)
+
+function routeFetch(
+  daily: () => Response, headlines: (region: string, featured: boolean) => Response, digest: () => Response = noDigest,
+  market: () => Response = noMarket,
+  bok: () => Response = noBok,
+) {
   return vi.fn((input: RequestInfo | URL) => {
     const url = String(input)
+    if (url.includes('/daily/digest')) return Promise.resolve(digest())
+    if (url.includes('/market')) return Promise.resolve(market())
+    if (url.includes('provider=bok_press')) return Promise.resolve(bok())
     if (url.includes('/daily/headlines')) {
       const params = new URL(url, 'http://localhost').searchParams
       return Promise.resolve(headlines(params.get('region') ?? 'domestic', params.get('featured') === 'true'))
@@ -123,9 +134,9 @@ describe('DailyPage', () => {
     const termCard = await screen.findByRole('region', { name: '오늘의 금융용어' })
     expect(termCard).toHaveTextContent('기준금리')
     expect(within(termCard).getByRole('link', { name: /금융위원회 금융용어사전/ })).toHaveAttribute('href', term.sourceUrl)
-    expect(termCard).toHaveTextContent('쉽게 말하면')
+    expect(termCard).toHaveTextContent('금융 선생님')
     expect(termCard).toHaveTextContent('기준금리가 바뀌면 예금 금리에도 영향을 줄 수 있습니다.')
-    expect(within(termCard).getByText('공식 설명 보기')).toBeInTheDocument()
+    expect(within(termCard).getByText('사전에 나온 정확한 뜻 보기')).toBeInTheDocument()
     expect(termCard).toHaveTextContent('중앙은행이 통화정책의 기준으로 삼는 금리입니다.')
     withTerm.unmount()
 
@@ -133,12 +144,12 @@ describe('DailyPage', () => {
     const withoutExample = renderPage()
     const plainCard = await screen.findByRole('region', { name: '오늘의 금융용어' })
     expect(plainCard).toHaveTextContent('중앙은행이 통화정책의 기준으로 삼는 금리입니다.')
-    expect(plainCard).not.toHaveTextContent('쉽게 말하면')
+    expect(plainCard).not.toHaveTextContent('금융 선생님')
     withoutExample.unmount()
 
     stubDaily([], null)
     renderPage()
-    expect(await screen.findByText('오늘의 용어는 준비 중입니다.')).toBeInTheDocument()
+    expect(await screen.findByText(/오늘의 용어는 준비 중이에요/)).toBeInTheDocument()
   })
 
   it('links only to the fixed internal calculation screens', async () => {
@@ -230,5 +241,173 @@ describe('DailyPage', () => {
     expect(domestic).toHaveTextContent('AI 판단이나 투자·가입 권유가 아닙니다')
     expect(domestic).toHaveTextContent('전체 헤드라인')
     expect(within(domestic).getAllByRole('link')).toHaveLength(3)
+  })
+
+  it('shows the AI news digest with source links, and hides it when there is none', async () => {
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+      noHeadlines,
+      () => respond({
+        digestDate: '2026-11-02', overview: '오늘은 금리 소식이 많았어요.', aiModel: 'test', createdAt: '2026-11-02T00:00:00Z',
+        points: [{ text: '한국은행이 기준금리를 올렸어요.', sources: [
+          { title: '한은 금리 인상', publisher: 'a.co.kr', url: 'https://a.co.kr/1' },
+          { title: '위험한 링크', publisher: 'b.co.kr', url: 'javascript:alert(1)' },
+        ] }],
+      }),
+    ))
+    renderPage()
+
+    const digest = await screen.findByRole('region', { name: '오늘의 경제 뉴스 요약' })
+    expect(digest).toHaveTextContent('2026년 11월 2일')
+    expect(digest).toHaveTextContent('오늘은 금리 소식이 많았어요.')
+    expect(within(digest).getByRole('link', { name: /a.co.kr/ })).toHaveAttribute('href', 'https://a.co.kr/1')
+    expect(within(digest).queryByRole('link', { name: /b.co.kr/ })).not.toBeInTheDocument()
+    expect(digest).toHaveTextContent('기사 전문은 가져오지 않으며')
+
+    cleanup()
+    stubDaily([])
+    renderPage()
+    await screen.findByText(/오늘 발행된 브리핑이 없습니다/)
+    expect(screen.queryByRole('region', { name: '오늘의 경제 뉴스 요약' })).not.toBeInTheDocument()
+  })
+
+  it('explains how rates reach savers with current rates and links, without advice', async () => {
+    const rate = (code: string, name: string, value: string, period: string) => ({
+      code, name, unit: '%', cycle: period.length === 8 ? 'D' : 'M', period, value, previousPeriod: null, change: null, changePercent: null,
+    })
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+      noHeadlines,
+      noDigest,
+      () => respond({ groups: [
+        { key: 'fx', title: '환율', note: '', items: [{ ...rate('usd_krw', '원/달러', '1337.2', '20261030'), unit: '원' }] },
+        { key: 'rate', title: '금리', note: '', items: [
+          rate('base_rate', '한국은행 기준금리', '3', '20261030'), rate('ktb_3y', '국고채 3년', '3.715', '20261030'),
+          rate('deposit_rate', '은행 예금 평균금리(신규)', '3.45', '202609'),
+        ] },
+      ], rateTrend: [], sourceName: 'ECOS', sourceUrl: 'https://ecos.bok.or.kr/', updatedAt: null }),
+    ))
+    renderPage()
+
+    const context = await screen.findByRole('region', { name: '금리가 바뀌면 내 적금은 어떻게 될까요?' })
+    expect(context).toHaveTextContent('금융 선생님')
+    const rates = await within(context).findByRole('list', { name: '지금 금리' })
+    expect(rates).toHaveTextContent('한국은행 기준금리 3% (2026년 10월 30일 기준)')
+    expect(rates).toHaveTextContent('국고채 3년 3.72% (2026년 10월 30일 기준)')
+    expect(rates).toHaveTextContent('은행 예금 평균금리(신규) 3.45% (2026년 9월 기준)')
+    expect(within(rates).getAllByRole('listitem')).toHaveLength(3)
+    expect(rates).not.toHaveTextContent('원/달러')
+    expect(within(context).getByRole('link', { name: /이번 달 납입이 달라지면/ })).toHaveAttribute('href', '/cashflow')
+    expect(within(context).getByRole('link', { name: '시장 지표 더 보기' })).toHaveAttribute('href', '/market')
+    expect(context).toHaveTextContent('예측하지 않아요')
+    expect(context).toHaveTextContent('가입이나 해지를 권하는 내용이 아니에요')
+    expect(context.textContent).not.toMatch(/[—–]/)
+  })
+
+  it("shows today's AI notes on what the news means for savers, with source links", async () => {
+    const digest = (moneyNotes: unknown) => () => respond({
+      digestDate: '2026-11-02', overview: '오늘은 금리 소식이 많았어요.', aiModel: 'test', createdAt: '2026-11-02T00:00:00Z',
+      points: [{ text: '한국은행이 기준금리를 올렸어요.', sources: [{ title: '한은 금리 인상', publisher: 'a.co.kr', url: 'https://a.co.kr/1' }] }],
+      ...(moneyNotes === undefined ? {} : { moneyNotes }),
+    })
+    const page = (moneyNotes: unknown) => {
+      vi.stubGlobal('fetch', routeFetch(
+        () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+        noHeadlines, digest(moneyNotes), noMarket,
+      ))
+      renderPage()
+      return screen.findByRole('region', { name: '금리가 바뀌면 내 적금은 어떻게 될까요?' })
+    }
+
+    let context = await page([{
+      category: 'new_savings', text: '한국은행이 기준금리를 올렸어요. 이럴 때는 새 적금 이자도 오르는 경우가 많아요.',
+      sources: [{ title: '한은 금리 인상', publisher: 'a.co.kr', url: 'https://a.co.kr/1' }, { title: '위험', publisher: 'b.co.kr', url: 'javascript:alert(1)' }],
+    }])
+    const notes = within(context).getByRole('list', { name: '오늘 소식과 내 돈' })
+    expect(notes).toHaveTextContent('새로 드는 예금·적금')
+    expect(notes).toHaveTextContent('새 적금 이자도 오르는 경우가 많아요')
+    expect(within(notes).getByRole('link', { name: /a.co.kr/ })).toHaveAttribute('href', 'https://a.co.kr/1')
+    expect(within(notes).queryByRole('link', { name: /b.co.kr/ })).not.toBeInTheDocument()
+    expect(context).toHaveTextContent('AI가 쓴 풀이라 틀릴 수 있어요')
+    expect(within(context).getByRole('list', { name: '금리가 움직이면 보통 이렇게 돼요' })).toBeInTheDocument()
+
+    cleanup()
+    context = await page([])
+    expect(context).toHaveTextContent('바로 닿는 소식이 없었어요')
+    expect(within(context).queryByRole('list', { name: '오늘 소식과 내 돈' })).not.toBeInTheDocument()
+
+    cleanup()
+    context = await page(undefined)
+    expect(context).toHaveTextContent('하나씩 살펴볼까요?')
+    expect(context).not.toHaveTextContent('AI 정리')
+  })
+
+  it('keeps the explanation and links when market rates fail to load', async () => {
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+      noHeadlines,
+      noDigest,
+      () => respond({ error: { code: 'service_unavailable', message: '시장 지표를 불러오지 못했습니다.' } }, 503),
+    ))
+    renderPage()
+
+    const context = await screen.findByRole('region', { name: '금리가 바뀌면 내 적금은 어떻게 될까요?' })
+    expect(within(context).queryByRole('list', { name: '지금 금리' })).not.toBeInTheDocument()
+    const points = within(context).getAllByRole('listitem')
+    expect(points.map((point) => point.querySelector('b')?.textContent)).toEqual([
+      '새로 적금에 들 때', '이미 넣고 있는 적금', '빌린 돈이 있을 때', '이번 달 덜 넣거나 쉬고 싶을 때',
+    ])
+    expect(points[1]).toHaveTextContent('상품 설명서를 한번 꺼내 보세요')
+    expect(points[3]).toHaveTextContent('우대금리나 정부가 보태 주는 돈을 못 받을 수 있는데')
+    expect(points[3]).toHaveTextContent('해지할 때 받는 돈은 여기서 계산하지 않으니')
+    expect(within(context).getByRole('link', { name: /이번 달 납입이 달라지면/ })).toHaveAttribute('href', '/cashflow')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('lists Bank of Korea press releases as title and link only', async () => {
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+      noHeadlines, noDigest, noMarket,
+      () => respond({ region: 'domestic', items: [
+        { ...headline(1), title: '[보도참고자료] 2026년 11월 통화안정증권 발행 계획', publisher: '한국은행', provider: 'bok_press', url: 'https://www.bok.or.kr/portal/bbs/B0000502/view.do?nttId=1' },
+      ] }),
+    ))
+    renderPage()
+
+    const bok = await screen.findByRole('region', { name: '한국은행 새 소식' })
+    expect(within(bok).getByRole('link', { name: /통화안정증권 발행 계획/ })).toHaveAttribute('href', 'https://www.bok.or.kr/portal/bbs/B0000502/view.do?nttId=1')
+    expect(bok).toHaveTextContent('출처: 한국은행 보도자료')
+    expect(bok).toHaveTextContent('내용을 가져오거나 요약하지 않습니다')
+    expect(bok).not.toHaveTextContent('AI')
+  })
+
+  it('hides the Bank of Korea list when nothing is collected', async () => {
+    stubDaily([])
+    renderPage()
+    await screen.findByText(/오늘 발행된 브리핑이 없습니다/)
+    expect(screen.queryByRole('region', { name: '한국은행 새 소식' })).not.toBeInTheDocument()
+  })
+
+  it('hides the Bank of Korea list when the request fails and never links outside bok.or.kr', async () => {
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+      noHeadlines, noDigest, noMarket,
+      () => respond({ error: { code: 'service_unavailable', message: '뉴스 헤드라인을 불러오지 못했습니다.' } }, 503),
+    ))
+    renderPage()
+    await screen.findByText(/오늘 발행된 브리핑이 없습니다/)
+    expect(screen.queryByRole('region', { name: '한국은행 새 소식' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    cleanup()
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+      noHeadlines, noDigest, noMarket,
+      () => respond({ region: 'domestic', items: [{ ...headline(2), title: '외부 주소 항목', provider: 'bok_press', url: 'https://example.com/bok' }] }),
+    ))
+    renderPage()
+    const bok = await screen.findByRole('region', { name: '한국은행 새 소식' })
+    expect(bok).toHaveTextContent('외부 주소 항목')
+    expect(within(bok).queryByRole('link')).not.toBeInTheDocument()
   })
 })

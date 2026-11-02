@@ -1,9 +1,12 @@
 import hmac
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request, status
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+
+from app.models.collection_run import CollectionRun
 
 from app.schemas.daily_briefing import (
     BriefingIngestRequest,
@@ -13,6 +16,7 @@ from app.schemas.daily_briefing import (
     DailyCandidateCollectionResponse,
     DailyBriefingResponse,
     EvidenceParagraph,
+    NewsDigestResponse,
     NewsHeadlinesResponse,
     OpenAIResultIngestRequest,
 )
@@ -22,7 +26,17 @@ from app.collectors.official_news import (
     collect_candidate_evidence,
     collect_official_candidates,
 )
+from app.schemas.collection_run import (
+    CollectionRunRequest,
+    CollectionRunResponse,
+    CollectionStatusResponse,
+    DailyJobRequest,
+    DailyJobResponse,
+)
+from app.services.collection_run_service import CollectionRunService, RunIdConflictError, sanitize_error_message
+from app.services.daily_jobs import JOBS, JobResult
 from app.services.daily_candidate_service import DailyCandidateService
+from app.services.news_digest import korea_today, todays_digest
 from app.services.news_headline_service import NewsHeadlineService
 from app.services.daily_briefing_service import DailyBriefingInputError, DailyBriefingService
 
@@ -134,6 +148,106 @@ def ingest_openai_result(
         ) from error
 
 
+@router.post("/internal/daily/runs", response_model=CollectionRunResponse)
+def record_collection_run(
+    payload: CollectionRunRequest,
+    request: Request,
+    ingest_secret: str | None = Header(default=None, alias="X-Very-Rich-Ingest-Secret"),
+) -> CollectionRunResponse:
+    _require_ingest_secret(request, ingest_secret)
+    try:
+        with request.app.state.session_factory() as session:
+            return CollectionRunService(session, request.app.state.settings.daily_token_limit).record(payload)
+    except RunIdConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="같은 runId에 다른 내용의 기록이 이미 있습니다.",
+        ) from error
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="수집 실행 기록을 저장하지 못했습니다.",
+        ) from error
+
+
+@router.post("/internal/daily/jobs/{job}", response_model=DailyJobResponse)
+def run_daily_job(
+    job: str,
+    request: Request,
+    payload: DailyJobRequest | None = None,
+    ingest_secret: str | None = Header(default=None, alias="X-Very-Rich-Ingest-Secret"),
+) -> DailyJobResponse:
+    """Run a daily collection job (called by the n8n schedule) and record the run for operators."""
+    _require_ingest_secret(request, ingest_secret)
+    jobs = getattr(request.app.state, "daily_jobs", JOBS)
+    if job not in jobs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="알 수 없는 수집 작업입니다.")
+    settings = request.app.state.settings
+    run_id = f"{payload.run_id}:{job}" if payload and payload.run_id else None
+    if run_id:
+        # A repeated call for the same n8n execution returns the recorded result instead of collecting again.
+        try:
+            with request.app.state.session_factory() as session:
+                previous = session.scalars(select(CollectionRun).where(CollectionRun.run_id == run_id)).first()
+                if previous is not None:
+                    return DailyJobResponse(
+                        job=job, status=previous.status, attempted=0, collected=previous.candidates,
+                        saved=previous.published, failures=[previous.error_message] if previous.error_message else [],
+                        notes=["이미 실행된 runId라 다시 수집하지 않았습니다."], run_recorded=True,
+                    )
+        except SQLAlchemyError as error:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="수집 실행 기록을 확인하지 못했습니다.",
+            ) from error
+    started_at = datetime.now(timezone.utc)
+    try:
+        with request.app.state.session_factory() as session:
+            result = jobs[job](settings, session)
+    except SQLAlchemyError:
+        result = JobResult(job, attempted=1)
+        result.fail("DB", "수집 결과를 저장하지 못했습니다.")
+    failures = [sanitize_error_message(line) or "" for line in result.failures]
+    run = CollectionRunRequest(
+        run_id=run_id,
+        workflow=f"daily-{job}",
+        status=result.status,
+        stage=failures[0].split(":")[0][:60] if failures else None,
+        error_message="; ".join(failures) or None,
+        candidates=min(result.collected, 1_000),
+        published=min(result.saved, 1_000),
+        rejected=min(len(failures), 1_000),
+        started_at=started_at,
+        finished_at=datetime.now(timezone.utc),
+    )
+    try:
+        with request.app.state.session_factory() as session:
+            CollectionRunService(session, settings.daily_token_limit).record(run)
+        recorded = True
+    except (RunIdConflictError, SQLAlchemyError):
+        recorded = False
+    return DailyJobResponse(
+        job=job, status=result.status, attempted=result.attempted, collected=result.collected, saved=result.saved,
+        failures=failures, notes=result.notes, run_recorded=recorded,
+    )
+
+
+@router.get("/internal/daily/runs/status", response_model=CollectionStatusResponse)
+def get_collection_status(
+    request: Request,
+    ingest_secret: str | None = Header(default=None, alias="X-Very-Rich-Ingest-Secret"),
+) -> CollectionStatusResponse:
+    _require_ingest_secret(request, ingest_secret)
+    try:
+        with request.app.state.session_factory() as session:
+            return CollectionRunService(session, request.app.state.settings.daily_token_limit).status()
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="수집 실행 상태를 불러오지 못했습니다.",
+        ) from error
+
+
 @router.get("/daily", response_model=DailyBriefingResponse)
 def get_daily_briefing(
     request: Request,
@@ -150,17 +264,41 @@ def get_daily_briefing(
         ) from error
 
 
+@router.get("/daily/digest", response_model=NewsDigestResponse)
+def get_news_digest(request: Request) -> NewsDigestResponse:
+    try:
+        with request.app.state.session_factory() as session:
+            digest = todays_digest(session, korea_today())
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="경제 뉴스 요약을 불러오지 못했습니다.",
+        ) from error
+    if digest is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="아직 경제 뉴스 요약이 없습니다.")
+    return digest
+
+
 @router.get("/daily/headlines", response_model=NewsHeadlinesResponse)
 def get_news_headlines(
     request: Request,
     region: str = Query(default="domestic", pattern="^(domestic|international)$"),
     limit: int = Query(default=10, ge=1, le=30),
     featured: bool = Query(default=False),
+    provider: str | None = Query(default=None, pattern="^(naver|fed_press|ecb_press|bok_press)$"),
 ) -> NewsHeadlinesResponse:
+    if featured and provider:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="주요 뉴스(featured)와 출처(provider)는 함께 조회할 수 없습니다.",
+        )
     try:
         with request.app.state.session_factory() as session:
             service = NewsHeadlineService(session)
-            items = service.list_featured(region, min(limit, 10)) if featured else service.list_recent(region, limit)
+            if featured:
+                items = service.list_featured(region, min(limit, 10))
+            else:
+                items = service.list_recent(region, limit, provider=provider)
     except SQLAlchemyError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

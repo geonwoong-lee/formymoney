@@ -127,3 +127,39 @@ class CashflowCalculationResponse(CamelModel):
     result: BankCalculationResult
     fixed_expected_maturity_amount: int
     difference_from_fixed_plan: int
+
+
+class MonthImpactRequest(CamelModel):
+    bank_code: str
+    monthly_amounts: list[int] = Field(min_length=1)
+    fixed_monthly_amount: int = Field(ge=1_000, le=500_000)
+    contribution_type: ContributionType
+    condition_answers: dict[str, Answer] = Field(default_factory=dict)
+    month_number: int = Field(ge=1, description="영향을 볼 납입 회차(1부터)")
+    reduced_amount: int = Field(ge=1_000, description="감액 시나리오에서 그 달에 넣을 금액")
+
+
+class MonthImpactScenario(CamelModel):
+    key: str
+    label: str
+    month_amount: int
+    principal: int
+    deposit_interest: int
+    government_contribution: int
+    government_contribution_interest: int
+    expected_maturity_amount: int
+    difference_from_keep: int
+    deposit_interest_difference_from_keep: int
+    government_contribution_difference_from_keep: int
+
+
+class MonthImpactResponse(CamelModel):
+    bank_code: str
+    bank_name: str
+    month_number: int
+    term_months: int
+    expected_rate: float
+    scenarios: list[MonthImpactScenario]
+    unavailable_notes: list[str]
+    source_url: str
+    source_date: str

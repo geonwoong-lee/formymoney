@@ -1,28 +1,30 @@
+from app.models.collection_run import CollectionRun
 from app.models.daily_briefing import (
     DailyBriefingItem,
     DailyBriefingSource,
     DailyTermAssignment,
     FinancialTerm,
+    NewsDigest,
     NewsHeadline,
 )
 from app.models.investment import InvestmentAsset, InvestmentMonthlyPoint
+from app.models.market import MarketPoint
 from app.models.reference_item import ReferenceItem
 from app.models.savings_product import BankSavingsProduct, PreferentialCondition, SavingsPolicy
 
 __all__ = [
     "BankSavingsProduct",
+    "CollectionRun",
     "DailyBriefingItem",
     "DailyBriefingSource",
     "DailyTermAssignment",
     "FinancialTerm",
     "InvestmentAsset",
     "InvestmentMonthlyPoint",
+    "MarketPoint",
+    "NewsDigest",
     "NewsHeadline",
     "PreferentialCondition",
     "ReferenceItem",
     "SavingsPolicy",
 ]
-from app.models.reference_item import ReferenceItem
-from app.models.savings_product import BankSavingsProduct, PreferentialCondition, SavingsPolicy
-
-__all__ = ["BankSavingsProduct", "PreferentialCondition", "ReferenceItem", "SavingsPolicy"]

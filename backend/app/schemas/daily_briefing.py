@@ -193,3 +193,32 @@ class NewsHeadlineResponse(CamelModel):
 class NewsHeadlinesResponse(CamelModel):
     region: str
     items: list[NewsHeadlineResponse]
+
+
+class DigestSourceResponse(CamelModel):
+    title: str
+    publisher: str
+    url: str
+
+
+class DigestPointResponse(CamelModel):
+    text: str
+    sources: list[DigestSourceResponse]
+
+
+MoneyNoteCategory = Literal["new_savings", "current_savings", "loan", "fx"]
+
+
+class MoneyNoteResponse(CamelModel):
+    category: MoneyNoteCategory
+    text: str
+    sources: list[DigestSourceResponse]
+
+
+class NewsDigestResponse(CamelModel):
+    digest_date: date
+    overview: str
+    points: list[DigestPointResponse]
+    money_notes: list[MoneyNoteResponse] | None = None  # None: written before money notes existed
+    ai_model: str
+    created_at: datetime

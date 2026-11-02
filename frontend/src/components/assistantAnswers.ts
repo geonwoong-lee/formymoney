@@ -23,6 +23,7 @@ export const QUICK_LINKS: AssistantLink[] = [
   { to: '/cashflow', label: '월별 납입 계획' },
   { to: '/alternatives', label: '대안 비교' },
   { to: '/daily', label: '오늘의 머니' },
+  { to: '/market', label: '시장 지표' },
   { to: '/about', label: '계산 기준' },
 ]
 

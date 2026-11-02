@@ -20,12 +20,12 @@ def _headline(number: int, **changes: object) -> Headline:
     return Headline(**values)
 
 
-def test_parse_items_keeps_only_title_link_and_time() -> None:
+def test_parse_items_keeps_title_link_time_and_in_memory_snippet() -> None:
     payload = {"items": [{
         "title": "<b>기준금리</b> &quot;동결&quot;",
         "originallink": "https://www.example.co.kr/a/1",
         "link": "https://n.news.naver.com/mnews/article/1",
-        "description": "본문 일부는 저장하지 않습니다.",
+        "description": "<b>본문</b> 일부는 저장하지 않습니다.",
         "pubDate": "Fri, 30 Oct 2026 14:38:41 +0900",
     }]}
 
@@ -35,7 +35,8 @@ def test_parse_items_keeps_only_title_link_and_time() -> None:
     assert headline.publisher == "example.co.kr"
     assert headline.url == "https://www.example.co.kr/a/1"
     assert headline.published_at == datetime(2026, 10, 30, 5, 38, 41, tzinfo=timezone.utc)
-    assert not hasattr(headline, "description")
+    assert headline.snippet == "본문 일부는 저장하지 않습니다."
+    assert "snippet" not in NewsHeadline.__table__.columns
 
 
 def test_parse_items_skips_unsafe_or_incomplete_items() -> None:

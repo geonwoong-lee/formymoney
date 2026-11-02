@@ -6,6 +6,8 @@ from app.schemas.savings import (
     CalculationResponse,
     CashflowCalculationRequest,
     CashflowCalculationResponse,
+    MonthImpactRequest,
+    MonthImpactResponse,
     ProductsResponse,
 )
 from app.services.savings_service import SavingsDataError, SavingsInputError, SavingsService
@@ -42,6 +44,17 @@ def calculate_cashflow(
     try:
         with request.app.state.session_factory() as session:
             return SavingsService(session).calculate_cashflow(payload)
+    except SavingsInputError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
+    except (SavingsDataError, SQLAlchemyError) as error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+
+
+@router.post("/month-impact", response_model=MonthImpactResponse)
+def calculate_month_impact(payload: MonthImpactRequest, request: Request) -> MonthImpactResponse:
+    try:
+        with request.app.state.session_factory() as session:
+            return SavingsService(session).calculate_month_impact(payload)
     except SavingsInputError as error:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
     except (SavingsDataError, SQLAlchemyError) as error:

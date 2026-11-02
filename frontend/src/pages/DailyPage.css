@@ -210,14 +210,187 @@
   color: #006060;
 }
 
-.daily-term__easy {
+.daily-teacher {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 6px 0 8px;
+}
+
+/* Sunken Win98 frame; the portrait has a transparent background and sits on the bubble's white. */
+.daily-teacher__face {
+  flex: 0 0 auto;
+  box-sizing: content-box;
+  width: 96px;
+  height: 96px;
+  border: 2px solid #fff;
+  border-top-color: #808080;
+  border-left-color: #808080;
+  outline: 1px solid #000;
+  outline-offset: -3px;
+  background: #fff;
+  object-fit: contain;
+  object-position: bottom;
+}
+
+.daily-teacher__bubble {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 8px 10px;
-  border-left: 4px solid #c8a000;
-  background: #fffbe0;
+  border: 1px solid #000;
+  background: #fff;
   line-height: 1.6;
+}
+
+.daily-teacher__bubble::before {
+  position: absolute;
+  top: 14px;
+  left: -7px;
+  width: 12px;
+  height: 12px;
+  border-bottom: 1px solid #000;
+  border-left: 1px solid #000;
+  background: #fff;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.daily-teacher__name {
+  display: block;
+  font-size: 12px;
+  color: #000080;
+}
+
+.daily-teacher__bubble p {
+  margin: 2px 0 0;
+}
+
+@media (max-width: 480px) {
+  .daily-teacher {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .daily-teacher__face {
+    width: 72px;
+    height: 72px;
+  }
+
+  .daily-teacher__bubble {
+    align-self: stretch;
+  }
+
+  .daily-teacher__bubble::before {
+    top: -7px;
+    left: 22px;
+    border-top: 1px solid #000;
+    border-bottom: 0;
+  }
 }
 
 .daily-term__official summary {
   cursor: pointer;
   font-size: 13px;
+}
+
+.daily-digest {
+  margin-top: 18px;
+  padding: 12px;
+  border: 2px solid #808080;
+  border-left: 6px solid #000080;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+.daily-digest h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.daily-digest__overview {
+  margin: 8px 0;
+  font-weight: 700;
+}
+
+.daily-digest__points {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.daily-digest__points li {
+  margin: 6px 0;
+}
+
+.daily-digest__points p {
+  margin: 0 0 2px;
+}
+
+.daily-context {
+  margin-top: 18px;
+  padding: 12px;
+  border: 2px solid #808080;
+  background: #ffffe1;
+  overflow-wrap: anywhere;
+}
+
+.daily-context h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.daily-context__rates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  list-style: none;
+  border: 1px solid #c0c0c0;
+  background: #fff;
+}
+
+.daily-context__points {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+.daily-context__points li {
+  margin: 6px 0;
+}
+
+.daily-context__points b {
+  display: block;
+}
+
+.daily-context h3 {
+  margin: 10px 0 4px;
+  font-size: 14px;
+}
+
+.daily-context__today {
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.daily-context__today li {
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dotted #808080;
+}
+
+.daily-context__today li:last-child {
+  border-bottom: 0;
+}
+
+.daily-context__today p {
+  margin: 2px 0;
+}
+
+.daily-context__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
 }

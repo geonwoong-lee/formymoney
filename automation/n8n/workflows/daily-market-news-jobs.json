@@ -1,0 +1,232 @@
+{
+  "id": "veryRichDailyJob",
+  "name": "Very Rich - 매일 시장 지표·뉴스 수집",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6734f812-584d-439e-aec9-2e3f8b66a5cb",
+      "name": "수동 실행",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -700,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "c310eeac-3306-4456-8abd-dac6cf0f3e94",
+      "name": "매일 오전 7시 30분 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -700,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.VERY_RICH_API_BASE_URL}}/api/v1/internal/daily/jobs/market",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Very-Rich-Ingest-Secret",
+              "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({runId: String($execution.id)})}}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "ad7f5f4b-0f13-4025-8c15-164afbb9df28",
+      "name": "시장 지표 수집",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -460,
+        60
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.VERY_RICH_API_BASE_URL}}/api/v1/internal/daily/jobs/news",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Very-Rich-Ingest-Secret",
+              "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({runId: String($execution.id)})}}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "d46a84e5-5d40-4fea-815f-a005aa608049",
+      "name": "뉴스 수집·요약",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        60
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e39bdad1-bc8a-4f6d-ab4c-7be0ca6b57e5",
+              "leftValue": "={{ [$('시장 지표 수집').first().json, $('뉴스 수집·요약').first().json].some((body) => !body || body.error !== undefined || !body.status || body.status === 'failed' || body.runRecorded !== true) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "a1aa49fb-295c-46b2-b97f-5c37cee3bfd9",
+      "name": "실패한 작업이 있나",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        20,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{ [['시장 지표', $('시장 지표 수집').first().json], ['뉴스·요약', $('뉴스 수집·요약').first().json]].filter(([label, body]) => !body || body.error !== undefined || !body.status || body.status === 'failed' || body.runRecorded !== true).map(([label, body]) => label + ': ' + (!body || body.error !== undefined || !body.status ? 'FastAPI 요청 실패' : body.status === 'failed' ? '수집 실패 ' + (body.failures || []).slice(0, 2).join(' / ') : '실행 기록 저장 실패')).join(' | ') }}"
+      },
+      "id": "3a4fdeb3-7a5e-411e-8d17-5fcd9db1eec0",
+      "name": "실행 실패로 표시",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        260,
+        -40
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "62127807-dd78-4ef2-85be-94fdefe95760",
+      "name": "완료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        260,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "수동 실행": {
+      "main": [
+        [
+          {
+            "node": "시장 지표 수집",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "매일 오전 7시 30분 KST": {
+      "main": [
+        [
+          {
+            "node": "시장 지표 수집",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "시장 지표 수집": {
+      "main": [
+        [
+          {
+            "node": "뉴스 수집·요약",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 수집·요약": {
+      "main": [
+        [
+          {
+            "node": "실패한 작업이 있나",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "실패한 작업이 있나": {
+      "main": [
+        [
+          {
+            "node": "실행 실패로 표시",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "완료",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "Asia/Seoul",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 900
+  },
+  "versionId": "3afff69d-bf62-4f4e-9820-d613a9eb12e5",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

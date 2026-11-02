@@ -107,4 +107,107 @@ describe('CashflowPage', () => {
     expect(document.querySelectorAll('.cashflow-badge--actual')).toHaveLength(1)
     expect(document.querySelectorAll('.cashflow-badge:not(.cashflow-badge--actual)')).toHaveLength(35)
   })
+
+  it('compares keep, reduce and skip for one month using the FastAPI result', async () => {
+    const user = userEvent.setup()
+    saveDraft({ ...emptyDraft, plan: { monthlyAmount: 500_000, contributionType: 'general' } })
+    const impactResponse = {
+      bankCode: 'kb', bankName: 'KB국민은행', monthNumber: 3, termMonths: 36, expectedRate: 5,
+      scenarios: [
+        { key: 'keep', label: '원래대로 납입', monthAmount: 500_000, principal: 18_000_000, depositInterest: 1, governmentContribution: 1, governmentContributionInterest: 1, expectedMaturityAmount: 20_550_750, differenceFromKeep: 0, depositInterestDifferenceFromKeep: 0, governmentContributionDifferenceFromKeep: 0 },
+        { key: 'reduce', label: '감액', monthAmount: 250_000, principal: 17_750_000, depositInterest: 1, governmentContribution: 1, governmentContributionInterest: 1, expectedMaturityAmount: 20_250_000, differenceFromKeep: -300_750, depositInterestDifferenceFromKeep: -1, governmentContributionDifferenceFromKeep: -2 },
+        { key: 'skip', label: '미납', monthAmount: 0, principal: 17_500_000, depositInterest: 1, governmentContribution: 1, governmentContributionInterest: 1, expectedMaturityAmount: 19_941_250, differenceFromKeep: -609_500, depositInterestDifferenceFromKeep: -3, governmentContributionDifferenceFromKeep: -4 },
+      ],
+      unavailableNotes: ['중도해지 조건은 계산하지 않았습니다.'],
+      sourceUrl: 'https://example.com', sourceDate: '2026-10-13',
+    }
+    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => Promise.resolve(new Response(
+      JSON.stringify(String(input).endsWith('/products') ? productsResponse : impactResponse),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    )))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MemoryRouter><CashflowPage /></MemoryRouter>)
+
+    await user.click(await screen.findByRole('button', { name: '세 가지 비교하기' }))
+    const table = await screen.findByRole('table', { name: '한 달 변경 영향 비교' })
+    expect(table).toHaveTextContent('-609,500원')
+    expect(screen.getByText(/추가 확인 필요: 중도해지/)).toBeInTheDocument()
+    const body = JSON.parse(String(fetchMock.mock.calls.at(-1)?.[1]?.body))
+    expect(body).toMatchObject({ monthNumber: 1, reducedAmount: 250_000 })
+  })
+
+  it('clears the month impact when the plan changes and blocks an impossible reduction', async () => {
+    const user = userEvent.setup()
+    saveDraft({ ...emptyDraft, plan: { monthlyAmount: 500_000, contributionType: 'general' } })
+    const impactResponse = {
+      bankCode: 'kb', bankName: 'KB국민은행', monthNumber: 1, termMonths: 36, expectedRate: 5,
+      scenarios: [{
+        key: 'keep', label: '원래대로 납입', monthAmount: 500_000, principal: 1, depositInterest: 1,
+        governmentContribution: 1, governmentContributionInterest: 1, expectedMaturityAmount: 1,
+        differenceFromKeep: 0, depositInterestDifferenceFromKeep: 0, governmentContributionDifferenceFromKeep: 0,
+      }],
+      unavailableNotes: [], sourceUrl: 'https://example.com', sourceDate: '2026-10-13',
+    }
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => Promise.resolve(new Response(
+      JSON.stringify(String(input).endsWith('/products') ? productsResponse : impactResponse),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    ))))
+
+    render(<MemoryRouter><CashflowPage /></MemoryRouter>)
+    await user.click(await screen.findByRole('button', { name: '세 가지 비교하기' }))
+    await screen.findByRole('table', { name: '한 달 변경 영향 비교' })
+
+    const firstMonth = screen.getByRole('spinbutton', { name: '1개월차 납입액' })
+    await user.clear(firstMonth)
+    await user.type(firstMonth, '200000')
+    expect(screen.queryByRole('table', { name: '한 달 변경 영향 비교' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '세 가지 비교하기' })).toBeDisabled()
+    expect(screen.getByText(/감액 금액은 1,000원 이상/)).toBeInTheDocument()
+  })
+
+  it('removes a previous month impact error when the input changes', async () => {
+    const user = userEvent.setup()
+    saveDraft({ ...emptyDraft, plan: { monthlyAmount: 500_000, contributionType: 'general' } })
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => Promise.resolve(String(input).endsWith('/products')
+      ? new Response(JSON.stringify(productsResponse), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      : new Response(JSON.stringify({ error: { code: 'http_error', message: '계산 서버 오류' } }), { status: 503, headers: { 'Content-Type': 'application/json' } }))))
+
+    render(<MemoryRouter><CashflowPage /></MemoryRouter>)
+    await user.click(await screen.findByRole('button', { name: '세 가지 비교하기' }))
+    expect(await screen.findByText(/계산 서버 오류/)).toBeInTheDocument()
+
+    const secondMonth = screen.getByRole('spinbutton', { name: '2개월차 납입액' })
+    await user.clear(secondMonth)
+    await user.type(secondMonth, '400000')
+    expect(screen.queryByText(/계산 서버 오류/)).not.toBeInTheDocument()
+  })
+
+  it('discards a month impact response that arrives after the plan changed', async () => {
+    const user = userEvent.setup()
+    saveDraft({ ...emptyDraft, plan: { monthlyAmount: 500_000, contributionType: 'general' } })
+    let releaseImpact: (response: Response) => void = () => {}
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => String(input).endsWith('/products')
+      ? Promise.resolve(new Response(JSON.stringify(productsResponse), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      : new Promise<Response>((resolve) => { releaseImpact = resolve })))
+
+    render(<MemoryRouter><CashflowPage /></MemoryRouter>)
+    await user.click(await screen.findByRole('button', { name: '세 가지 비교하기' }))
+    const firstMonth = screen.getByRole('spinbutton', { name: '2개월차 납입액' })
+    await user.clear(firstMonth)
+    await user.type(firstMonth, '400000')
+
+    releaseImpact(new Response(JSON.stringify({
+      bankCode: 'kb', bankName: 'KB국민은행', monthNumber: 1, termMonths: 36, expectedRate: 5,
+      scenarios: [{
+        key: 'keep', label: '원래대로 납입', monthAmount: 500_000, principal: 1, depositInterest: 1,
+        governmentContribution: 1, governmentContributionInterest: 1, expectedMaturityAmount: 1,
+        differenceFromKeep: 0, depositInterestDifferenceFromKeep: 0, governmentContributionDifferenceFromKeep: 0,
+      }],
+      unavailableNotes: [], sourceUrl: 'https://example.com', sourceDate: '2026-10-13',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '세 가지 비교하기' })).toBeEnabled())
+    expect(screen.queryByRole('table', { name: '한 달 변경 영향 비교' })).not.toBeInTheDocument()
+  })
 })

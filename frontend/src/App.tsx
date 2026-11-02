@@ -9,6 +9,7 @@ import { BanksPage } from './pages/BanksPage'
 import { CashflowPage } from './pages/CashflowPage'
 import { ConditionsPage } from './pages/ConditionsPage'
 import { DailyPage } from './pages/DailyPage'
+import { MarketPage } from './pages/MarketPage'
 import { HomePage } from './pages/HomePage'
 import { AuthPage } from './pages/AuthPage'
 import { MyPage } from './pages/MyPage'
@@ -27,6 +28,7 @@ function App() {
         <Route path="/alternatives" element={<AlternativesPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/daily" element={<DailyPage />} />
+        <Route path="/market" element={<MarketPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

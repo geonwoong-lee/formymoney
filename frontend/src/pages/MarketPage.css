@@ -1,0 +1,192 @@
+.market-group,
+.market-trend {
+  margin-top: 18px;
+  padding: 12px;
+  border: 2px solid #808080;
+  background: #f4f4f4;
+  overflow-wrap: anywhere;
+}
+
+.market-group h2,
+.market-trend h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.market-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.market-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 2px solid;
+  border-color: #fff #808080 #808080 #fff;
+  background: #fff;
+}
+
+.market-card__name {
+  font-size: 13px;
+}
+
+.market-card__value {
+  font-size: 20px;
+}
+
+.market-change {
+  font-size: 13px;
+}
+
+/* Korean market convention: rises in red, falls in blue; the arrow carries the meaning too. */
+.market-change--up {
+  color: #b42318;
+}
+
+.market-change--down {
+  color: #1f4e9c;
+}
+
+.market-change__base {
+  display: block;
+}
+
+.market-muted {
+  margin: 0;
+  color: #555;
+  font-size: 12px;
+}
+
+.market-source {
+  margin-top: 14px;
+}
+
+.market-trend__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.market-trend__legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.market-trend__swatch {
+  display: inline-block;
+  width: 20px;
+  height: 0;
+  border-top: 2px solid;
+}
+
+.market-trend__plot {
+  overflow-x: auto;
+  background: #fcfcfb;
+  border: 1px solid #c0c0c0;
+}
+
+.market-trend__canvas {
+  position: relative;
+  min-width: 520px;
+}
+
+.market-trend__plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.market-trend__grid {
+  stroke: #e3e3e3;
+  stroke-width: 1;
+}
+
+.market-trend__axis {
+  fill: #555;
+  font-size: 11px;
+}
+
+.market-trend__label {
+  fill: #222;
+  font-size: 11px;
+}
+
+.market-trend__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.market-trend__line--base {
+  stroke: #1f4e9c;
+  color: #1f4e9c;
+}
+
+.market-trend__line--deposit {
+  stroke: #c2560e;
+  color: #c2560e;
+  stroke-dasharray: 6 3;
+}
+
+.market-trend__swatch.market-trend__line--deposit {
+  border-top-style: dashed;
+}
+
+.market-trend__dot {
+  fill: currentColor;
+  stroke: #fcfcfb;
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+.market-trend__crosshair {
+  stroke: #808080;
+  stroke-width: 1;
+}
+
+.market-trend__tooltip {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  border: 1px solid #000;
+  background: #ffffe1;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.market-trend__table {
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.market-trend__table table {
+  margin-top: 6px;
+  border-collapse: collapse;
+}
+
+.market-trend__table th,
+.market-trend__table td {
+  padding: 2px 10px;
+  border: 1px solid #c0c0c0;
+  text-align: right;
+}
+
+.market-trend__table th[scope='row'] {
+  text-align: left;
+}
