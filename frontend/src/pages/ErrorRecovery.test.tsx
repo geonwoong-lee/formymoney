@@ -47,14 +47,14 @@ describe('failure handling', () => {
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('서버에서 문제가 발생했습니다.')
     expect(alert).toHaveTextContent('입력한 답변은 이 브라우저에 그대로 남아 있습니다.')
-    expect(screen.getByRole('spinbutton', { name: '매달 넣을 금액' })).toHaveValue(300_000)
+    expect(screen.getByRole('textbox', { name: '매달 넣을 금액' })).toHaveValue('300,000')
     expect(loadDraft().conditions['common:income_plus']).toBe('yes')
 
     await user.click(screen.getByRole('button', { name: '다시 시도' }))
 
     expect(await screen.findByText('모든 은행에 공통인 질문')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.getByRole('spinbutton', { name: '매달 넣을 금액' })).toHaveValue(300_000)
+    expect(screen.getByRole('textbox', { name: '매달 넣을 금액' })).toHaveValue('300,000')
   })
 
   it('shows a calculation failure as an error, never as a result, and can retry', async () => {

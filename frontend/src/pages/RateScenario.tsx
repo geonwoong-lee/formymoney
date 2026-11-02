@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { MoneyInput } from '../components/MoneyInput'
 import { calculateRateScenario, type RateScenarioCase } from '../api/client'
 import { MAX_MONTHLY, MIN_MONTHLY, MONTH_OPTIONS, STEP_OPTIONS } from './rateScenarioMath'
 
@@ -16,7 +17,7 @@ const RATE_PATTERN = /^\d{1,2}(\.\d{1,2})?$/
 // The server does the arithmetic (one calculation rule for the whole site).
 export function RateScenario({ defaultRate }: { defaultRate: number | null }) {
   const id = useId()
-  const [monthly, setMonthly] = useState('500000')
+  const [monthly, setMonthly] = useState<number | null>(500_000)
   const [months, setMonths] = useState<number>(12)
   const [rate, setRate] = useState(defaultRate === null ? '3' : String(defaultRate))
   const [step, setStep] = useState<number>(0.25)
@@ -25,7 +26,7 @@ export function RateScenario({ defaultRate }: { defaultRate: number | null }) {
   const [result, setResult] = useState<{ key: string; cases: RateScenarioCase[] } | null>(null)
   const [failed, setFailed] = useState('')
 
-  const monthlyValue = Number(monthly.replaceAll(',', ''))
+  const monthlyValue = monthly ?? 0
   const rateValue = Number(shownRate)
   const monthlyError = !Number.isFinite(monthlyValue) || monthlyValue < MIN_MONTHLY || monthlyValue > MAX_MONTHLY
     ? `월 납입액은 ${MIN_MONTHLY.toLocaleString('ko-KR')}원부터 ${MAX_MONTHLY.toLocaleString('ko-KR')}원까지 넣을 수 있어요.`
@@ -63,7 +64,7 @@ export function RateScenario({ defaultRate }: { defaultRate: number | null }) {
     <div className="daily-scenario__inputs">
       <label>
         <span>월 납입액(원)</span>
-        <input inputMode="numeric" value={monthly} onChange={(event) => setMonthly(event.target.value)} aria-invalid={Boolean(monthlyError)} />
+        <MoneyInput value={monthly} onValueChange={setMonthly} aria-invalid={Boolean(monthlyError)} />
       </label>
       <label>
         <span>기간</span>

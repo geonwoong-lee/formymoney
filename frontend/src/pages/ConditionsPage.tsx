@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ErrorNotice } from '../components/ErrorNotice'
+import { MoneyInput } from '../components/MoneyInput'
 import { getSavingsProducts, type ConditionAnswer, type SavingsProductsResponse } from '../api/client'
 import { answerKey, commonAnswerKey } from '../features/savingsDraft'
 import { clearDraft, emptyDraft, loadDraft, saveDraft, type VeryRichDraft } from '../storage/draftStorage'
@@ -79,8 +80,8 @@ export function ConditionsPage() {
           </select>
         </label>
         <label>매달 넣을 금액
-          <input type="number" min="1000" max="500000" step="1000" value={monthlyAmount}
-            onChange={(event) => update({ ...draft, plan: { ...draft.plan, monthlyAmount: Number(event.target.value) } })} />
+          <MoneyInput value={monthlyAmount}
+            onValueChange={(value) => update({ ...draft, plan: { ...draft.plan, monthlyAmount: value ?? 0 } })} />
         </label>
         <label>정부기여금 유형
           <select value={contributionType} onChange={(event) => update({ ...draft, plan: { ...draft.plan, contributionType: event.target.value as VeryRichDraft['plan']['contributionType'] } })}>

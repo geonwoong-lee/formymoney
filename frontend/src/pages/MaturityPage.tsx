@@ -4,6 +4,8 @@ import {
   calculateSavings, getSavingsProducts, planAfterMaturity,
   type HoldingOutcome, type MaturityOption, type MaturityPlanResponse, type RiskProfile,
 } from '../api/client'
+import { MoneyInput } from '../components/MoneyInput'
+import { buildMaturityIcs, downloadIcs, maturityMonth, REMINDER_DAYS } from '../features/maturityCalendar'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
 import { PROFILES, PROFILE_QUESTIONS, profileFromAnswers } from './maturityProfile'
@@ -87,7 +89,7 @@ function ProfileQuiz({ onResult }: { onResult: (profile: RiskProfile) => void })
 
 export function MaturityPage() {
   const id = useId()
-  const [amount, setAmount] = useState('10000000')
+  const [amount, setAmount] = useState<number | null>(10_000_000)
   const [months, setMonths] = useState<12 | 24>(12)
   const [profile, setProfile] = useState<RiskProfile | null>(null)
   const [mixAsset, setMixAsset] = useState('')
@@ -95,8 +97,9 @@ export function MaturityPage() {
   const [plan, setPlan] = useState<MaturityPlanResponse | null>(null)
   const [error, setError] = useState('')
   const [importNote, setImportNote] = useState('')
+  const [reminder, setReminder] = useState<{ startMonth: string; termMonths: number; bankName: string; productName: string } | null>(null)
 
-  const amountValue = Number(amount.replaceAll(',', ''))
+  const amountValue = amount ?? 0
   const amountError = !Number.isInteger(amountValue) || amountValue < MIN_AMOUNT || amountValue > MAX_AMOUNT
     ? `만기 금액은 ${won(MIN_AMOUNT)}부터 ${won(MAX_AMOUNT)}까지 넣을 수 있어요.`
     : ''
@@ -136,8 +139,12 @@ export function MaturityPage() {
       .then((result) => {
         const mine = result.results.find((item) => item.bankCode === bankCode)
         if (!mine) throw new Error('내 은행 계산을 찾지 못했어요.')
-        setAmount(String(mine.expectedMaturityAmount))
+        setAmount(mine.expectedMaturityAmount)
         setImportNote(`${mine.bankName} ${mine.productName}의 예상 만기 금액을 넣었어요.`)
+        const startMonth = draft.plan.startMonth
+        setReminder(startMonth && maturityMonth(startMonth, result.termMonths)
+          ? { startMonth, termMonths: result.termMonths, bankName: mine.bankName, productName: mine.productName }
+          : null)
       })
       .catch((cause: unknown) => setImportNote(cause instanceof Error ? cause.message : '불러오지 못했어요.'))
   }
@@ -161,7 +168,7 @@ export function MaturityPage() {
       <h2 id={`${id}-amount`}>1. 만기 금액과 기간</h2>
       <div className="maturity-inputs">
         <label><span>만기 금액(원)</span>
-          <input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} aria-invalid={Boolean(amountError)} />
+          <MoneyInput value={amount} onValueChange={setAmount} aria-invalid={Boolean(amountError)} />
         </label>
         <label><span>얼마 동안 둘까요?</span>
           <select value={months} onChange={(event) => setMonths(Number(event.target.value) as 12 | 24)}>
@@ -172,6 +179,14 @@ export function MaturityPage() {
       </div>
       <button type="button" className="button button--secondary" onClick={importFromPlan}>내 적금 계산에서 가져오기</button>
       {importNote && <p className="maturity-muted" role="status">{importNote}</p>}
+      {reminder && <div className="maturity-reminder">
+        <p>예상 만기 달: <b>{monthLabel(maturityMonth(reminder.startMonth, reminder.termMonths) ?? '')}</b></p>
+        <button type="button" className="button button--secondary" onClick={() => {
+          const ics = buildMaturityIcs(reminder)
+          if (ics) downloadIcs(ics, 'very-rich-maturity.ics')
+        }}>캘린더에 만기 알림 넣기(.ics)</button>
+        <p className="maturity-muted">휴대폰·구글·아웃룩 캘린더에서 열면 만기 {REMINDER_DAYS}일 전에 알려 줘요. 파일은 이 기기에서만 만들고 어디에도 보내지 않아요. 정확한 만기일은 가입한 은행에서 확인해 주세요.</p>
+      </div>}
       {amountError && <p className="maturity-error" role="alert">{amountError}</p>}
     </section>
 
