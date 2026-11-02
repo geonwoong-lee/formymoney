@@ -156,9 +156,12 @@ describe('Assistant AI answers', () => {
     await user.type(screen.getByRole('textbox'), '환율이 뭐예요{Enter}')
     expect(await screen.findByText('생각하는 중이에요…')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '찾기(S)' })).toBeDisabled()
+    const dog = () => document.querySelector('.assistant__dog img')?.getAttribute('src') ?? ''
+    expect(dog()).toContain('moneydog-search')  // the magnifying glass while looking it up
     release(json({ answer: '지금은 질문에 답하기 어려워요.', links: [], source: 'rule' }))
 
     expect(await screen.findByText('지금은 질문에 답하기 어려워요.')).toBeInTheDocument()
+    expect(dog()).toContain('moneydog.png')
     expect(screen.queryByText(/AI가 쓴 답변/)).not.toBeInTheDocument()
   })
 

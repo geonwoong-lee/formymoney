@@ -40,6 +40,7 @@
   display: block;
   width: 84px;
   height: 100px;
+  object-fit: contain;
   filter: drop-shadow(2px 3px 0 rgb(0 0 0 / 28%));
   animation: assistant-bob 3.2s ease-in-out infinite;
   transform-origin: 50% 100%;
@@ -72,6 +73,7 @@
   display: block;
   width: 30px;
   height: 36px;
+  object-fit: contain;
 }
 
 .assistant-bubble {
