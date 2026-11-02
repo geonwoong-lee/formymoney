@@ -3,17 +3,63 @@
 from __future__ import annotations
 
 import json
+import math
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.core.config import Settings
 
 RESPONSES_URL = "https://api.openai.com/v1/responses"
+EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings"
 DEFAULT_MODEL = "gpt-5.6-luna"
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_DIMENSIONS = 512  # enough for a few thousand short chunks, and a third of the default size
+EMBEDDING_BATCH = 64
 
 
 class OpenAIError(RuntimeError):
     pass
+
+
+def _post(settings: Settings, url: str, body: dict[str, object], timeout: int) -> dict[str, object]:
+    request = Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {settings.openai_api_key}"},
+    )
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as error:
+        raise OpenAIError(f"OpenAI 응답 오류(HTTP {error.code})") from error
+    except (URLError, TimeoutError, ValueError) as error:
+        raise OpenAIError("OpenAI에 연결하지 못했습니다.") from error
+
+
+def embed_texts(settings: Settings, texts: list[str]) -> list[list[float]]:
+    if not settings.openai_api_key:
+        raise OpenAIError("VERY_RICH_OPENAI_API_KEY가 설정되지 않았습니다.")
+    vectors: list[list[float]] = []
+    for start in range(0, len(texts), EMBEDDING_BATCH):
+        batch = texts[start:start + EMBEDDING_BATCH]
+        payload = _post(settings, EMBEDDINGS_URL, {
+            "model": EMBEDDING_MODEL, "input": batch, "dimensions": EMBEDDING_DIMENSIONS,
+        }, 60)
+        try:
+            data = sorted(payload["data"], key=lambda item: item["index"])  # type: ignore[index, call-overload]
+            indexes = [item["index"] for item in data]
+            batch_vectors = [[float(value) for value in item["embedding"]] for item in data]
+        except (KeyError, TypeError, ValueError) as error:
+            raise OpenAIError("OpenAI 임베딩 결과 형식이 올바르지 않습니다.") from error
+        # Each input must get exactly one finite vector of the right size, in input order.
+        if (
+            indexes != list(range(len(batch)))
+            or any(len(vector) != EMBEDDING_DIMENSIONS for vector in batch_vectors)
+            or not all(math.isfinite(value) for vector in batch_vectors for value in vector)
+        ):
+            raise OpenAIError("OpenAI 임베딩 결과 형식이 올바르지 않습니다.")
+        vectors += batch_vectors
+    return vectors
 
 
 def responses_json(
@@ -38,18 +84,7 @@ def responses_json(
         ],
         "text": {"format": {"type": "json_schema", "name": schema_name, "strict": True, "schema": schema}},
     }
-    request = Request(
-        RESPONSES_URL,
-        data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {settings.openai_api_key}"},
-    )
-    try:
-        with urlopen(request, timeout=40) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except HTTPError as error:
-        raise OpenAIError(f"OpenAI 응답 오류(HTTP {error.code})") from error
-    except (URLError, TimeoutError, ValueError) as error:
-        raise OpenAIError("OpenAI에 연결하지 못했습니다.") from error
+    payload = _post(settings, RESPONSES_URL, body, 40)
     text = "".join(
         part.get("text", "")
         for output in payload.get("output", [])

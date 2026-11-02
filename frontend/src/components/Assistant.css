@@ -226,6 +226,31 @@
   color: #555;
 }
 
+.assistant-bubble__sources {
+  margin: 4px 0 6px;
+  font-size: 12px;
+}
+
+.assistant-bubble__sources ul {
+  margin: 2px 0 0;
+  padding-left: 16px;
+}
+
+.assistant-bubble__sources li {
+  overflow-wrap: anywhere;
+}
+
+.assistant-bubble .assistant-bubble__source {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: #0000ee;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .assistant-bubble__ai,
 .assistant-bubble__notice {
   font-size: 12px;

@@ -2,8 +2,22 @@ import { useEffect, useRef, useState, type FormEvent, type PointerEvent as React
 import { useNavigate } from 'react-router-dom'
 import { ApiError, askAssistant } from '../api/client'
 import dogImage from '../assets/icons/assistant-dog.svg'
-import { findAnswer, GREETING, type AssistantAnswer } from './assistantAnswers'
+import { findAnswer, GREETING, type AssistantAnswer, type AssistantSource } from './assistantAnswers'
 import './Assistant.css'
+
+const INTERNAL_PATH = /^\/[a-z]+$/
+
+// A cited source opens our own page in place, an https article in a new tab, and anything else is plain text.
+function SourceLink({ source, onInternal }: { source: AssistantSource; onInternal: (to: string) => void }) {
+  const url = source.url ?? ''
+  if (INTERNAL_PATH.test(url)) {
+    return <button type="button" className="assistant-bubble__source" onClick={() => onInternal(url)}>{source.title}</button>
+  }
+  if (url.startsWith('https://')) {
+    return <a href={url} target="_blank" rel="noreferrer">{source.title} ↗</a>
+  }
+  return <span>{source.title}</span>
+}
 
 export const ASSISTANT_HIDDEN_KEY = 'very-rich:assistant-hidden:v1'
 export const ASSISTANT_SEEN_KEY = 'very-rich:assistant-seen:v1'
@@ -110,7 +124,7 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
     try {
       const reply = await askAssistant(question)
       if (current !== requestId.current) return
-      setAnswer({ text: reply.answer, links: reply.links, ai: reply.source === 'ai' })
+      setAnswer({ text: reply.answer, links: reply.links, ai: reply.source === 'ai', sources: reply.sources ?? [] })
     } catch (cause) {
       if (current !== requestId.current) return
       const busy = cause instanceof ApiError && cause.status === 429
@@ -185,6 +199,15 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
       {answer && <div className="assistant-bubble__answer" role="status">
         {answer.notice && <p className="assistant-bubble__notice">{answer.notice}</p>}
         <p>{answer.text}</p>
+        {answer.sources && answer.sources.length > 0 && <div className="assistant-bubble__sources">
+          <b>근거</b>
+          <ul aria-label="답변 근거">
+            {answer.sources.map((source, index) => <li key={index}>
+              <SourceLink source={source} onInternal={go} />
+              {source.publishedOn && <span> · {source.publishedOn}</span>}
+            </li>)}
+          </ul>
+        </div>}
         {answer.ai && <p className="assistant-bubble__ai">AI가 쓴 답변이라 틀릴 수 있어요. 정확한 내용은 공식 자료로 확인하세요.</p>}
         <div className="assistant-bubble__links">
           {answer.links.map((link) => <button type="button" key={link.to} onClick={() => go(link.to)}>{link.label}</button>)}

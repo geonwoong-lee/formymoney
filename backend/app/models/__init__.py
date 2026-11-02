@@ -8,6 +8,7 @@ from app.models.daily_briefing import (
     NewsHeadline,
 )
 from app.models.investment import InvestmentAsset, InvestmentMonthlyPoint
+from app.models.knowledge import KnowledgeChunk
 from app.models.market import MarketPoint
 from app.models.reference_item import ReferenceItem
 from app.models.savings_product import BankSavingsProduct, PreferentialCondition, SavingsPolicy
@@ -21,6 +22,7 @@ __all__ = [
     "FinancialTerm",
     "InvestmentAsset",
     "InvestmentMonthlyPoint",
+    "KnowledgeChunk",
     "MarketPoint",
     "NewsDigest",
     "NewsHeadline",

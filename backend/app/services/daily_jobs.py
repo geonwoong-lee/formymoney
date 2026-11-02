@@ -2,6 +2,7 @@
 
 news: Naver headlines + Fed/ECB RSS + Bank of Korea press titles (link only), Korean interpretation of official releases, today's AI digest.
 market: Bank of Korea ECOS series for the market tab.
+Both end by refreshing 머니독's knowledge base (only changed text is embedded again).
 Each job returns counts and a status (success / partial / failed) instead of raising, so the caller
 can record the run and the scheduler can tell a partial day from a broken one.
 """
@@ -13,6 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.collectors.ecos import SERIES, EcosError, fetch_series
@@ -21,10 +23,11 @@ from app.collectors.official_rss import LINK_ONLY_FEEDS, OFFICIAL_FEEDS, Officia
 from app.collectors.press_text import PressTextError, fetch_paragraphs
 from app.core.config import Settings
 from app.services.headline_interpreter import InterpretationError, interpret
+from app.services.knowledge_base import sync as sync_knowledge
 from app.services.market_service import MarketService
 from app.services.news_digest import DigestError, build_sources, korea_today, save_digest, write_digest
 from app.services.news_headline_service import NewsHeadlineService
-from app.services.openai_client import OpenAIError
+from app.services.openai_client import OpenAIError, embed_texts
 
 NEWS_TOPICS = ["예금 금리", "적금", "기준금리", "청년미래적금", "금융당국", "가계대출"]
 INTERPRET_LIMIT = 10
@@ -104,7 +107,22 @@ def run_news_job(settings: Settings, session: Session) -> JobResult:
         except (DigestError, OpenAIError) as error:
             result.fail("경제 뉴스 요약", error)
     result.notes.append(f"만료 헤드라인 {service.purge_expired()}건 삭제")
+    refresh_knowledge(settings, session, result)
     return result
+
+
+def refresh_knowledge(settings: Settings, session: Session, result: JobResult) -> None:
+    if not settings.openai_api_key:
+        result.notes.append("도우미 자료: OpenAI 키가 없어 갱신하지 않음")
+        return
+    result.attempted += 1
+    try:
+        synced = sync_knowledge(session, lambda texts: embed_texts(settings, texts))
+    except (OpenAIError, SQLAlchemyError, ValueError) as error:
+        session.rollback()
+        result.fail("도우미 자료", error)
+        return
+    result.notes.append(f"도우미 자료 {synced.total}개(새로 임베딩 {synced.embedded}, 삭제 {synced.removed})")
 
 
 FetchSeries = Callable[..., list]
@@ -127,6 +145,7 @@ def run_market_job(settings: Settings, session: Session, fetch: FetchSeries = fe
             continue
         result.collected += len(points)
         result.saved += service.save(series.code, points)
+    refresh_knowledge(settings, session, result)
     return result
 
 
