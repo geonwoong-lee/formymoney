@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError, askAssistant } from '../api/client'
-import dogImage from '../assets/icons/assistant-dog.svg'
+import dogImage from '../assets/icons/moneydog.png'
+import dogSearchImage from '../assets/icons/moneydog-search.png'
 import { findAnswer, GREETING, type AssistantAnswer, type AssistantSource } from './assistantAnswers'
 import './Assistant.css'
 
@@ -220,7 +221,8 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
       type="button" onClick={toggleBubble} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}
       aria-expanded={open} aria-label={open ? '도우미 말풍선 닫기' : '도우미에게 물어보기'} title="클릭하면 말풍선, 끌면 위치 이동"
     >
-      <img src={dogImage} alt="" aria-hidden="true" draggable={false} />
+      {/* While an answer is being looked up the dog holds a magnifying glass instead of its book. */}
+      <img src={thinking ? dogSearchImage : dogImage} alt="" aria-hidden="true" draggable={false} />
     </button>
   </aside>
 }
