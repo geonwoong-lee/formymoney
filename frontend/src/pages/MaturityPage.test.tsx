@@ -140,19 +140,24 @@ describe('MaturityPage', () => {
   it('fills the amount from the saved savings plan', async () => {
     const user = userEvent.setup()
     window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
-      version: 1, plan: { monthlyAmount: 500_000, contributionType: 'general', currentBankCode: 'kb' }, conditions: {}, monthlyPayments: {},
+      version: 1, plan: { monthlyAmount: 500_000, contributionType: 'general', currentBankCode: 'kb', startMonth: '2026-07' }, conditions: {}, monthlyPayments: {},
     }))
     const fetch = stubServer((url) => url.includes('/savings/products')
       ? respond({ products: [{ bankCode: 'kb', conditions: [] }] })
-      : respond({ results: [{ bankCode: 'kb', bankName: 'KB국민은행', productName: '청년미래적금', expectedMaturityAmount: 19_941_250 }] }))
+      : respond({ termMonths: 36, results: [{ bankCode: 'kb', bankName: 'KB국민은행', productName: '청년미래적금', expectedMaturityAmount: 19_941_250 }] }))
     renderPage()
 
     await user.click(screen.getByRole('button', { name: '내 적금 계산에서 가져오기' }))
 
     expect(await screen.findByText('KB국민은행 청년미래적금의 예상 만기 금액을 넣었어요.')).toBeInTheDocument()
-    expect(screen.getByLabelText('만기 금액(원)')).toHaveValue('19941250')
+    expect(screen.getByLabelText('만기 금액(원)')).toHaveValue('19,941,250')
     const calculate = fetch.mock.calls.find(([input]) => String(input).includes('/savings/calculate'))
     expect(JSON.parse(String(calculate?.[1]?.body))).toMatchObject({ monthlyAmount: 500_000, bankCodes: ['kb'], currentBankCode: 'kb' })
+    expect(screen.getByText(/예상 만기 달/)).toHaveTextContent('예상 만기 달: 2029년 7월')
+    const created: string[] = []
+    vi.stubGlobal('URL', Object.assign(Object.create(URL), { createObjectURL: (blob: Blob) => { created.push(blob.type); return 'blob:x' }, revokeObjectURL: () => undefined }))
+    await user.click(screen.getByRole('button', { name: '캘린더에 만기 알림 넣기(.ics)' }))
+    expect(created).toEqual(['text/calendar;charset=utf-8'])
 
     cleanup()
     window.localStorage.clear()

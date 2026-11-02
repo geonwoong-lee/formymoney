@@ -46,7 +46,7 @@ describe('Phase 4 pages', () => {
     expect(screen.getByRole('combobox', { name: '청년도약계좌 전환 여부' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '처음부터 다시 입력' }))
     expect(loadDraft()).toEqual(emptyDraft)
-    expect(screen.getByRole('spinbutton', { name: '매달 넣을 금액' })).toHaveValue(500_000)
+    expect(screen.getByRole('textbox', { name: '매달 넣을 금액' })).toHaveValue('500,000')
   })
 
   it('shows the difference from the selected current bank', async () => {

@@ -9,6 +9,7 @@ import {
   type SavingsProductsResponse,
 } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
+import { MoneyInput } from '../components/MoneyInput'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft, saveDraft } from '../storage/draftStorage'
 
@@ -197,7 +198,7 @@ export function CashflowPage() {
             </select>
           </label>
           <label>앞으로 넣을 금액
-            <input type="number" min="0" max={maximumAmount} step="1000" value={futureAmount} onChange={(event) => setFutureAmount(Number(event.target.value))} />
+            <MoneyInput value={futureAmount} onValueChange={(value) => setFutureAmount(value ?? 0)} />
           </label>
           <button className="button button--secondary" type="button" onClick={applyToFuture}>앞으로 모든 달에 같은 금액 적용</button>
         </div>
@@ -209,7 +210,7 @@ export function CashflowPage() {
             <tbody>{amounts.map((amount, index) => <tr key={index} className={`${actualMonths[index] ? 'cashflow-row--actual' : ''} ${invalidMonthIndices.includes(index) ? 'cashflow-row--invalid' : ''}`}>
               <th scope="row">{monthLabel(draft.plan.startMonth, index)}</th>
               <td><span className={`cashflow-badge ${actualMonths[index] ? 'cashflow-badge--actual' : ''}`}>{actualMonths[index] ? '실제' : '계획'}</span></td>
-              <td><label className="sr-only" htmlFor={`payment-${index}`}>{index + 1}개월차 납입액</label><input id={`payment-${index}`} type="number" min="0" max={maximumAmount} step="1000" value={amount} aria-invalid={invalidMonthIndices.includes(index)} onChange={(event) => updateAmount(index, Number(event.target.value))} />{invalidMonthIndices.includes(index) && <span className="field-error">금액 확인 필요</span>}</td>
+              <td><label className="sr-only" htmlFor={`payment-${index}`}>{index + 1}개월차 납입액</label><MoneyInput id={`payment-${index}`} value={amount} aria-invalid={invalidMonthIndices.includes(index)} onValueChange={(value) => updateAmount(index, value ?? 0)} />{invalidMonthIndices.includes(index) && <span className="field-error">금액 확인 필요</span>}</td>
             </tr>)}</tbody>
             <tfoot><tr><th colSpan={2}>총 납입원금</th><td>{money.format(amounts.reduce((sum, amount) => sum + amount, 0))}원</td></tr></tfoot>
           </table>
@@ -223,6 +224,15 @@ export function CashflowPage() {
 
       {products && invalidMonthIndices.length === 0 && <section className="cashflow-result" aria-label="한 달 변경 영향">
         <h2>이번 달 납입이 달라지면?</h2>
+        <aside className="cashflow-before-cancel" aria-label="해지하기 전에">
+          <b>해지를 생각하고 있다면 먼저 확인해 보세요</b>
+          <ul>
+            <li>만기 전에 해지하면 약속받았던 우대금리와 정부기여금을 받지 못할 수 있고, 이자도 낮은 중도해지 이율로 줄어드는 경우가 많아요. 해지할 때 받는 돈은 여기서 계산하지 않으니 가입한 은행에서 확인해 주세요.</li>
+            <li>형편이 잠깐 어려운 거라면, 아래에서 이번 달만 덜 넣거나 건너뛰었을 때 만기 금액이 얼마나 달라지는지 먼저 계산해 볼 수 있어요.</li>
+            <li>만기 뒤 목돈을 어디에 둘지는 <Link to="/maturity">만기 후 계획</Link>에서 비교해 볼 수 있어요.</li>
+          </ul>
+          <p className="cashflow-help">어떤 선택을 권하는 것이 아니라 판단에 필요한 내용을 모아 둔 안내예요.</p>
+        </aside>
         <p className="cashflow-help">위 표의 나머지 달은 그대로 두고, 선택한 한 달만 유지·감액·미납했을 때 예상 만기액이 얼마나 달라지는지 비교합니다.</p>
         <div className="cashflow-controls">
           <label>비교할 회차
@@ -231,7 +241,7 @@ export function CashflowPage() {
             </select>
           </label>
           <label>감액했을 때 금액
-            <input type="number" min={minimumAmount} max={Math.max(minimumAmount, impactOriginal - 1)} step="1000" value={impactReduced} aria-invalid={impactReducedError !== ''} onChange={(event) => { setImpactReduced(Number(event.target.value)); clearImpact() }} />
+            <MoneyInput value={impactReduced} aria-invalid={impactReducedError !== ''} onValueChange={(value) => { setImpactReduced(value ?? 0); clearImpact() }} />
             {impactReducedError && <span className="field-error">{impactReducedError}</span>}
           </label>
           <button className="button button--secondary" type="button" disabled={impactLoading || impactReducedError !== ''} onClick={submitImpact}>{impactLoading ? '계산 중...' : '세 가지 비교하기'}</button>

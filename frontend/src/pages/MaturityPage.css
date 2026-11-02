@@ -246,3 +246,14 @@
   gap: 8px;
   margin-top: 16px;
 }
+
+.maturity-reminder {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid #000080;
+  background: #eef2fa;
+}
+
+.maturity-reminder p {
+  margin: 4px 0;
+}
