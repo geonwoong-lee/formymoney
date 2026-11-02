@@ -2,11 +2,12 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, ty
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import dashboardSprite from '../assets/icons/dashboard-sprite-v2.png'
 import dailyIcon from '../assets/icons/daily-mail.png'
+import marketIcon from '../assets/icons/market-monitor.png'
 import startLogo from '../assets/icons/start-logo.svg'
 import { Assistant } from './Assistant'
 import { RetroUtilityApp, type UtilityId } from './RetroUtilityApps'
 
-type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'about' | 'daily'
+type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'about' | 'daily' | 'market'
 interface DesktopApp { to: string; label: string; windowTitle: string; icon: IconKind }
 interface UtilityAppDefinition { id: UtilityId; label: string; windowTitle: string }
 interface Rect { x: number; y: number; width: number; height: number }
@@ -19,6 +20,7 @@ const desktopApps: DesktopApp[] = [
   { to: '/alternatives', label: '대안 비교', windowTitle: '같은 돈, 다른 선택', icon: 'alternatives' },
   { to: '/about', label: '계산 기준', windowTitle: '계산 기준 및 출처', icon: 'about' },
   { to: '/daily', label: '오늘의 머니', windowTitle: '오늘의 머니', icon: 'daily' },
+  { to: '/market', label: '시장 지표', windowTitle: '시장 지표', icon: 'market' },
 ]
 
 const utilityApps: UtilityAppDefinition[] = [
@@ -35,7 +37,7 @@ function getCurrentApp(pathname: string) {
 }
 
 function PixelIcon({ kind, className = '' }: { kind: IconKind; className?: string }) {
-  return <span className={`pixel-icon pixel-icon--${kind} ${className}`.trim()} style={{ backgroundImage: `url("${kind === 'daily' ? dailyIcon : dashboardSprite}")` }} aria-hidden="true" />
+  return <span className={`pixel-icon pixel-icon--${kind} ${className}`.trim()} style={{ backgroundImage: `url("${kind === 'daily' ? dailyIcon : kind === 'market' ? marketIcon : dashboardSprite}")` }} aria-hidden="true" />
 }
 
 function UtilityGlyph({ kind, className = '' }: { kind: UtilityId; className?: string }) {

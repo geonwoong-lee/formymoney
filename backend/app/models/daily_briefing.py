@@ -112,3 +112,18 @@ class NewsHeadline(Base):
     title_ko: Mapped[str | None] = mapped_column(String(500), nullable=True)
     summary_ko: Mapped[str | None] = mapped_column(Text, nullable=True)
     ai_model: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+
+class NewsDigest(Base):
+    """One AI-written economy news digest per Korean calendar day; each point links to its headlines."""
+
+    __tablename__ = "news_digests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    digest_date: Mapped[date] = mapped_column(Date, unique=True)
+    overview: Mapped[str] = mapped_column(Text)
+    points: Mapped[list[dict[str, object]]] = mapped_column(JSON)
+    # What today's news can mean for savers; None for digests written before this was added.
+    money_notes: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    ai_model: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

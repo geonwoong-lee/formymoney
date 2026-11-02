@@ -59,4 +59,31 @@ docker compose --env-file automation/n8n/.env -f automation/n8n/compose.yml down
 3. 설정을 바꾼 뒤 단순 재시작이 아니라 컨테이너를 재생성한다.
 4. `VERY_RICH_API_BASE_URL`, `VERY_RICH_N8N_INGEST_SECRET`, `OPENAI_MODEL`이 n8n 컨테이너에 전달됐는지 값은 출력하지 않고 존재 여부만 확인한다.
 
-OpenAI API 키는 `$env`로 읽지 않고 기존처럼 n8n Credential에만 등록한다. 환경변수 접근을 허용하면 워크플로 편집자가 n8n 프로세스의 다른 환경값도 읽을 수 있으므로 이 인스턴스를 신뢰할 수 있는 로컬 개발 용도로만 사용한다.
+공식 뉴스 요약 워크플로의 OpenAI API 키는 `$env`로 읽지 않고 n8n Credential에만 등록한다. 8절의 매일 수집 워크플로는 OpenAI 키를 쓰지 않으며, 해외 해석·경제 뉴스 요약은 FastAPI가 `backend/.env`의 `VERY_RICH_OPENAI_API_KEY`로 호출한다. 환경변수 접근을 허용하면 워크플로 편집자가 n8n 프로세스의 다른 환경값도 읽을 수 있으므로 이 인스턴스를 신뢰할 수 있는 로컬 개발 용도로만 사용한다.
+
+## 7. 실행 기록과 상태 확인 (Phase 16)
+
+워크플로 마지막(성공 경로)과 Error Trigger(실패 경로)에서 FastAPI에 실행 결과를 남긴다. 기록이 없거나 최근 실행이 실패면 정상 운영으로 보지 않는다.
+
+- 기록: `POST /api/v1/internal/daily/runs` (헤더 `X-Very-Rich-Ingest-Secret`)
+  - 본문: `runId`(n8n 실행 ID, 선택·재전송 중복 방지), `workflow`, `status`(`success`/`partial`/`failed`), `stage`(실패한 노드 이름), `errorMessage`, `candidates`, `published`, `rejected`, `inputTokens`, `outputTokens`, `startedAt`, `finishedAt`
+  - `errorMessage`의 키·토큰·접속 문자열 모양은 저장 전에 `[가려짐]`으로 바뀌고 300자로 잘린다. 그래도 기사 전문과 비밀값은 넣지 않는다.
+- 확인: `GET /api/v1/internal/daily/runs/status`(같은 헤더)
+  - `latestStatus`, `lastSuccess`(마지막 정상 실행), `lastFailure`(실패 단계와 원인), 최근 10건
+  - `todayTokens`(한국 시간 기준 오늘 입력+출력 토큰), `dailyTokenLimit`, `tokenLimitExceeded`
+- 하루 토큰 상한은 `VERY_RICH_DAILY_TOKEN_LIMIT`(기본 200000)로 바꾼다. 초과하면 `tokenLimitExceeded`가 `true`가 되며, 알림 전송은 운영 위치를 정한 뒤 연결한다.
+- DB에는 Alembic `20261030_0006`(`collection_runs`)을 먼저 적용한다.
+
+## 8. 매일 시장 지표·뉴스 수집 워크플로
+
+`workflows/daily-market-news-jobs.json`(`Very Rich - 매일 시장 지표·뉴스 수집`, id `veryRichDailyJob`)은 매일 오전 7시 30분(KST)에 다음을 순서대로 실행한다. 기존 공식 뉴스 워크플로(오전 7시)와 시간이 겹치지 않는다.
+
+1. `시장 지표 수집`: `POST /api/v1/internal/daily/jobs/market` — 한국은행 ECOS 환율·증시·금리(`backend/.env`의 `VERY_RICH_ECOS_API_KEY` 필요)
+2. `뉴스 수집·요약`: `POST /api/v1/internal/daily/jobs/news` — 네이버 헤드라인, 연준·ECB RSS, 해외 한국어 해석, 오늘의 경제 뉴스 요약
+3. `실패한 작업이 있나`: 어느 작업이든 요청 자체가 실패했거나 `status=failed`이거나 실행 기록을 저장하지 못했으면(`runRecorded=false`) `실행 실패로 표시`(Stop and Error)로 n8n 실행을 오류로 끝낸다. 오류 실행은 n8n에 저장되어(`saveDataErrorExecution: all`) 원인 메시지를 볼 수 있다. `partial`은 정상 종료로 두고 원인은 실행 기록에서 확인한다.
+
+- 두 API 모두 `X-Very-Rich-Ingest-Secret` 헤더가 필요하고, 본문의 `runId`(n8n 실행 ID)로 실행 기록을 남긴다. 같은 `runId`로 다시 호출하면 수집을 다시 하지 않고 기록된 결과를 돌려준다. 수집이 무거워 HTTP 노드 자동 재시도는 쓰지 않는다. OpenAI 키가 없어 요약을 만들지 못한 날은 `partial`로 기록된다. FastAPI가 작업 결과를 `collection_runs`에 직접 기록하므로(워크플로 `daily-market`, `daily-news`) 7절의 `GET /api/v1/internal/daily/runs/status`로 마지막 정상 실행과 실패 원인을 확인한다.
+- 같은 작업을 PC에서 직접 돌릴 때는 `cd backend && python -m scripts.collect_market_data`, `python -m scripts.collect_news_headlines`. 종료 코드는 성공 0, 일부 실패 2, 전부 실패 1이다.
+- 가져오기: 컨테이너에 `/workflows`가 연결돼 있으면 2절 명령에서 파일 이름만 바꾼다. 연결돼 있지 않으면 `docker cp automation/n8n/workflows/daily-market-news-jobs.json n8n:/tmp/` 뒤 `docker exec n8n n8n import:workflow --input=/tmp/daily-market-news-jobs.json`.
+- 가져온 뒤에는 비활성 상태다. n8n 화면에서 `수동 실행`으로 결과를 확인하고 게시(활성화)해야 매일 예약이 작동한다. 예약은 n8n 컨테이너와 FastAPI가 켜져 있을 때만 돈다(로컬 PC를 끄면 실행되지 않음).
+- CLI로 시험 실행할 때는 기존 n8n과 runner 포트가 겹치므로 `docker exec -e N8N_RUNNERS_BROKER_PORT=5690 n8n n8n execute --id veryRichDailyJob`처럼 다른 포트를 준다. 이 워크플로는 Code 노드가 없어 runner 없이도 끝까지 실행된다.

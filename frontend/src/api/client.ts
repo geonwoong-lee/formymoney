@@ -104,6 +104,32 @@ export interface CashflowCalculationResponse {
   differenceFromFixedPlan: number
 }
 
+export interface MonthImpactScenario {
+  key: 'keep' | 'reduce' | 'skip'
+  label: string
+  monthAmount: number
+  principal: number
+  depositInterest: number
+  governmentContribution: number
+  governmentContributionInterest: number
+  expectedMaturityAmount: number
+  differenceFromKeep: number
+  depositInterestDifferenceFromKeep: number
+  governmentContributionDifferenceFromKeep: number
+}
+
+export interface MonthImpactResponse {
+  bankCode: string
+  bankName: string
+  monthNumber: number
+  termMonths: number
+  expectedRate: number
+  scenarios: MonthImpactScenario[]
+  unavailableNotes: string[]
+  sourceUrl: string
+  sourceDate: string
+}
+
 export interface InvestmentAsset {
   code: string
   ticker: string
@@ -216,6 +242,24 @@ export interface NewsHeadlinesResponse {
   items: NewsHeadline[]
 }
 
+export interface DigestSource {
+  title: string
+  publisher: string
+  url: string
+}
+
+export type MoneyNoteCategory = 'new_savings' | 'current_savings' | 'loan' | 'fx'
+
+export interface NewsDigest {
+  digestDate: string
+  overview: string
+  points: { text: string; sources: DigestSource[] }[]
+  // null: the digest was written before money notes existed; []: no news reached savers today.
+  moneyNotes?: { category: MoneyNoteCategory; text: string; sources: DigestSource[] }[] | null
+  aiModel: string
+  createdAt: string
+}
+
 export interface AssistantChatResponse {
   answer: string
   links: { to: string; label: string }[]
@@ -312,14 +356,58 @@ export function calculateCashflow(payload: {
   })
 }
 
+export function calculateMonthImpact(payload: {
+  bankCode: string
+  monthlyAmounts: number[]
+  fixedMonthlyAmount: number
+  contributionType: ContributionType
+  conditionAnswers: Record<string, ConditionAnswer>
+  monthNumber: number
+  reducedAmount: number
+}): Promise<MonthImpactResponse> {
+  return request<MonthImpactResponse>('/api/v1/savings/month-impact', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
 export function getDaily(signal?: AbortSignal): Promise<DailyBriefingResponse> {
   return request<DailyBriefingResponse>('/api/v1/daily', { signal })
 }
 
 export function getNewsHeadlines(
-  region: 'domestic' | 'international', signal?: AbortSignal, featured = false,
+  region: 'domestic' | 'international', signal?: AbortSignal, featured = false, provider?: 'bok_press',
 ): Promise<NewsHeadlinesResponse> {
-  return request<NewsHeadlinesResponse>(`/api/v1/daily/headlines?region=${region}&limit=${featured ? 5 : 10}${featured ? '&featured=true' : ''}`, { signal })
+  return request<NewsHeadlinesResponse>(`/api/v1/daily/headlines?region=${region}&limit=${featured ? 5 : 10}${featured ? '&featured=true' : ''}${provider ? `&provider=${provider}` : ''}`, { signal })
+}
+
+export interface MarketItem {
+  code: string
+  name: string
+  unit: string
+  cycle: 'D' | 'M'
+  period: string
+  value: string
+  previousPeriod: string | null
+  change: string | null
+  changePercent: string | null
+}
+
+export interface MarketResponse {
+  groups: { key: string; title: string; note: string; items: MarketItem[] }[]
+  rateTrend: { period: string; baseRate: string | null; depositRate: string | null }[]
+  sourceName: string
+  sourceUrl: string
+  updatedAt: string | null
+}
+
+export function getMarket(signal?: AbortSignal): Promise<MarketResponse> {
+  return request<MarketResponse>('/api/v1/market', { signal })
+}
+
+export function getNewsDigest(signal?: AbortSignal): Promise<NewsDigest> {
+  return request<NewsDigest>('/api/v1/daily/digest', { signal })
 }
 
 export function getInvestmentAssets(signal?: AbortSignal): Promise<InvestmentAssetsResponse> {

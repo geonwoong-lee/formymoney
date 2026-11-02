@@ -2,6 +2,8 @@
 
 Federal Reserve Board: website content is public domain, citing the Board is requested.
 European Central Bank: free use if reproduced accurately and the ECB is cited as the source.
+Bank of Korea: press releases are not on its public data list, so its copyright policy allows only
+linking. Those feeds are link-only: title, date and link are shown, never interpreted or summarized.
 Titles are kept in the original language and never rewritten.
 """
 
@@ -34,6 +36,12 @@ OFFICIAL_FEEDS = [
     OfficialFeed("fed_press", "Federal Reserve Board", "www.federalreserve.gov", "https://www.federalreserve.gov/feeds/press_all.xml"),
     OfficialFeed("ecb_press", "European Central Bank", "www.ecb.europa.eu", "https://www.ecb.europa.eu/rss/press.html"),
 ]
+
+LINK_ONLY_FEEDS = [
+    OfficialFeed("bok_press", "한국은행", "www.bok.or.kr", "https://www.bok.or.kr/portal/bbs/B0000552/news.rss?menuNo=200690"),
+]
+LINK_ONLY_PROVIDERS = {feed.code for feed in LINK_ONLY_FEEDS}
+LINK_ONLY_HOSTS = {feed.code: feed.host for feed in LINK_ONLY_FEEDS}
 
 
 def parse_feed(feed: OfficialFeed, xml_text: str) -> list[Headline]:

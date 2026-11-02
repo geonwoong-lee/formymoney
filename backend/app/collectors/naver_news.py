@@ -1,7 +1,8 @@
 """Collect title-and-link headlines from the Naver news search API.
 
-Only the title, publisher host, link and publish time are kept. The snippet and any article
-text are discarded, and rows expire (see HEADLINE_RETENTION_DAYS) to respect the API terms.
+Only the title, publisher host, link and publish time are stored, and rows expire (see
+HEADLINE_RETENTION_DAYS). The API's short snippet is kept in memory for the daily digest and
+never written to the database. Article pages are not fetched.
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ class Headline:
     publisher: str
     url: str
     published_at: datetime
+    snippet: str = ""
 
 
 def _request_target(settings: Settings, query: str, display: int) -> tuple[str, dict[str, str]]:
@@ -73,7 +75,10 @@ def parse_items(payload: dict[str, object]) -> list[Headline]:
         if published_at.tzinfo is None:
             published_at = published_at.replace(tzinfo=timezone.utc)
         host = parts.hostname.removeprefix("www.")
-        headlines.append(Headline(title=title[:500], publisher=host, url=url[:1000], published_at=published_at))
+        snippet = clean_title(str(item.get("description", "")))[:300]
+        headlines.append(Headline(
+            title=title[:500], publisher=host, url=url[:1000], published_at=published_at, snippet=snippet,
+        ))
     return headlines
 
 

@@ -67,8 +67,13 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 완료: **Phase 15 — `/daily` 화면, 국내·해외 뉴스 헤드라인(해외는 AI 한국어 번역·요약), 오늘의 금융용어 12개 공개(저장 30개 중 점검 통과분)**
 - 도우미 머니독의 AI 답변(`POST /api/v1/assistant/chat`)도 `VERY_RICH_OPENAI_API_KEY`가 필요하며, 키가 없으면 키워드 답변만 합니다. 접속 주소별 분당 5회·하루 60회로 제한합니다.
 - 해외 헤드라인 한국어 해석에는 `backend/.env`의 `VERY_RICH_OPENAI_API_KEY`가 필요합니다.
-- 헤드라인 수집: `cd backend && python -m scripts.collect_news_headlines` (네이버 키는 `backend/.env`의 `VERY_RICH_NAVER_*`에 입력, 하루 한 번 실행)
-- 다음: Phase 16 통합 QA와 Phase 10 사용자 테스트
+- 시장 지표(`/market`): 환율·코스피·코스닥·금리·해외 주요국 지수(월간)와 금리 흐름 그래프. 수집은 `cd backend && python -m scripts.collect_market_data`이며 `backend/.env`에 `VERY_RICH_ECOS_API_KEY`(한국은행 ECOS 인증키)가 필요합니다.
+- 매일 자동 수집: n8n 워크플로 `automation/n8n/workflows/daily-market-news-jobs.json`이 오전 7시 30분에 시장 지표와 뉴스·요약 작업을 FastAPI 내부 API(`POST /api/v1/internal/daily/jobs/{market|news}`)로 실행하고 결과를 실행 기록에 남깁니다. 설정은 `automation/n8n/README.md` 8절.
+- `/daily`의 금리 관계 설명과 오늘의 금융용어는 "금융 선생님"이 쉬운 말로 풀어 줍니다. 금리 관계 설명 맨 위의 "오늘 소식과 내 돈"은 매일 뉴스 요약을 만들 때 AI가 함께 쓰며(예측·권유 표현과 근거 없는 숫자는 서버가 거절), 그 아래 일반 설명은 고정 문장입니다. 쉬운 설명 문구를 고친 뒤 DB에 반영하려면 `cd backend && python -m scripts.import_financial_terms --explanations-only`를 실행합니다.
+- 헤드라인 수집: `cd backend && python -m scripts.collect_news_headlines` (네이버 키는 `backend/.env`의 `VERY_RICH_NAVER_*`에 입력, 하루 한 번 실행). 같은 실행에서 AI가 "오늘의 경제 뉴스 요약"(한 줄 개요와 3~5개 항목, 항목마다 원문 링크)을 만들어 `/daily` 맨 위에 보여 줍니다.
+- 진행 중: **Phase 16 로컬 범위 — 수집 실행 기록·상태 API(`/internal/daily/runs`), 하루 토큰 상한 표시, 비밀값 검사 완료**. 운영 위치 결정, 예약 실행 3회 연속 성공, n8n 워크플로 기록 노드 연결, 360px 전체 QA는 남았습니다.
+- 구현 완료(미커밋): **Phase 17 — 납입 감액 영향 설명**. `/cashflow`의 "이번 달 납입이 달라지면?"에서 한 달을 원래대로·감액·미납했을 때 만기액·이자·정부기여금 차이를 비교합니다(`POST /api/v1/savings/month-impact`). 중도해지 조건은 계산하지 않고 "추가 확인 필요"로 표시합니다. 실제 Supabase 호출과 360px 화면은 아직 확인하지 못했습니다.
+- 다음: Phase 18(만기 후 전환 비교), Phase 16 남은 항목, Phase 10 사용자 테스트
 - 완료: **Phase 11 — 공식 출처·저장 범위·Scrapling 제한·AI 검증 기준 확정**
 - 완료: **Phase 12 — 브리핑 DB·API 기반**
 - 완료: **Phase 13 — n8n 공식 피드 수집**
@@ -159,7 +164,7 @@ Phase 1에서 준비한 내용은 다음과 같습니다.
 - [x] Phase 13 — n8n 공식 피드 수집
 - [x] Phase 14 — OpenAI 요약·사실 검증
 - [x] Phase 15 — `/daily` 화면·오늘의 금융용어
-- [ ] Phase 16 — v2 통합 QA·운영 준비
+- [ ] Phase 16 — v2 통합 QA·운영 준비 (실행 기록 API·토큰 상한 완료, 운영 배포·예약 3회 성공 남음)
 - [x] Phase 19 — 도우미 머니독 AI 질문 답변
 
 각 Phase의 상세 작업과 완료 조건은 [개발 계획](docs/plan.md)에서 확인할 수 있습니다.
@@ -256,13 +261,24 @@ cd backend
 
 환경값을 바꿔야 할 때는 [프론트 예시](frontend/.env.example)와 [백엔드 예시](backend/.env.example)를 참고해 각각의 폴더에 `.env`를 만듭니다. 예시 파일에는 실제 비밀값을 넣지 않습니다.
 
+### 7. 멀티에이전트 작업 (Claude Code 구현 · Codex 리뷰)
+
+역할 분담과 작업 넘기기 규칙은 [AGENTS.md](AGENTS.md)에 있습니다. `CLAUDE.md`는 이 규칙을 불러온 뒤 Claude의 역할만 덧붙입니다.
+
+```powershell
+relay\start.cmd                     # Windows Terminal에 claude / codex / relay 3분할로 실행
+powershell -ExecutionPolicy Bypass -File relay\send.ps1 claude "할 일"   # 직접 작업 넣기
+```
+
+`relay.ps1`은 `relay/inbox/<에이전트>/`에 생긴 작업 파일을 순서대로 하나씩 해당 CLI로 실행합니다. 진행 기록은 `relay/board.md`, 실행 출력은 `relay/logs/`에 남고 둘 다 Git에는 올라가지 않습니다.
+
 ## 보안과 데이터 원칙
 
 - `.env`처럼 비밀번호나 API 키가 들어갈 수 있는 파일은 Git에 저장하지 않습니다.
 - 실제 SQLite 데이터베이스 파일과 설치·빌드 결과도 Git에서 제외합니다.
 - 공유가 필요한 환경변수 이름은 값이 비어 있는 `.env.example`로만 관리합니다.
 - Supabase 비밀값은 백엔드 실행 환경에만 두고 React 코드에 포함하지 않습니다.
-- OpenAI API 키는 v2 개발 시 n8n Credential에만 등록하고 workflow JSON·React·Git에 포함하지 않습니다.
+- OpenAI API 키는 공식 뉴스 요약 워크플로용은 n8n Credential에, FastAPI가 쓰는 해외 해석·경제 뉴스 요약·머니독 답변용은 `backend/.env`(`VERY_RICH_OPENAI_API_KEY`)에만 두고 workflow JSON·React·Git에 포함하지 않습니다.
 - n8n과 FastAPI 사이의 내부 비밀값도 실제 값은 환경변수 또는 Credential로만 관리합니다.
 
 ## 데일리 브리핑 API 기반
@@ -295,7 +311,7 @@ Phase 13에서는 로컬 Docker n8n이 매일 오전 7시(KST)에 FastAPI 내부
 - FastAPI가 응답 완료 여부, 거절, JSON 형식, 근거 ID, 숫자와 금지 표현을 다시 검사합니다.
 - 후보는 하루 최대 3개, 검증 실패 재요청은 항목별 한 번, 출력은 요청당 최대 900토큰입니다.
 - 개발 기본 모델은 `gpt-5.6-luna`이며 n8n 환경값으로 변경할 수 있습니다.
-- 실제 API 키는 n8n OpenAI Credential에 직접 등록해야 합니다. 현재 Credential과 실호출 품질 평가는 완료되지 않았습니다.
+- 이 공식 뉴스 요약 워크플로의 API 키는 n8n OpenAI Credential에 직접 등록합니다(2026-10-30 등록·실호출 확인, 금융위 보도자료 13건 표본 평가 완료 — `docs/plan.md` 27절). FastAPI가 호출하는 해외 해석·경제 뉴스 요약·머니독 답변용 키는 따로 `backend/.env`의 `VERY_RICH_OPENAI_API_KEY`에 둡니다.
 - 워크플로에서 `access to env vars denied`가 나오면 실제 실행 중인 n8n Compose에 `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`가 들어갔는지 확인하고 컨테이너를 재생성합니다. 저장소의 Compose가 아닌 다른 n8n 인스턴스를 실행 중일 수 있으므로 컨테이너의 Compose 경로도 함께 확인합니다.
 
 ## 주의사항

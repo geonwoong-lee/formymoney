@@ -170,3 +170,69 @@ def test_cashflow_rejects_wrong_month_count_and_invalid_amount(client: TestClien
     assert _calculate_cashflow(client, monthlyAmounts=[500_000] * 35 + [-1]).status_code == 422
     assert _calculate_cashflow(client, monthlyAmounts=[500_000] * 35 + [501_000]).status_code == 422
     assert _calculate_cashflow(client, monthlyAmounts=[500_000] * 35 + [999]).status_code == 422
+
+
+def _month_impact(client: TestClient, **changes: object):
+    payload = {
+        "bankCode": "kb",
+        "monthlyAmounts": [500_000] * 36,
+        "fixedMonthlyAmount": 500_000,
+        "contributionType": "general",
+        "conditionAnswers": {},
+        "monthNumber": 1,
+        "reducedAmount": 250_000,
+    }
+    payload.update(changes)
+    return client.post("/api/v1/savings/month-impact", json=payload)
+
+
+def test_month_impact_matches_cashflow_results(client: TestClient) -> None:
+    response = _month_impact(client)
+
+    assert response.status_code == 200
+    scenarios = {item["key"]: item for item in response.json()["scenarios"]}
+    assert scenarios["keep"]["expectedMaturityAmount"] == 20_550_750
+    assert scenarios["keep"]["differenceFromKeep"] == 0
+    # 미납은 기존 월별 계산(0원 한 달)의 검증값과 같아야 한다.
+    assert scenarios["skip"]["expectedMaturityAmount"] == 19_941_250
+    assert scenarios["skip"]["differenceFromKeep"] == -609_500
+    reduced = _calculate_cashflow(client, monthlyAmounts=[250_000] + [500_000] * 35).json()
+    assert scenarios["reduce"]["expectedMaturityAmount"] == reduced["result"]["expectedMaturityAmount"]
+    assert scenarios["skip"]["expectedMaturityAmount"] < scenarios["reduce"]["expectedMaturityAmount"] < scenarios["keep"]["expectedMaturityAmount"]
+    assert response.json()["unavailableNotes"]
+    # 이자·정부기여금 차이도 기존 월별 계산 결과와 일치해야 한다.
+    keep_result = _calculate_cashflow(client).json()["result"]
+    skip_result = _calculate_cashflow(client, monthlyAmounts=[0] + [500_000] * 35).json()["result"]
+    assert scenarios["skip"]["depositInterestDifferenceFromKeep"] == skip_result["depositInterest"] - keep_result["depositInterest"]
+    assert scenarios["skip"]["governmentContributionDifferenceFromKeep"] == (
+        skip_result["governmentContribution"] + skip_result["governmentContributionInterest"]
+        - keep_result["governmentContribution"] - keep_result["governmentContributionInterest"]
+    )
+    assert scenarios["keep"]["depositInterestDifferenceFromKeep"] == 0
+
+
+def test_month_impact_rejects_reduction_when_month_is_already_zero_or_minimum(client: TestClient) -> None:
+    amounts = [500_000] * 36
+    amounts[0] = 0
+    assert _month_impact(client, monthlyAmounts=amounts, reducedAmount=1_000).status_code == 422
+    amounts[0] = 1_000
+    assert _month_impact(client, monthlyAmounts=amounts, reducedAmount=1_000).status_code == 422
+
+
+def test_month_impact_uses_existing_plan_for_other_months(client: TestClient) -> None:
+    amounts = [500_000] * 36
+    amounts[5] = 300_000
+    response = _month_impact(client, monthlyAmounts=amounts, monthNumber=1)
+
+    scenarios = {item["key"]: item for item in response.json()["scenarios"]}
+    expected = _calculate_cashflow(client, monthlyAmounts=amounts).json()
+    assert scenarios["keep"]["expectedMaturityAmount"] == expected["result"]["expectedMaturityAmount"]
+    assert scenarios["skip"]["principal"] == sum(amounts) - 500_000
+
+
+def test_month_impact_rejects_invalid_requests(client: TestClient) -> None:
+    assert _month_impact(client, monthNumber=37).status_code == 422
+    assert _month_impact(client, reducedAmount=500_000).status_code == 422
+    assert _month_impact(client, reducedAmount=999).status_code == 422
+    assert _month_impact(client, reducedAmount=250_001).status_code == 422
+    assert _month_impact(client, monthlyAmounts=[500_000] * 35).status_code == 422

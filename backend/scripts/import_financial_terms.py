@@ -85,8 +85,14 @@ def read_definitions(xlsx_path: Path) -> dict[str, str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("xlsx", type=Path, help="시사경제용어사전 xlsx 경로")
+    parser.add_argument("xlsx", type=Path, nargs="?", help="시사경제용어사전 xlsx 경로")
+    parser.add_argument("--explanations-only", action="store_true", help="이미 있는 용어의 쉬운 설명만 다시 저장")
     args = parser.parse_args()
+
+    if args.explanations_only:
+        return update_explanations()
+    if args.xlsx is None:
+        parser.error("xlsx 경로가 필요합니다 (쉬운 설명만 바꿀 때는 --explanations-only)")
 
     definitions = read_definitions(args.xlsx)
     missing = [name for _, name in TERMS if not definitions.get(name, "").strip()]
@@ -112,10 +118,32 @@ def main() -> int:
                 is_reviewed=False,
             ))
             added += 1
-        for term in session.scalars(select(FinancialTerm).where(FinancialTerm.name.in_(EASY_EXPLANATIONS))):
-            term.example = EASY_EXPLANATIONS[term.name]
+        apply_explanations(session)
         session.commit()
     print(f"새로 추가 {added}개, 이미 있음 {len(TERMS) - added}개 (새로 넣은 용어는 검수 전 상태, 기존 용어의 공개 여부는 그대로)")
+    return 0
+
+
+def apply_explanations(session) -> int:
+    terms = session.scalars(select(FinancialTerm).where(FinancialTerm.name.in_(EASY_EXPLANATIONS))).all()
+    for term in terms:
+        term.example = EASY_EXPLANATIONS[term.name]
+    return len(terms)
+
+
+def update_explanations(session_factory=None) -> int:
+    if session_factory is None:
+        settings = get_settings()
+        session_factory = create_session_factory(create_database_engine(require_postgres_url(settings.database_url)))
+    with session_factory() as session:
+        updated = apply_explanations(session)
+        if updated != len(EASY_EXPLANATIONS):
+            session.rollback()
+            found = set(session.scalars(select(FinancialTerm.name).where(FinancialTerm.name.in_(EASY_EXPLANATIONS))))
+            print(f"DB에 없는 용어가 있어 아무것도 바꾸지 않았습니다: {', '.join(sorted(set(EASY_EXPLANATIONS) - found))}")
+            return 1
+        session.commit()
+    print(f"쉬운 설명 {updated}개 갱신 (정의와 공개 여부는 그대로)")
     return 0
 
 

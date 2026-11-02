@@ -42,5 +42,12 @@ desktop.ini
 /*.xlsx
 /*경제금융용어*.pdf
 
+# 멀티에이전트 실행 중 생기는 파일
+relay/inbox/
+relay/done/
+relay/blocked/
+relay/logs/
+relay/board.md
+
 # 수집 로그
 backend/logs/

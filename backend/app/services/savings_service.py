@@ -15,6 +15,9 @@ from app.schemas.savings import (
     ConditionResponse,
     ConditionResult,
     ContributionType,
+    MonthImpactRequest,
+    MonthImpactResponse,
+    MonthImpactScenario,
     PolicyResponse,
     ProductResponse,
     ProductsResponse,
@@ -132,6 +135,70 @@ class SavingsService:
             result=variable_result,
             fixed_expected_maturity_amount=fixed_result.expected_maturity_amount,
             difference_from_fixed_plan=amounts.expected_maturity_amount - fixed_result.expected_maturity_amount,
+        )
+
+    def calculate_month_impact(self, request: MonthImpactRequest) -> MonthImpactResponse:
+        """한 달의 납입을 유지·감액·미납했을 때 만기액 차이를 기존 월별 계산으로 비교한다."""
+        policy = self.repository.get_policy()
+        if policy is None:
+            raise SavingsDataError("공식 상품 정책을 불러오지 못했습니다.")
+        if not 1 <= request.month_number <= len(request.monthly_amounts):
+            raise SavingsInputError("선택한 회차가 납입 기간 안에 없습니다.")
+        index = request.month_number - 1
+        original = request.monthly_amounts[index]
+        if request.reduced_amount % 1_000 != 0:
+            raise SavingsInputError("감액 금액은 1,000원 단위로 입력해야 합니다.")
+        if not 0 < request.reduced_amount < original:
+            raise SavingsInputError("감액 금액은 1원 이상이면서 원래 납입액보다 작아야 합니다.")
+
+        definitions = [
+            ("keep", "원래대로 납입", original),
+            ("reduce", "감액", request.reduced_amount),
+            ("skip", "미납", 0),
+        ]
+        results = []
+        for key, label, amount in definitions:
+            amounts = list(request.monthly_amounts)
+            amounts[index] = amount
+            results.append((key, label, amount, self.calculate_cashflow(CashflowCalculationRequest(
+                bank_code=request.bank_code,
+                monthly_amounts=amounts,
+                fixed_monthly_amount=request.fixed_monthly_amount,
+                contribution_type=request.contribution_type,
+                condition_answers=request.condition_answers,
+            ))))
+        keep_amount = results[0][3].result.expected_maturity_amount
+        base = results[0][3].result
+        return MonthImpactResponse(
+            bank_code=request.bank_code,
+            bank_name=base.bank_name,
+            month_number=request.month_number,
+            term_months=policy.term_months,
+            expected_rate=base.expected_rate,
+            scenarios=[
+                MonthImpactScenario(
+                    key=key,
+                    label=label,
+                    month_amount=amount,
+                    principal=response.result.principal,
+                    deposit_interest=response.result.deposit_interest,
+                    government_contribution=response.result.government_contribution,
+                    government_contribution_interest=response.result.government_contribution_interest,
+                    expected_maturity_amount=response.result.expected_maturity_amount,
+                    difference_from_keep=response.result.expected_maturity_amount - keep_amount,
+                    deposit_interest_difference_from_keep=response.result.deposit_interest - base.deposit_interest,
+                    government_contribution_difference_from_keep=(
+                        response.result.government_contribution + response.result.government_contribution_interest
+                        - base.government_contribution - base.government_contribution_interest
+                    ),
+                )
+                for key, label, amount, response in results
+            ],
+            unavailable_notes=[
+                "중도해지 시 적용 금리와 미납에 따른 은행별 약관 처리는 공시만으로 확정할 수 없어 계산하지 않았습니다. 가입 은행에 직접 확인해야 합니다.",
+            ],
+            source_url=base.source_url,
+            source_date=base.source_date,
         )
 
     def _calculate_product(

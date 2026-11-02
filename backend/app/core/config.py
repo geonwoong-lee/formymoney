@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     naver_hub_key: str | None = None
     openai_api_key: str | None = None
     openai_model: str | None = None
+    ecos_api_key: str | None = None
+    daily_token_limit: int = 200_000
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

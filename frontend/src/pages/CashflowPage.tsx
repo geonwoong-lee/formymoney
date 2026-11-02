@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   calculateCashflow,
+  calculateMonthImpact,
   getSavingsProducts,
   type CashflowCalculationResponse,
+  type MonthImpactResponse,
   type SavingsProductsResponse,
 } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
@@ -45,6 +47,20 @@ export function CashflowPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [impactMonth, setImpactMonth] = useState(1)
+  const [impactReduced, setImpactReduced] = useState(250_000)
+  const [impact, setImpact] = useState<MonthImpactResponse | null>(null)
+  const [impactError, setImpactError] = useState('')
+  const [impactLoading, setImpactLoading] = useState(false)
+  // 입력이 바뀐 뒤 늦게 도착한 이전 영향 계산 응답을 버리기 위한 요청 번호.
+  const impactRequestId = useRef(0)
+
+  function clearImpact() {
+    impactRequestId.current += 1
+    setImpact(null)
+    setImpactError('')
+    setImpactLoading(false)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -91,14 +107,23 @@ export function CashflowPage() {
     .map((amount, index) => (amount < 0 || amount > maximumAmount || (amount !== 0 && amount < minimumAmount)) ? index : -1)
     .filter((index) => index >= 0), [amounts, maximumAmount, minimumAmount])
 
+  const impactOriginal = amounts[impactMonth - 1] ?? 0
+  const impactReducedError = impactReduced < minimumAmount || impactReduced >= impactOriginal || impactReduced % 1_000 !== 0
+    ? (impactOriginal <= minimumAmount
+      ? `${impactMonth}회차 납입액이 ${money.format(impactOriginal)}원이라 더 줄일 수 없습니다.`
+      : `감액 금액은 ${money.format(minimumAmount)}원 이상 1,000원 단위로, 원래 납입액(${money.format(impactOriginal)}원)보다 작아야 합니다.`)
+    : ''
+
   function updateAmount(index: number, value: number) {
     setResult(null)
+    clearImpact()
     setError('')
     setAmounts((current) => current.map((amount, itemIndex) => itemIndex === index ? value : amount))
   }
 
   function applyToFuture() {
     setResult(null)
+    clearImpact()
     setAmounts((current) => current.map((amount, index) => actualMonths[index] ? amount : futureAmount))
   }
 
@@ -127,6 +152,34 @@ export function CashflowPage() {
     }
   }
 
+  async function submitImpact() {
+    if (!products || !selectedBank) return
+    const requestId = impactRequestId.current + 1
+    impactRequestId.current = requestId
+    setImpactLoading(true)
+    setImpactError('')
+    setImpact(null)
+    try {
+      const allAnswers = answersForApi(draft, products.products)
+      const response = await calculateMonthImpact({
+        bankCode: selectedBank,
+        monthlyAmounts: amounts,
+        fixedMonthlyAmount: draft.plan.monthlyAmount ?? 500_000,
+        contributionType: draft.plan.contributionType ?? 'general',
+        conditionAnswers: allAnswers[selectedBank] ?? {},
+        monthNumber: impactMonth,
+        reducedAmount: impactReduced,
+      })
+      if (impactRequestId.current === requestId) setImpact(response)
+    } catch (cause) {
+      if (impactRequestId.current === requestId) {
+        setImpactError(cause instanceof Error ? cause.message : '한 달 변경 영향을 계산하지 못했습니다.')
+      }
+    } finally {
+      if (impactRequestId.current === requestId) setImpactLoading(false)
+    }
+  }
+
   return (
     <section className="page page--wide cashflow-page">
       <p className="eyebrow">Cash flow</p>
@@ -139,7 +192,7 @@ export function CashflowPage() {
       {products && <>
         <div className="cashflow-controls">
           <label>계산할 은행
-            <select value={selectedBank} onChange={(event) => { setSelectedBank(event.target.value); setResult(null) }}>
+            <select value={selectedBank} onChange={(event) => { setSelectedBank(event.target.value); setResult(null); clearImpact() }}>
               {products.products.map((product) => <option key={product.bankCode} value={product.bankCode}>{product.bankName}</option>)}
             </select>
           </label>
@@ -167,6 +220,39 @@ export function CashflowPage() {
           <Link className="button button--secondary" to="/banks">은행 비교로 돌아가기</Link>
         </div>
       </>}
+
+      {products && invalidMonthIndices.length === 0 && <section className="cashflow-result" aria-label="한 달 변경 영향">
+        <h2>이번 달 납입이 달라지면?</h2>
+        <p className="cashflow-help">위 표의 나머지 달은 그대로 두고, 선택한 한 달만 유지·감액·미납했을 때 예상 만기액이 얼마나 달라지는지 비교합니다.</p>
+        <div className="cashflow-controls">
+          <label>비교할 회차
+            <select value={impactMonth} onChange={(event) => { setImpactMonth(Number(event.target.value)); clearImpact() }}>
+              {amounts.map((_, index) => <option key={index} value={index + 1}>{monthLabel(draft.plan.startMonth, index)} ({index + 1}회차)</option>)}
+            </select>
+          </label>
+          <label>감액했을 때 금액
+            <input type="number" min={minimumAmount} max={Math.max(minimumAmount, impactOriginal - 1)} step="1000" value={impactReduced} aria-invalid={impactReducedError !== ''} onChange={(event) => { setImpactReduced(Number(event.target.value)); clearImpact() }} />
+            {impactReducedError && <span className="field-error">{impactReducedError}</span>}
+          </label>
+          <button className="button button--secondary" type="button" disabled={impactLoading || impactReducedError !== ''} onClick={submitImpact}>{impactLoading ? '계산 중...' : '세 가지 비교하기'}</button>
+        </div>
+        {impactError && <ErrorNotice message={impactError} />}
+        {impact && <>
+          <table className="cashflow-table" aria-label="한 달 변경 영향 비교">
+            <thead><tr><th>구분</th><th>그 달 납입액</th><th>예상 만기 수령액</th><th>원래대로 대비 만기액</th><th>이자 차이</th><th>정부기여금 차이</th></tr></thead>
+            <tbody>{impact.scenarios.map((scenario) => <tr key={scenario.key}>
+              <th scope="row">{scenario.label}</th>
+              <td>{money.format(scenario.monthAmount)}원</td>
+              <td>{money.format(scenario.expectedMaturityAmount)}원</td>
+              <td className={scenario.differenceFromKeep < 0 ? 'difference--minus' : ''}>{scenario.differenceFromKeep > 0 ? '+' : ''}{money.format(scenario.differenceFromKeep)}원</td>
+              <td>{scenario.depositInterestDifferenceFromKeep > 0 ? '+' : ''}{money.format(scenario.depositInterestDifferenceFromKeep)}원</td>
+              <td>{scenario.governmentContributionDifferenceFromKeep > 0 ? '+' : ''}{money.format(scenario.governmentContributionDifferenceFromKeep)}원</td>
+            </tr>)}</tbody>
+          </table>
+          {impact.unavailableNotes.map((note) => <p key={note} className="notice">추가 확인 필요: {note}</p>)}
+          <p className="source-note">{impact.bankName} 예상금리 {impact.expectedRate}% · 공시 확인일 {impact.sourceDate} · <a href={impact.sourceUrl} target="_blank" rel="noreferrer">공시 원문</a> · 차이를 보여 주는 예상치이며 어떤 선택을 권하는 것이 아닙니다. 개인별 세금과 은행의 최종 심사는 반영하지 않았습니다.</p>
+        </>}
+      </section>}
 
       {result && <section className="cashflow-result" aria-label="월별 납입 계산 결과">
         <h2>{result.result.bankName} 예상 결과</h2>
