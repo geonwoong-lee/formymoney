@@ -8,6 +8,7 @@ import {
 import teacherImage from '../assets/icons/finance-teacher.png'
 import { ErrorNotice } from '../components/ErrorNotice'
 import './DailyPage.css'
+import { RateScenario } from './RateScenario'
 
 const KST = 'Asia/Seoul'
 
@@ -458,6 +459,8 @@ export function DailyPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const requested = searchParams.get('tab')
   const tab: TabKey = isTabKey(requested) ? requested : 'summary'
+  const depositItem = market.find((item) => item.code === 'deposit_rate')
+  const depositRate = depositItem ? Number(depositItem.value) : null
 
   function changeTab(key: TabKey) {
     setSearchParams(key === 'summary' ? {} : { tab: key }, { replace: true })
@@ -512,6 +515,7 @@ export function DailyPage() {
           summary: <>
             <NewsDigestCard digest={digest} />
             <MoneyContextCard digest={digest} market={market} />
+            <RateScenario defaultRate={depositRate} />
             {data.items.length === 0
               ? <p className="daily-muted daily-empty">오늘 발행된 브리핑이 없습니다. 공식 자료가 없거나 검증을 통과한 요약이 없는 날입니다.</p>
               : <div className="daily-list">{data.items.map((item) => <BriefingCard key={item.id} item={item} />)}</div>}
