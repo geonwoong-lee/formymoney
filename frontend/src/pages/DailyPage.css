@@ -620,3 +620,13 @@
   font-size: 13px;
   line-height: 1.5;
 }
+
+.daily-glance__fresh h3 {
+  margin: 8px 0 4px;
+  font-size: 13px;
+}
+
+.daily-glance__fresh ul {
+  margin: 0 0 4px;
+  padding-left: 18px;
+}

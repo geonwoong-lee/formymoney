@@ -190,3 +190,14 @@
 .market-trend__table th[scope='row'] {
   text-align: left;
 }
+
+/* Third series: validated with the other two (deutan ΔE 10 vs orange); dotted so colour is not the only cue. */
+.market-trend__line--cpi {
+  stroke: #148a60;
+  color: #148a60;
+  stroke-dasharray: 2 3;
+}
+
+.market-trend__swatch.market-trend__line--cpi {
+  border-top-style: dotted;
+}

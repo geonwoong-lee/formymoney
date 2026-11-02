@@ -418,11 +418,13 @@ export interface MarketItem {
   previousPeriod: string | null
   change: string | null
   changePercent: string | null
+  /** The latest period first arrived within the last few days. */
+  isNew?: boolean
 }
 
 export interface MarketResponse {
   groups: { key: string; title: string; note: string; items: MarketItem[] }[]
-  rateTrend: { period: string; baseRate: string | null; depositRate: string | null }[]
+  rateTrend: { period: string; baseRate: string | null; depositRate: string | null; cpiYoy?: string | null }[]
   sourceName: string
   sourceUrl: string
   updatedAt: string | null

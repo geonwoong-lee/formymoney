@@ -14,6 +14,7 @@ class MarketItemResponse(CamelModel):
     previous_period: str | None = None
     change: Decimal | None = None
     change_percent: Decimal | None = None
+    is_new: bool = False  # the latest period first arrived within the last few days
 
 
 class MarketGroupResponse(CamelModel):
@@ -27,6 +28,7 @@ class RateTrendPoint(CamelModel):
     period: str
     base_rate: Decimal | None = None
     deposit_rate: Decimal | None = None
+    cpi_yoy: Decimal | None = None
 
 
 class MarketResponse(CamelModel):
