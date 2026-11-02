@@ -83,6 +83,7 @@ docker compose --env-file automation/n8n/.env -f automation/n8n/compose.yml down
 3. `실패한 작업이 있나`: 어느 작업이든 요청 자체가 실패했거나 `status=failed`이거나 실행 기록을 저장하지 못했으면(`runRecorded=false`) `실행 실패로 표시`(Stop and Error)로 n8n 실행을 오류로 끝낸다. 오류 실행은 n8n에 저장되어(`saveDataErrorExecution: all`) 원인 메시지를 볼 수 있다. `partial`은 정상 종료로 두고 원인은 실행 기록에서 확인한다.
 
 - 두 API 모두 `X-Very-Rich-Ingest-Secret` 헤더가 필요하고, 본문의 `runId`(n8n 실행 ID)로 실행 기록을 남긴다. 같은 `runId`로 다시 호출하면 수집을 다시 하지 않고 기록된 결과를 돌려준다. 수집이 무거워 HTTP 노드 자동 재시도는 쓰지 않는다. OpenAI 키가 없어 요약을 만들지 못한 날은 `partial`로 기록된다. FastAPI가 작업 결과를 `collection_runs`에 직접 기록하므로(워크플로 `daily-market`, `daily-news`) 7절의 `GET /api/v1/internal/daily/runs/status`로 마지막 정상 실행과 실패 원인을 확인한다.
+- 두 작업 모두 마지막에 머니독 지식 베이스(`knowledge_chunks`)를 갱신한다. 내용이 바뀐 조각만 OpenAI 임베딩을 다시 만들고, 실패하면 그 작업이 `partial`이 된다.
 - 같은 작업을 PC에서 직접 돌릴 때는 `cd backend && python -m scripts.collect_market_data`, `python -m scripts.collect_news_headlines`. 종료 코드는 성공 0, 일부 실패 2, 전부 실패 1이다.
 - 가져오기: 컨테이너에 `/workflows`가 연결돼 있으면 2절 명령에서 파일 이름만 바꾼다. 연결돼 있지 않으면 `docker cp automation/n8n/workflows/daily-market-news-jobs.json n8n:/tmp/` 뒤 `docker exec n8n n8n import:workflow --input=/tmp/daily-market-news-jobs.json`.
 - 가져온 뒤에는 비활성 상태다. n8n 화면에서 `수동 실행`으로 결과를 확인하고 게시(활성화)해야 매일 예약이 작동한다. 예약은 n8n 컨테이너와 FastAPI가 켜져 있을 때만 돈다(로컬 PC를 끄면 실행되지 않음).

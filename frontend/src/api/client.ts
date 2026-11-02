@@ -264,6 +264,8 @@ export interface AssistantChatResponse {
   answer: string
   links: { to: string; label: string }[]
   source: 'ai' | 'rule'
+  // What the AI answer was based on: site pages, terms, daily news digests or market values.
+  sources?: { title: string; url: string | null; publishedOn: string | null }[]
 }
 
 export class ApiError extends Error {

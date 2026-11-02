@@ -9,6 +9,14 @@ export interface AssistantAnswer {
   /** True when a model wrote the text; the bubble then shows a "may be wrong" notice. */
   ai?: boolean
   notice?: string
+  /** Knowledge chunks the AI answer cites. */
+  sources?: AssistantSource[]
+}
+
+export interface AssistantSource {
+  title: string
+  url?: string | null
+  publishedOn?: string | null
 }
 
 interface AnswerRule {
