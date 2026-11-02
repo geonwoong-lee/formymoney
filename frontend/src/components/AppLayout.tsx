@@ -5,6 +5,8 @@ import dailyIcon from '../assets/icons/daily-mail.png'
 import marketIcon from '../assets/icons/market-monitor.png'
 import maturityIcon from '../assets/icons/maturity-keys.png'
 import startLogo from '../assets/icons/start-logo.svg'
+import { PAGE_EVENTS, track } from '../features/analytics'
+import { AnalyticsConsentBar } from './AnalyticsConsent'
 import { Assistant } from './Assistant'
 import { RetroUtilityApp, type UtilityId } from './RetroUtilityApps'
 
@@ -125,6 +127,10 @@ function UtilityWindow({ app, index, active, minimized, onFocus, onMinimize, onC
 
 export function AppLayout({ children }: PropsWithChildren) {
   const location = useLocation()
+  useEffect(() => {
+    const event = PAGE_EVENTS[location.pathname]
+    if (event) track(event)
+  }, [location.pathname])
   const navigate = useNavigate()
   const currentApp = getCurrentApp(location.pathname)
   const [startOpen, setStartOpen] = useState(false)
@@ -259,6 +265,7 @@ export function AppLayout({ children }: PropsWithChildren) {
         <div className="taskbar-clock" aria-label={`현재 날짜 ${dateLabel}, 현재 시각 ${timeLabel}`}><span>{dateLabel}</span><strong>{timeLabel}</strong></div>
       </footer>
       <Assistant greetOnFirstVisit />
+      <AnalyticsConsentBar />
     </div>
   )
 }

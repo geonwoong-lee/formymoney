@@ -71,6 +71,7 @@ def create_app(
     )
     app.state.n8n_ingest_secret = n8n_ingest_secret or settings.n8n_ingest_secret
     app.state.assistant_limiter = SlidingWindowLimiter([(60, 5), (86_400, 60)])
+    app.state.analytics_limiter = SlidingWindowLimiter([(60, 60), (86_400, 2_000)])
 
     app.add_middleware(
         CORSMiddleware,

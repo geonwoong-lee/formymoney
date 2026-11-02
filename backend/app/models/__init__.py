@@ -1,3 +1,4 @@
+from app.models.analytics import AnalyticsDailyCount
 from app.models.collection_run import CollectionRun
 from app.models.daily_briefing import (
     DailyBriefingItem,
@@ -14,6 +15,7 @@ from app.models.reference_item import ReferenceItem
 from app.models.savings_product import BankSavingsProduct, PreferentialCondition, SavingsPolicy
 
 __all__ = [
+    "AnalyticsDailyCount",
     "BankSavingsProduct",
     "CollectionRun",
     "DailyBriefingItem",

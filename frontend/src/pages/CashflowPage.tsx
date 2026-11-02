@@ -10,6 +10,7 @@ import {
 } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { MoneyInput } from '../components/MoneyInput'
+import { track } from '../features/analytics'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft, saveDraft } from '../storage/draftStorage'
 
@@ -171,7 +172,10 @@ export function CashflowPage() {
         monthNumber: impactMonth,
         reducedAmount: impactReduced,
       })
-      if (impactRequestId.current === requestId) setImpact(response)
+      if (impactRequestId.current === requestId) {
+        setImpact(response)
+        track('check_month_impact')
+      }
     } catch (cause) {
       if (impactRequestId.current === requestId) {
         setImpactError(cause instanceof Error ? cause.message : '한 달 변경 영향을 계산하지 못했습니다.')

@@ -1,0 +1,35 @@
+.analytics-consent {
+  position: fixed;
+  right: 12px;
+  bottom: 56px;
+  z-index: 40;
+  display: grid;
+  gap: 6px;
+  width: min(420px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border: 2px solid #808080;
+  border-top-color: #fff;
+  border-left-color: #fff;
+  background: #c0c0c0;
+  box-shadow: 2px 2px 0 #000;
+  font-size: 13px;
+}
+
+.analytics-consent p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.analytics-consent div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.analytics-consent-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
