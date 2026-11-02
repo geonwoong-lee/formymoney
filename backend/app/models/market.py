@@ -18,3 +18,5 @@ class MarketPoint(Base):
     period: Mapped[str] = mapped_column(String(8))
     value: Mapped[Decimal] = mapped_column(Numeric(18, 4))
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # When this period first arrived; "new figure" notices use it. None for rows stored before it existed.
+    first_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

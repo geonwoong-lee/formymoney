@@ -1,7 +1,7 @@
 """Bank of Korea ECOS (경제통계시스템) Open API client for the market tab.
 
 Only published statistics are used: exchange rates, KOSPI/KOSDAQ closes, policy and market rates,
-and ECOS's monthly international stock index table. Values are daily or monthly, never real time.
+ECOS's monthly international stock index table and the consumer price index (국가데이터처, via ECOS). Values are daily or monthly, never real time.
 """
 
 from __future__ import annotations
@@ -18,6 +18,10 @@ ECOS_URL = "https://ecos.bok.or.kr/api/StatisticSearch"
 NO_DATA_CODE = "INFO-200"
 
 
+DAILY_LOOKBACK_DAYS = 20
+MONTHLY_LOOKBACK_MONTHS = 26
+
+
 class EcosError(RuntimeError):
     pass
 
@@ -25,12 +29,13 @@ class EcosError(RuntimeError):
 @dataclass(frozen=True)
 class Series:
     code: str
-    group: str  # fx | kr_stock | rate | world_stock | trend
+    group: str  # fx | kr_stock | rate | world_stock | trend | price_index
     name: str
     stat_code: str
     cycle: str  # D (daily) or M (monthly)
     item_code: str
     unit: str
+    lookback_months: int = MONTHLY_LOOKBACK_MONTHS
 
 
 SERIES: list[Series] = [
@@ -49,17 +54,16 @@ SERIES: list[Series] = [
     Series("world_deu", "world_stock", "독일", "902Y002", "M", "DEU", "2015=100"),
     Series("world_gbr", "world_stock", "영국", "902Y002", "M", "GBR", "2015=100"),
     Series("base_rate_monthly", "trend", "한국은행 기준금리(월)", "722Y001", "M", "0101000", "%"),
+    # The index itself is not shown; the market tab turns it into the year-on-year rise (24 months need 36+).
+    Series("cpi_index", "price_index", "소비자물가지수(2020=100)", "901Y009", "M", "0", "2020=100", 40),
 ]
 SERIES_BY_CODE = {series.code: series for series in SERIES}
 
-DAILY_LOOKBACK_DAYS = 20
-MONTHLY_LOOKBACK_MONTHS = 26
 
-
-def request_window(cycle: str, today: date) -> tuple[str, str]:
+def request_window(cycle: str, today: date, lookback_months: int = MONTHLY_LOOKBACK_MONTHS) -> tuple[str, str]:
     if cycle == "D":
         return (today - timedelta(days=DAILY_LOOKBACK_DAYS)).strftime("%Y%m%d"), today.strftime("%Y%m%d")
-    months = today.year * 12 + today.month - 1 - MONTHLY_LOOKBACK_MONTHS
+    months = today.year * 12 + today.month - 1 - lookback_months
     return f"{months // 12}{months % 12 + 1:02d}", today.strftime("%Y%m")
 
 
@@ -86,7 +90,7 @@ def parse_rows(payload: dict[str, object]) -> list[tuple[str, Decimal]]:
 
 
 def fetch_series(api_key: str, series: Series, today: date, max_rows: int = 1000) -> list[tuple[str, Decimal]]:
-    start, end = request_window(series.cycle, today)
+    start, end = request_window(series.cycle, today, series.lookback_months)
     url = (
         f"{ECOS_URL}/{quote(api_key)}/json/kr/1/{max_rows}/"
         f"{series.stat_code}/{series.cycle}/{start}/{end}/{series.item_code}"

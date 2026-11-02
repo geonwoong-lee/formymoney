@@ -8,7 +8,15 @@ type TrendPoint = MarketResponse['rateTrend'][number]
 const TREND_SERIES = [
   { key: 'baseRate', label: '기준금리', className: 'market-trend__line--base' },
   { key: 'depositRate', label: '예금 평균금리', className: 'market-trend__line--deposit' },
+  { key: 'cpiYoy', label: '소비자물가 상승률', className: 'market-trend__line--cpi' },
 ] as const
+
+// Direct labels sit near each line's end; nudge them apart so close values do not overlap.
+const LABEL_OFFSET: Record<(typeof TREND_SERIES)[number]['key'], number> = { baseRate: 12, depositRate: -4, cpiYoy: 26 }
+
+function trendValue(point: TrendPoint, key: (typeof TREND_SERIES)[number]['key']) {
+  return point[key] ?? null
+}
 
 function formatPeriod(period: string) {
   const year = Number(period.slice(0, 4))
@@ -44,7 +52,7 @@ function RateTrend({ points }: { points: TrendPoint[] }) {
   const width = 640
   const height = 240
   const pad = { top: 16, right: 140, bottom: 30, left: 44 }
-  const values = points.flatMap((point) => [point.baseRate, point.depositRate]).filter((value): value is string => value !== null).map(Number)
+  const values = points.flatMap((point) => TREND_SERIES.map((series) => trendValue(point, series.key))).filter((value): value is string => value !== null).map(Number)
   if (points.length < 2 || values.length === 0) return null
   const low = Math.floor(Math.min(...values) * 2) / 2 - 0.5
   const high = Math.ceil(Math.max(...values) * 2) / 2 + 0.5
@@ -58,7 +66,7 @@ function RateTrend({ points }: { points: TrendPoint[] }) {
     let line = ''
     let drawing = false
     points.forEach((point, index) => {
-      const value = point[key]
+      const value = trendValue(point, key)
       if (value === null) { drawing = false; return }
       line += `${drawing ? 'L' : 'M'}${x(index).toFixed(1)} ${y(Number(value)).toFixed(1)}`
       drawing = true
@@ -67,7 +75,7 @@ function RateTrend({ points }: { points: TrendPoint[] }) {
   }
 
   function lastIndex(key: (typeof TREND_SERIES)[number]['key']) {
-    for (let index = points.length - 1; index >= 0; index -= 1) if (points[index][key] !== null) return index
+    for (let index = points.length - 1; index >= 0; index -= 1) if (trendValue(points[index], key) !== null) return index
     return -1
   }
 
@@ -80,13 +88,13 @@ function RateTrend({ points }: { points: TrendPoint[] }) {
 
   const hovered = hover === null ? null : points[hover]
   return <section className="market-trend" aria-labelledby="market-trend-title">
-    <h2 id="market-trend-title">금리 흐름 (최근 {points.length}개월)</h2>
+    <h2 id="market-trend-title">금리·물가 흐름 (최근 {points.length}개월)</h2>
     <ul className="market-trend__legend" aria-label="범례">
       {TREND_SERIES.map((series) => <li key={series.key}><span className={`market-trend__swatch ${series.className}`} aria-hidden="true" />{series.label}</li>)}
     </ul>
     <div className="market-trend__plot" tabIndex={0} aria-label="금리 흐름 그래프, 좁은 화면에서는 옆으로 밀어 볼 수 있습니다">
       <div className="market-trend__canvas">
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="한국은행 기준금리와 은행 예금 평균금리의 월별 추이" onPointerMove={track} onPointerLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="한국은행 기준금리, 은행 예금 평균금리, 소비자물가 상승률의 월별 추이" onPointerMove={track} onPointerLeave={() => setHover(null)}>
         {ticks.map((tick) => <g key={tick}>
           <line className="market-trend__grid" x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)} />
           <text className="market-trend__axis" x={pad.left - 6} y={y(tick) + 4} textAnchor="end">{tick.toFixed(1)}%</text>
@@ -98,17 +106,17 @@ function RateTrend({ points }: { points: TrendPoint[] }) {
           const last = lastIndex(series.key)
           return <g key={series.key}>
             <path className={`market-trend__line ${series.className}`} d={path(series.key)} />
-            {last >= 0 && <text className="market-trend__label" x={x(last) + 8} y={y(Number(points[last][series.key])) + (series.key === 'baseRate' ? 12 : -4)}>{series.label} {formatNumber(points[last][series.key] as string)}%</text>}
+            {last >= 0 && <text className="market-trend__label" x={x(last) + 8} y={y(Number(trendValue(points[last], series.key))) + LABEL_OFFSET[series.key]}>{series.label} {formatNumber(trendValue(points[last], series.key) as string)}%</text>}
           </g>
         })}
         {hovered && hover !== null && <g>
           <line className="market-trend__crosshair" x1={x(hover)} x2={x(hover)} y1={pad.top} y2={height - pad.bottom} />
-          {TREND_SERIES.map((series) => hovered[series.key] !== null && <circle key={series.key} className={`market-trend__dot ${series.className}`} cx={x(hover)} cy={y(Number(hovered[series.key]))} r={4.5} />)}
+          {TREND_SERIES.map((series) => trendValue(hovered, series.key) !== null && <circle key={series.key} className={`market-trend__dot ${series.className}`} cx={x(hover)} cy={y(Number(trendValue(hovered, series.key)))} r={4.5} />)}
         </g>}
       </svg>
       {hovered && hover !== null && <div className="market-trend__tooltip" style={{ left: `${Math.min(82, Math.max(18, (x(hover) / width) * 100))}%` }} role="status">
         <b>{formatPeriod(hovered.period)}</b>
-        {TREND_SERIES.map((series) => <span key={series.key}>{series.label} {hovered[series.key] === null ? '자료 없음' : `${formatNumber(hovered[series.key] as string)}%`}</span>)}
+        {TREND_SERIES.map((series) => <span key={series.key}>{series.label} {trendValue(hovered, series.key) === null ? '자료 없음' : `${formatNumber(trendValue(hovered, series.key) as string)}%`}</span>)}
       </div>}
       </div>
     </div>
@@ -116,11 +124,11 @@ function RateTrend({ points }: { points: TrendPoint[] }) {
       <summary>표로 보기</summary>
       <table>
         <thead><tr><th scope="col">월</th>{TREND_SERIES.map((series) => <th scope="col" key={series.key}>{series.label}</th>)}</tr></thead>
-        <tbody>{points.map((point) => <tr key={point.period}><th scope="row">{formatPeriod(point.period)}</th>{TREND_SERIES.map((series) => <td key={series.key}>{point[series.key] === null ? '–' : `${formatNumber(point[series.key] as string)}%`}</td>)}</tr>)}</tbody>
+        <tbody>{points.map((point) => <tr key={point.period}><th scope="row">{formatPeriod(point.period)}</th>{TREND_SERIES.map((series) => <td key={series.key}>{trendValue(point, series.key) === null ? '–' : `${formatNumber(trendValue(point, series.key) as string)}%`}</td>)}</tr>)}</tbody>
       </table>
     </details>
-    {points.some((point) => point.baseRate === null || point.depositRate === null) && <p className="market-muted">자료가 없는 달은 선을 끊어 표시합니다.</p>}
-    <p className="market-muted">지난 기록이며 앞으로의 금리를 예측하지 않습니다. 예금 평균금리는 은행이 그달 새로 받은 저축성 예금의 가중평균 금리입니다.</p>
+    {points.some((point) => TREND_SERIES.some((series) => trendValue(point, series.key) === null)) && <p className="market-muted">자료가 없는 달은 선을 끊어 표시합니다.</p>}
+    <p className="market-muted">지난 기록이며 앞으로의 금리와 물가를 예측하지 않습니다. 예금 평균금리는 은행이 그달 새로 받은 저축성 예금의 가중평균 금리이고, 소비자물가 상승률은 전년 같은 달 대비입니다.</p>
   </section>
 }
 
@@ -142,7 +150,7 @@ export function MarketPage() {
     <section className="page page--wide market-page">
       <p className="eyebrow">Market</p>
       <h1>시장 지표</h1>
-      <p className="lead">환율, 증시, 금리를 한국은행 공식 통계로 보여 줍니다. 하루 한 번 갱신하는 지난 값이며 실시간 시세가 아닙니다. 투자·가입 권유가 아닙니다.</p>
+      <p className="lead">환율, 증시, 금리, 물가를 한국은행 공식 통계로 보여 줍니다. 하루 한 번 갱신하는 지난 값이며 실시간 시세가 아닙니다. 투자·가입 권유가 아닙니다.</p>
 
       {error && <ErrorNotice message={error} onRetry={() => { setError(''); setData(null); setReloadKey((key) => key + 1) }} />}
       {!data && !error && <p className="notice">시장 지표를 불러오는 중입니다.</p>}

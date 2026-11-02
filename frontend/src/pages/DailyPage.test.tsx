@@ -412,6 +412,31 @@ describe('DailyPage', () => {
     expect(screen.getByRole('region', { name: '안내' })).toBeInTheDocument()
   })
 
+  it('shows a monthly figure such as CPI only on the days right after it arrives', async () => {
+    const cpi = (isNew: boolean) => ({
+      code: 'cpi_yoy', name: '소비자물가 상승률(전년 같은 달 대비)', unit: '%', cycle: 'M', period: '202609', value: '2.5',
+      previousPeriod: '202608', change: '0.1', changePercent: null, isNew,
+    })
+    const page = (isNew: boolean) => {
+      vi.stubGlobal('fetch', routeFetch(
+        () => respond({ date: '2026-11-02', generatedAt: null, items: [], term: null }),
+        noHeadlines, noDigest,
+        () => respond({ groups: [{ key: 'price', title: '물가', note: '', items: [cpi(isNew)] }], rateTrend: [], sourceName: 'ECOS', sourceUrl: 'https://ecos.bok.or.kr/', updatedAt: null }),
+      ))
+      renderPage()
+    }
+
+    page(true)
+    const fresh = await screen.findByRole('list', { name: '새로 나온 통계' })
+    expect(fresh).toHaveTextContent('2026년 9월 소비자물가 상승률(전년 같은 달 대비) 2.5% (전달보다 ▲ +0.1%p)')
+
+    cleanup()
+    page(false)
+    await screen.findByRole('region', { name: '오늘 한눈에' })
+    await screen.findByText(/오늘 발행된 브리핑이 없습니다/)
+    expect(screen.queryByRole('list', { name: '새로 나온 통계' })).not.toBeInTheDocument()
+  })
+
   it('shows at most five moved indicators and counts the rest', async () => {
     const moving = Array.from({ length: 7 }, (_, index) => ({
       code: `s${index}`, name: `지표${index}`, unit: 'pt', cycle: 'D', period: '20261102', value: '100',

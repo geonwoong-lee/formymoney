@@ -346,6 +346,8 @@ function TodayGlance({ date, generatedAt, digest, market, nextEvent, onShowEvent
   const daily = market.filter((item) => item.cycle === 'D' && item.change !== null && item.change !== undefined)
   const moved = daily.filter((item) => Number(item.change) !== 0).sort((a, b) => changeSize(b) - changeSize(a))
   const still = daily.length - moved.length
+  // Monthly figures (e.g. CPI) are shown on the days right after a new month arrives.
+  const fresh = market.filter((item) => item.cycle === 'M' && item.isNew)
   return <section className="daily-glance" aria-labelledby="daily-glance-title">
     <h2 id="daily-glance-title">오늘 한눈에</h2>
     <p className="daily-glance__date">
@@ -360,6 +362,17 @@ function TodayGlance({ date, generatedAt, digest, market, nextEvent, onShowEvent
       다가올 일정: <b>{formatEventDate(nextEvent.date)} {nextEvent.title}</b>{' '}
       <button type="button" className="daily-link-button" onClick={onShowEvents}>일정 더 보기</button>
     </p>}
+    {fresh.length > 0 && <div className="daily-glance__fresh">
+      <h3>새로 나온 통계</h3>
+      <ul aria-label="새로 나온 통계">
+        {fresh.map((item) => <li key={item.code}>
+          <b>{formatMarketPeriod(item.period)} {item.name} {formatValue(item)}</b>
+          {item.change !== null && item.change !== undefined && Number(item.change) !== 0 && <span className="daily-muted">
+            {' '}(전달보다 {Number(item.change) > 0 ? '▲' : '▼'} {formatChange(item)})
+          </span>}
+        </li>)}
+      </ul>
+    </div>}
     {daily.length > 0 && <div className="daily-glance__moves">
       <h3>전 영업일보다 달라진 지표</h3>
       {moved.length > 0 && <ul aria-label="달라진 지표">

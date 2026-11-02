@@ -290,7 +290,7 @@ def test_failed_knowledge_refresh_makes_the_job_partial_and_keeps_collected_data
 
     assert result.status == "partial"
     assert result.failures == ["도우미 자료: OpenAI에 연결하지 못했습니다."]
-    assert len(saved) == 15
+    assert len(saved) == len(daily_jobs.SERIES)
 
 
 def test_assistant_falls_back_to_the_fixed_guide_when_search_fails(client: TestClient) -> None:

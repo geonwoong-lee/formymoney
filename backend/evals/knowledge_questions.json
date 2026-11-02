@@ -26,5 +26,7 @@
   {"question": "다음 금통위 언제야?", "expected": ["event:bok-2026-11-26"]},
   {"question": "미국 연준 금리 결정 회의는 다음에 언제 열려?", "expected": ["event:fomc-2026-12-09"]},
   {"question": "11월 물가 발표는 언제 나와?", "expected": ["event:stats-2026-12-02-cpi"]},
-  {"question": "미국 중간선거 날짜 알려줘", "expected": ["event:election-us-2026-11-03"]}
+  {"question": "미국 중간선거 날짜 알려줘", "expected": ["event:election-us-2026-11-03"]},
+  {"question": "요즘 물가 얼마나 올랐어?", "expected": ["market:cpi_yoy"]},
+  {"question": "소비자물가 상승률 알려줘", "expected": ["market:cpi_yoy"]}
 ]

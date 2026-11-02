@@ -152,10 +152,15 @@ def _market_documents(session: Session) -> list[Document]:
             body = f"{name}: {when} 기준 {_number(item.value)}{unit}."
             if item.change is not None and item.previous_period:
                 sign = "+" if item.change > 0 else ""
-                body += f" 바로 전 값보다 {sign}{_number(item.change)}{unit}"
+                change_unit = "%p" if unit == "%" else unit  # a rate moves in percentage points
+                body += f" 바로 전 값보다 {sign}{_number(item.change)}{change_unit}"
                 if item.change_percent is not None:
                     body += f"({sign}{_number(item.change_percent)}%)"
                 body += " 달라졌어요."
+            if item.code == "cpi_yoy":
+                # Plain wording so "요즘 물가 얼마나 올랐어?" finds the figure, not only the release dates.
+                direction = "올랐" if item.value >= 0 else "내렸"
+                body += f" 요즘 물가는 1년 전 같은 달보다 {_number(abs(item.value))}% {direction}다는 뜻이에요."
             body += f" {group.title} 지표, 한국은행 경제통계시스템(ECOS) 공식 통계. {group.note}"
             documents.append(Document(f"market:{item.code}", "market", f"시장 지표 {name}", body, "/market"))
     return documents
