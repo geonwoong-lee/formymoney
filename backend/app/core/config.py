@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_model: str | None = None
     ecos_api_key: str | None = None
+    finlife_api_key: str | None = None  # 금융감독원 금융상품 한눈에 Open API
     daily_token_limit: int = 200_000
 
     model_config = SettingsConfigDict(
