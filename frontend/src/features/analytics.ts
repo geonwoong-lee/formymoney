@@ -5,7 +5,7 @@ export const ANALYTICS_CONSENT_KEY = 'very-rich:analytics-consent:v1'
 
 export type AnalyticsEvent =
   | 'visit_conditions' | 'visit_banks' | 'visit_cashflow' | 'check_month_impact' | 'visit_maturity'
-  | 'plan_maturity' | 'download_reminder' | 'visit_daily' | 'visit_market' | 'visit_alternatives'
+  | 'plan_maturity' | 'download_reminder' | 'share_result' | 'open_shared' | 'visit_daily' | 'visit_market' | 'visit_alternatives'
 
 export const PAGE_EVENTS: Record<string, AnalyticsEvent> = {
   '/conditions': 'visit_conditions',
