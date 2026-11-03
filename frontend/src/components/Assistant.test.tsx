@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -82,6 +82,34 @@ describe('Assistant', () => {
     expect(screen.getByTestId('where')).toHaveTextContent('/market')
   })
 
+  it('takes turns between idle poses, holds still for reduced motion, and naps when hidden', () => {
+    vi.useFakeTimers()
+    try {
+      renderAssistant()
+      const dog = () => document.querySelector('.assistant__dog img')?.getAttribute('src') ?? ''
+      expect(dog()).toContain('moneydog.png')
+      act(() => { vi.advanceTimersByTime(7_000) })
+      expect(dog()).toContain('moneydog-glasses')
+      act(() => { vi.advanceTimersByTime(7_000) })
+      expect(dog()).toContain('moneydog-read')
+      act(() => { vi.advanceTimersByTime(14_000) })
+      expect(dog()).toContain('moneydog.png')  // back to the start after four poses
+      cleanup()
+
+      vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), addEventListener: () => undefined, removeEventListener: () => undefined }))
+      renderAssistant()
+      act(() => { vi.advanceTimersByTime(30_000) })
+      expect(dog()).toContain('moneydog.png')
+      cleanup()
+
+      window.localStorage.setItem(ASSISTANT_HIDDEN_KEY, '1')
+      renderAssistant()
+      expect(screen.getByRole('button', { name: '도우미 다시 부르기' }).querySelector('img')?.getAttribute('src')).toContain('moneydog-rest')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('never recommends a product and says so', async () => {
     const user = userEvent.setup()
     renderAssistant()
@@ -161,7 +189,7 @@ describe('Assistant AI answers', () => {
     release(json({ answer: '지금은 질문에 답하기 어려워요.', links: [], source: 'rule' }))
 
     expect(await screen.findByText('지금은 질문에 답하기 어려워요.')).toBeInTheDocument()
-    expect(dog()).toContain('moneydog.png')
+    expect(dog()).toContain('moneydog-glasses')  // listening while the bubble is open
     expect(screen.queryByText(/AI가 쓴 답변/)).not.toBeInTheDocument()
   })
 
