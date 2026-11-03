@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError, askAssistant } from '../api/client'
+import dogGlassesImage from '../assets/icons/moneydog-glasses.png'
 import dogImage from '../assets/icons/moneydog.png'
+import dogReadImage from '../assets/icons/moneydog-read.png'
+import dogRestImage from '../assets/icons/moneydog-rest.png'
 import dogSearchImage from '../assets/icons/moneydog-search.png'
+import dogSniffImage from '../assets/icons/moneydog-sniff.png'
 import { findAnswer, GREETING, type AssistantAnswer, type AssistantSource } from './assistantAnswers'
 import './Assistant.css'
 
@@ -29,6 +33,13 @@ const DOG_WIDTH = 84
 const DOG_HEIGHT = 100
 const BUBBLE_WIDTH = 290
 const DRAG_THRESHOLD = 4
+// While nobody is talking to it the dog takes turns: holding a book, glasses on, reading, sniffing around.
+const IDLE_POSES = [dogImage, dogGlassesImage, dogReadImage, dogSniffImage]
+const POSE_SECONDS = 7
+
+function prefersReducedMotion() {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
 
 function readFlag(key: string): boolean {
   try {
@@ -63,10 +74,18 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [happy, setHappy] = useState(false)
   const [thinking, setThinking] = useState(false)
+  const [pose, setPose] = useState(0)
   const requestId = useRef(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const drag = useRef<{ pointerId: number; startX: number; startY: number; baseX: number; baseY: number; moved: boolean } | null>(null)
   const justDragged = useRef(false)
+
+  useEffect(() => {
+    // Listening or thinking poses take over; people who asked for less motion get one still pose.
+    if (open || thinking || prefersReducedMotion()) return
+    const timer = window.setInterval(() => setPose((current) => (current + 1) % IDLE_POSES.length), POSE_SECONDS * 1000)
+    return () => window.clearInterval(timer)
+  }, [open, thinking])
 
   useEffect(() => {
     if (open) {
@@ -173,7 +192,7 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
 
   if (hidden) {
     return <button className="assistant-recall" type="button" onClick={show} aria-label="도우미 다시 부르기" title="도우미 다시 부르기">
-      <img src={dogImage} alt="" aria-hidden="true" />
+      <img src={dogRestImage} alt="" aria-hidden="true" />
     </button>
   }
 
@@ -222,7 +241,7 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
       aria-expanded={open} aria-label={open ? '도우미 말풍선 닫기' : '도우미에게 물어보기'} title="클릭하면 말풍선, 끌면 위치 이동"
     >
       {/* While an answer is being looked up the dog holds a magnifying glass instead of its book. */}
-      <img src={thinking ? dogSearchImage : dogImage} alt="" aria-hidden="true" draggable={false} />
+      <img src={thinking ? dogSearchImage : open ? dogGlassesImage : IDLE_POSES[pose]} alt="" aria-hidden="true" draggable={false} />
     </button>
   </aside>
 }
