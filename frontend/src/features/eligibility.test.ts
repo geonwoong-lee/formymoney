@@ -82,3 +82,12 @@ describe('judgeYouthEligibility', () => {
     expect(verdictToAnswer('not_eligible')).toBe('not_eligible')
   })
 })
+
+describe('judge wording', () => {
+  it('shows the real age next to the age without service, and what is missing for the preferred type', () => {
+    const served = judgeYouthEligibility({ ...base, birthDate: '2002-01-01', militaryMonths: 24, smallCompany: false }, TODAY)
+    expect(served?.lines[0]).toContain('실제 만 24세에서 병역 24개월을 빼 22세')
+    expect(served?.verdict).toBe('general')
+    expect(served?.lines.at(-1)).toBe('우대형이 되려면: 중소기업에 재직 중이어야 해요.')
+  })
+})
