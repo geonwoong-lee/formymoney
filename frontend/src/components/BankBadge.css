@@ -1,19 +1,7 @@
 .bank-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  min-width: 34px;
-  height: 26px;
-  padding: 0 4px;
+  display: inline-block;
+  flex: none;
   margin-right: 8px;
   vertical-align: middle;
-  border: 2px outset #fff;
-  background: #c0c0c0;
-  color: #000080;
-  font: 700 13px "Courier New", monospace;
-  letter-spacing: -0.5px;
-  white-space: nowrap;
+  image-rendering: pixelated;
 }
-
-.bank-badge--long { font-size: 11px; }
