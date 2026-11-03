@@ -285,6 +285,27 @@ export function getEvents(signal?: AbortSignal, days = 60): Promise<EventsRespon
   return request<EventsResponse>(`/api/v1/events?days=${days}`, { signal })
 }
 
+export interface AccountWatchItem {
+  kind: 'deposit' | 'saving'
+  company: string
+  productCode: string
+  productName: string
+}
+
+export function getAccountWatchlist(accessToken: string, signal?: AbortSignal): Promise<{ items: AccountWatchItem[]; updatedAt: string | null; limit: number }> {
+  return request('/api/v1/me/watchlist', { headers: bearer(accessToken), signal })
+}
+
+export function putAccountWatchlist(accessToken: string, items: AccountWatchItem[]): Promise<{ items: AccountWatchItem[]; updatedAt: string | null; limit: number }> {
+  return request('/api/v1/me/watchlist', {
+    method: 'PUT', headers: { ...bearer(accessToken), 'Content-Type': 'application/json' }, body: JSON.stringify({ items }),
+  })
+}
+
+export function deleteAccountWatchlist(accessToken: string): Promise<void> {
+  return request('/api/v1/me/watchlist', { method: 'DELETE', headers: bearer(accessToken) })
+}
+
 export interface SavedPlan {
   id: number
   name: string

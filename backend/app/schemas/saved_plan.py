@@ -65,3 +65,23 @@ class SavedPlanResponse(CamelModel):
 class SavedPlansResponse(CamelModel):
     plans: list[SavedPlanResponse]
     limit: int
+
+
+WATCHLIST_LIMIT = 30
+
+
+class WatchedProduct(CamelModel):
+    kind: Literal["deposit", "saving"]
+    company: str = Field(min_length=1, max_length=100)
+    product_code: str = Field(min_length=1, max_length=60)
+    product_name: str = Field(min_length=1, max_length=200)
+
+
+class WatchlistRequest(CamelModel):
+    items: list[WatchedProduct] = Field(max_length=WATCHLIST_LIMIT)
+
+
+class WatchlistResponse(CamelModel):
+    items: list[WatchedProduct]
+    updated_at: datetime | None = None
+    limit: int = WATCHLIST_LIMIT

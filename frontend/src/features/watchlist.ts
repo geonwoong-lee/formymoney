@@ -59,3 +59,15 @@ export function saveDismissedDay(day: string) {
     // Storage blocked: the notice comes back on the next visit.
   }
 }
+
+/** Replaces the whole list (after loading from the account or removing one), without duplicates and within the cap. */
+export function replaceWatchlist(items: WatchedProduct[]): WatchedProduct[] {
+  const unique = items.filter((item, index) => items.findIndex((other) => sameProduct(other, item)) === index).slice(0, MAX_WATCHED)
+  saveWatchlist(unique)
+  return unique
+}
+
+/** This device's products first, then the account's that are not already here, up to the cap. */
+export function mergeWatchlists(local: WatchedProduct[], remote: WatchedProduct[]): WatchedProduct[] {
+  return [...local, ...remote.filter((item) => !isWatched(local, item))].slice(0, MAX_WATCHED)
+}
