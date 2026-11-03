@@ -6,7 +6,7 @@ import {
 } from '../api/client'
 import { MoneyInput } from '../components/MoneyInput'
 import { track } from '../features/analytics'
-import { buildMaturityIcs, downloadIcs, maturityMonth, REMINDER_DAYS } from '../features/maturityCalendar'
+import { buildMaturityIcs, downloadIcs, maturityMonth, REMINDER_DAYS, EARLY_REMINDER_DAYS } from '../features/maturityCalendar'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
 import { DepositProducts } from './DepositProducts'
@@ -202,7 +202,7 @@ export function MaturityPage() {
           const ics = buildMaturityIcs(reminder)
           if (ics) { downloadIcs(ics, 'very-rich-maturity.ics'); track('download_reminder') }
         }}>캘린더에 만기 알림 넣기(.ics)</button>
-        <p className="maturity-muted">휴대폰·구글·아웃룩 캘린더에서 열면 만기 {REMINDER_DAYS}일 전에 알려 줘요. 파일은 이 기기에서만 만들고 어디에도 보내지 않아요. 정확한 만기일은 가입한 은행에서 확인해 주세요.</p>
+        <p className="maturity-muted">휴대폰·구글·아웃룩 캘린더에서 열면 만기 {EARLY_REMINDER_DAYS}일 전과 {REMINDER_DAYS}일 전에 알려 줘요. 파일은 이 기기에서만 만들고 어디에도 보내지 않아요. 정확한 만기일은 가입한 은행에서 확인해 주세요.</p>
       </div>}
       {amountError && <p className="maturity-error" role="alert">{amountError}</p>}
     </section>

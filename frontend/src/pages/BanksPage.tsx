@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { RateExplain } from '../components/RateExplain'
 import { Link } from 'react-router-dom'
 import { calculateSavings, getSavingsProducts, type SavingsCalculationResponse } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
@@ -59,6 +60,7 @@ export function BanksPage() {
               </small>}
             </div>
             <Link className="button button--small" to={`/banks/${bank.bankCode}`}>상세</Link>
+            <RateExplain bank={bank} />
           </li>)}
         </ol>
         <p className="source-note">공시 확인일 {[...new Set(result.results.map((bank) => bank.sourceDate))].sort().join(', ')} · 예상금리는 입력한 우대조건 답변 기준의 예상치입니다. 개인별 세금, 은행의 최종 서류 심사와 공시 이후 바뀐 조건은 반영하지 않았습니다. 자세한 기준은 <Link to="/about">계산 기준 및 출처</Link>에서 확인하세요.</p>

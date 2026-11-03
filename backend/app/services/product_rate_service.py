@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.collectors.finlife import ProductRate
 from app.models.product_rate import ProductInfo, ProductRateSnapshot
 
-KEEP_DAYS = 14
+KEEP_DAYS = 60  # about 3,600 rows (~1 MB with indexes) a day, so ~60 MB; enough to draw a rate's path
 # The site's bank codes and how 금감원 names those banks. 우체국 is not in the disclosure.
 FINLIFE_COMPANIES = {
     "kb": "국민은행", "shinhan": "신한은행", "nh": "농협은행주식회사", "woori": "우리은행", "hana": "주식회사 하나은행",
@@ -38,7 +38,7 @@ class ProductRateService:
         self.session = session
 
     def save_snapshot(self, day: date, rates: list[ProductRate]) -> int:
-        """Replace that day's snapshot (a re-run on the same day overwrites it) and drop days older than two weeks."""
+        """Replace that day's snapshot (a re-run on the same day overwrites it) and drop days older than KEEP_DAYS."""
         self.session.execute(delete(ProductRateSnapshot).where(ProductRateSnapshot.day == day))
         seen: set[Key] = set()
         for rate in rates:

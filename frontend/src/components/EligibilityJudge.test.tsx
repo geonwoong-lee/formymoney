@@ -42,7 +42,7 @@ describe('EligibilityJudge', () => {
     expect(screen.queryByLabelText('나와 배우자 둘뿐인 가구예요')).not.toBeInTheDocument()
     await user.selectOptions(screen.getByLabelText('가구원 수(나 포함)'), '2')
     expect(screen.getByLabelText('나와 배우자 둘뿐인 가구예요')).toBeInTheDocument()
-    await user.selectOptions(screen.getByLabelText('가구원 수(나 포함)'), '5')
+    await user.selectOptions(screen.getByLabelText('가구원 수(나 포함)'), '7')
     expect(screen.queryByLabelText('가구 전체의 작년 소득(만원)')).not.toBeInTheDocument()
   })
 })

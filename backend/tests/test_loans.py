@@ -106,3 +106,21 @@ def test_saving_loans_keeps_the_old_list_when_a_disclosure_comes_back_empty_or_a
 
     body = client.post(URL, json={"principal": 100_000_000, "months": 12}).json()
     assert body["count"] == 1 and body["day"] == "2026-11-03"
+
+
+def test_guarantee_body_is_read_from_the_product_name_and_can_filter(client: TestClient) -> None:
+    from app.services.loan_service import guarantee_of
+
+    assert [guarantee_of(name) for name in (
+        "NH전세대출(서울보증보험)", "우리전세론(주택금융보증)", "IBK전세대출 (HUG)", "카카오 HF 전월세보증금 대출", "SGI 전월세보증금 대출",
+        "NH전세대출(주택도시보증공사)", "KB주택전세자금대출", "Sh전세금안심대출",
+    )] == ["서울보증보험", "주택금융공사", "주택도시보증공사", "주택금융공사", "서울보증보험", "주택도시보증공사", "", ""]
+
+    with client.app.state.session_factory() as session:
+        save_loans(session, date(2026, 11, 3), [
+            _loan(code="1", name="가전세(서울보증보험)"), _loan(code="2", name="나전세(주택금융공사)"), _loan(code="3", name="다전세"),
+        ])
+    everything = client.post(URL, json={"principal": 100_000_000, "months": 24}).json()["products"]
+    assert {row["productName"]: row["guarantee"] for row in everything} == {"가전세(서울보증보험)": "서울보증보험", "나전세(주택금융공사)": "주택금융공사", "다전세": ""}
+    only = client.post(URL, json={"principal": 100_000_000, "months": 24, "guarantee": "hf"}).json()
+    assert [row["productName"] for row in only["products"]] == ["나전세(주택금융공사)"]

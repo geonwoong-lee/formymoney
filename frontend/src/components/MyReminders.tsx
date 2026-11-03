@@ -1,5 +1,5 @@
 import { track } from '../features/analytics'
-import { buildMaturityIcs, buildMonthlyCheckIcs, CHECK_DAY, downloadIcs, REMINDER_DAYS } from '../features/maturityCalendar'
+import { buildMaturityIcs, buildMonthlyCheckIcs, CHECK_DAY, downloadIcs, REMINDER_DAYS, EARLY_REMINDER_DAYS } from '../features/maturityCalendar'
 
 interface Props {
   startMonth: string
@@ -28,7 +28,7 @@ export function MyReminders({ startMonth, termMonths, bankName, productName, mat
       {monthlyAvailable && <button type="button" className="button button--secondary" onClick={() => download(buildMonthlyCheckIcs(plan), 'very-rich-condition-check.ics')}>매달 우대조건 확인 알림(.ics)</button>}
     </div>
     <p className="my-savings__muted">
-      {!matured && `만기 알림은 만기 달 ${REMINDER_DAYS}일 전에 알려 줘요. `}
+      {!matured && `만기 알림은 만기 달 ${EARLY_REMINDER_DAYS}일 전과 ${REMINDER_DAYS}일 전에 알려 줘요. `}
       {monthlyAvailable && `매달 확인 알림은 남은 납입 달마다 ${CHECK_DAY}일 아침 9시에 알려 줘요. `}
       휴대폰·구글·아웃룩 캘린더에서 열어 주세요. 파일은 이 기기에서만 만들고 어디에도 보내지 않아요. 정확한 만기일은 가입한 은행에서 확인해 주세요.
     </p>

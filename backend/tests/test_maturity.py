@@ -263,3 +263,20 @@ def test_the_context_is_empty_when_nothing_was_collected(client: TestClient) -> 
     assert body["context"] == {
         "baseRate": None, "baseRatePeriod": None, "depositAverage": None, "depositAveragePeriod": None, "inflation": None, "inflationPeriod": None,
     }
+
+
+def test_deposit_products_always_mention_the_comprehensive_tax_and_warn_when_the_interest_gets_large(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        ProductRateService(session).save_snapshot(date(2026, 11, 3), [ProductRate(
+            kind="deposit", group="은행", company="가은행", product_code="D1", product_name="가 예금", term_months=12, rate_type="단리",
+            reserve_type="", base_rate=Decimal("3.00"), max_rate=None, disclosed_month="202610",
+        )])
+    url = "/api/v1/maturity-plan/deposit-products"
+
+    small = client.post(url, json={"amount": 10_000_000, "months": 12, "group": "bank"}).json()["notes"]
+    assert any("금융소득종합과세" in note for note in small)
+    assert not any("2,000만 원을 넘을 수 있어요" in note for note in small)
+
+    # 800,000,000 at 3% for a year: 24,000,000 interest before tax.
+    large = client.post(url, json={"amount": 800_000_000, "months": 12, "group": "bank"}).json()["notes"]
+    assert any("2,000만 원을 넘을 수 있어요" in note for note in large)

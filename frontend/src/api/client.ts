@@ -451,6 +451,7 @@ export interface MaturityPlanResponse {
 }
 
 export interface DepositProduct {
+  disclosedMonth?: string
   company: string
   productCode: string
   reserveType: string
@@ -543,6 +544,7 @@ export interface LoanProduct {
   productName: string
   repayType: string
   rateType: string
+  guarantee: string
   rateMin: string
   rateMax: string
   monthlyLabel: string
@@ -571,6 +573,7 @@ export interface LoanProductsResponse {
 
 export function getLoanProducts(payload: {
   principal: number; months: number; group: DepositGroup; repay: 'all' | 'interest_only' | 'instalment'; rateType: 'all' | 'fixed' | 'variable'
+  guarantee: 'all' | 'sgi' | 'hf' | 'hug'
 }, signal?: AbortSignal): Promise<LoanProductsResponse> {
   return request('/api/v1/loan-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
 }
@@ -883,4 +886,70 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
+}
+
+export interface CollectionOverview {
+  today: string
+  productRates: { day: string | null; rows: number; stale: boolean }
+  productInfos: { rows: number }
+  loans: { day: string | null; rows: number; stale: boolean }
+  dart: { banks: number; latestFilingDay: string | null }
+  market: { code: string; name: string; period: string; fetchedAt: string | null }[]
+}
+
+export interface CollectionRun {
+  id: number
+  workflow: string
+  status: string
+  stage: string | null
+  errorMessage: string | null
+  published: number
+  finishedAt: string
+}
+
+export interface CollectionStatus {
+  latestStatus: string | null
+  recent: CollectionRun[]
+  todayTokens: number
+  dailyTokenLimit: number
+  tokenLimitExceeded: boolean
+}
+
+export interface FunnelStep { event: string; label: string; inFunnel: boolean; count: number; ofFirstStepPercent: number | null }
+export interface Funnel { start: string; end: string; steps: FunnelStep[] }
+
+const ingestHeaders = (secret: string) => ({ 'X-Very-Rich-Ingest-Secret': secret })
+
+// Operator screens: the secret is typed by the operator, kept only in memory, and sent only as this header.
+export const getCollectionOverview = (secret: string) => request<CollectionOverview>('/api/v1/internal/collection/overview', { headers: ingestHeaders(secret) })
+export const getCollectionStatus = (secret: string) => request<CollectionStatus>('/api/v1/internal/daily/runs/status', { headers: ingestHeaders(secret) })
+export const getFunnel = (secret: string, days: number) => request<Funnel>(`/api/v1/internal/analytics/funnel?days=${days}`, { headers: ingestHeaders(secret) })
+
+export interface ProductOptionDetail {
+  termMonths: number
+  rateType: string
+  reserveType: string
+  disclosedMonth: string
+  history: { day: string; baseRate: string | null; maxRate: string | null }[]
+}
+
+export interface ProductDetail {
+  kind: 'deposit' | 'saving'
+  company: string
+  productCode: string
+  productName: string
+  group: string
+  firstDay: string
+  lastDay: string
+  daysCollected: number
+  terms: { joinWay: string; joinMember: string; joinLimit: string; specialConditions: string; maxLimit: number | null; etcNote: string; maturityInterest: string } | null
+  options: ProductOptionDetail[]
+  notes: string[]
+  sourceName: string
+  sourceUrl: string
+}
+
+export function getProductDetail(kind: 'deposit' | 'saving', company: string, code: string, signal?: AbortSignal): Promise<ProductDetail> {
+  const query = new URLSearchParams({ kind, company, code })
+  return request<ProductDetail>(`/api/v1/product-detail?${query.toString()}`, { signal })
 }

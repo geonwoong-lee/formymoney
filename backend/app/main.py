@@ -77,8 +77,8 @@ def create_app(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
         allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Very-Rich-Ingest-Secret"],
     )
     register_error_handlers(app)
     app.include_router(api_router, prefix=settings.api_v1_prefix)

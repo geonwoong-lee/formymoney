@@ -1,7 +1,9 @@
-// A calendar file (.ics) for the month a savings plan matures, with a reminder 30 days before.
+// A calendar file (.ics) for the month a savings plan matures, with reminders 90 and 30 days before.
 // Built in the browser and downloaded by the user; nothing about the plan is sent or stored anywhere.
 
 export const REMINDER_DAYS = 30
+// The earlier nudge leaves time to compare where the money goes next before the plan ends.
+export const EARLY_REMINDER_DAYS = 90
 
 export function maturityMonth(startMonth: string, termMonths: number): string | null {
   const match = /^(\d{4})-(\d{2})$/.exec(startMonth)
@@ -40,6 +42,11 @@ export function buildMaturityIcs(
     `DTEND;VALUE=DATE:${nextDay}`,
     `SUMMARY:${escapeText(title)}`,
     `DESCRIPTION:${escapeText(description)}`,
+    'BEGIN:VALARM',
+    `TRIGGER:-P${EARLY_REMINDER_DAYS}D`,
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${escapeText(`${title}까지 ${EARLY_REMINDER_DAYS}일 남았어요. 만기금액을 어디에 둘지 만기 후 계획에서 비교해 보세요`)}`,
+    'END:VALARM',
     'BEGIN:VALARM',
     `TRIGGER:-P${REMINDER_DAYS}D`,
     'ACTION:DISPLAY',

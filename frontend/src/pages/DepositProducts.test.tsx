@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom'
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -36,7 +37,7 @@ describe('DepositProducts', () => {
         : response('은행', [product('가은행', '3.00', 10_253_800, '3.50', 10_296_100), product('나은행', '3.50', 10_296_100), ...many])))
     })
     vi.stubGlobal('fetch', fetch)
-    render(<DepositProducts amount={10_000_000} months={12} headingId="x" />)
+    render(<MemoryRouter><DepositProducts amount={10_000_000} months={12} headingId="x" /></MemoryRouter>)
 
     const summary = await screen.findByLabelText('기본금리로 받는 돈의 범위')
     expect(summary).toHaveTextContent('가장 적게10,169,200원연 2%')
@@ -71,7 +72,7 @@ describe('DepositProducts', () => {
       maxLimit: 5_000_000, overLimit: true, etcNote: '해당사항 없음', maturityInterest: '만기 후 1개월: 약정이율의 50%',
     }
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(respond(response('은행', [strict, product('나은행', '2.00', 10_169_200)])))))
-    render(<DepositProducts amount={10_000_000} months={12} headingId="x" />)
+    render(<MemoryRouter><DepositProducts amount={10_000_000} months={12} headingId="x" /></MemoryRouter>)
 
     const list = await screen.findByRole('list', { name: '은행 정기예금 목록' })
     const [first, second] = within(list).getAllByRole('listitem')
@@ -98,12 +99,12 @@ describe('DepositProducts', () => {
 
   it('says so when nothing is collected or the request fails', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(respond({ ...response('은행', []), count: 0, lowest: null, middle: null, highest: null, day: null }))))
-    render(<DepositProducts amount={10_000_000} months={24} headingId="x" />)
+    render(<MemoryRouter><DepositProducts amount={10_000_000} months={24} headingId="x" /></MemoryRouter>)
     expect(await screen.findByText('아직 모은 24개월 정기예금 공시 금리가 없어요.')).toBeInTheDocument()
 
     cleanup()
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(respond({ error: { code: 'x', message: 'x' } }, 503))))
-    render(<DepositProducts amount={10_000_000} months={12} headingId="x" />)
+    render(<MemoryRouter><DepositProducts amount={10_000_000} months={12} headingId="x" /></MemoryRouter>)
     expect(await screen.findByText('공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.')).toBeInTheDocument()
   })
 })

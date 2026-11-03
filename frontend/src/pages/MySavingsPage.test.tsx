@@ -105,6 +105,19 @@ describe('MySavingsPage', () => {
     expect(monthly).toHaveTextContent('1개 중 0개 채웠어요, 1개는 아직이에요')
   })
 
+  it('says when maturity is close and points to the comparison with a deposit', async () => {
+    saveDraft({ ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 500_000, startMonth: '2026-01', enrollmentStatus: 'enrolled' } })
+    stub(status({ timeline: { phase: 'saving', startMonth: '2023-12', maturityMonth: '2026-12', currentRound: 35, termMonths: 36, monthsToMaturity: 2 } }))
+    renderPage()
+    const after = await screen.findByRole('region', { name: '만기 후엔 어떻게 할까요?' })
+    expect(after).toHaveTextContent('만기까지 2개월 남았어요')
+
+    cleanup()
+    stub(status())
+    renderPage()
+    expect(await screen.findByRole('region', { name: '만기 후엔 어떻게 할까요?' })).not.toHaveTextContent('개월 남았어요')
+  })
+
   it('explains the other phases', async () => {
     saveDraft({ ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 500_000 } })
     stub(status({ timeline: { phase: 'unknown', startMonth: null, maturityMonth: null, currentRound: null, termMonths: 36, monthsToMaturity: null } }))

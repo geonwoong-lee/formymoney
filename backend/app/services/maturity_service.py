@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.calculators.maturity import (
+    INTEREST_TAX,
     deposit_lump_sum_compound,
     monthly_savings_after_tax,
     deposit_lump_sum,
@@ -194,6 +195,10 @@ def rate_scenario(request: RateScenarioRequest) -> RateScenarioResponse:
 
 
 PRODUCT_GROUPS = {"bank": "은행", "savings_bank": "저축은행"}
+COMPREHENSIVE_TAX = 20_000_000  # yearly interest plus dividends above this are taxed together with other income
+COMPREHENSIVE_TAX_NOTE = "이자와 배당을 합친 돈이 한 해 2,000만 원을 넘으면 금융소득종합과세 대상이라 세금이 15.4%보다 커질 수 있어요. 이 계산은 그 제도를 반영하지 않아요."
+COMPREHENSIVE_TAX_WARNING = "내가 넣은 금액이면 이 가운데 일부 상품은 이자만 한 해 2,000만 원을 넘을 수 있어요. 그러면 다른 이자·배당과 합쳐 종합과세 대상이 될 수 있어서 세후 금액이 실제와 다를 수 있어요."
+
 PRODUCT_NOTES = {
     "bank": [
         "금융감독원 「금융상품 한눈에」에 공시된 정기예금을 같은 금액·기간으로 계산했어요. 세후 금액은 이자에 붙는 15.4% 세금을 뺀 값이에요.",
@@ -273,7 +278,7 @@ def _disclosed_products(
         }
 
     products = [DepositProductRow(
-        company=shown_company(row.company), product_code=row.product_code, reserve_type=row.reserve_type,
+        company=shown_company(row.company), product_code=row.product_code, reserve_type=row.reserve_type, disclosed_month=row.disclosed_month,
         product_name=" ".join(row.product_name.split()), rate_type=row.rate_type or "단리",
         base_rate=row.base_rate, max_rate=row.max_rate,
         base_after_tax=after_tax(amount, months, row.base_rate, row.rate_type),
@@ -298,11 +303,16 @@ def _disclosed_products(
 
 
 def deposit_products(session: Session, request: DepositProductsRequest) -> DepositProductsResponse:
-    return _disclosed_products(session, "deposit", request.group, request.months, request.amount, _after_tax, PRODUCT_NOTES[request.group], None)
+    response = _disclosed_products(session, "deposit", request.group, request.months, request.amount, _after_tax, PRODUCT_NOTES[request.group] + [COMPREHENSIVE_TAX_NOTE], None)
+    # Gross yearly interest worked back from the after-tax gain, for the product that pays the most.
+    best_gain = max((item.base_after_tax - request.amount for item in response.products), default=0)
+    if best_gain / (1 - INTEREST_TAX) * 12 / request.months > COMPREHENSIVE_TAX:
+        response.notes.append(COMPREHENSIVE_TAX_WARNING)
+    return response
 
 
 def saving_products(session: Session, request: SavingProductsRequest) -> DepositProductsResponse:
     return _disclosed_products(
-        session, "saving", request.group, request.months, request.monthly_amount, _saving_after_tax, SAVING_NOTES[request.group],
+        session, "saving", request.group, request.months, request.monthly_amount, _saving_after_tax, SAVING_NOTES[request.group] + [COMPREHENSIVE_TAX_NOTE],
         request.monthly_amount * request.months, request.reserve,
     )
