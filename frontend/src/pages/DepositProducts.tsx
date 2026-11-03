@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { formatKrwExact } from '../features/krw'
 import { isWatched, loadWatchlist, MAX_WATCHED, toggleWatched, type WatchedProduct } from '../features/watchlist'
-import { getDepositProducts, getSavingProducts, type DepositGroup, type DepositProduct, type DepositProductsResponse } from '../api/client'
+import { getDepositProducts, getSavingProducts, type RateContext, type DepositGroup, type DepositProduct, type DepositProductsResponse } from '../api/client'
 
 const PAGE = 10
 const won = (value: number) => `${value.toLocaleString('ko-KR')}원`
@@ -66,6 +66,21 @@ function ProductRow({ product, watched, onToggle, full }: { product: DepositProd
     {hasBonus && <p className="maturity-muted">우대 조건을 다 채우면 {percent(product.maxRate as string)} → 세후 {won(product.maxAfterTax as number)}</p>}
     <Terms product={product} />
   </li>
+}
+
+const monthLabel = (period: string) => `${period.slice(0, 4)}.${period.slice(4, 6)}`
+
+// Official figures next to the list so the rates can be read against them. Only the numbers are shown; no verdict.
+function RateContextLine({ context, middleRate }: { context: RateContext; middleRate: string }) {
+  const parts = [
+    context.baseRate !== null && `한국은행 기준금리 ${percent(context.baseRate)}`,
+    context.depositAverage !== null && context.depositAveragePeriod && `은행 신규 예금 평균금리 ${percent(context.depositAverage)}(${monthLabel(context.depositAveragePeriod)})`,
+    context.inflation !== null && context.inflationPeriod && `소비자물가 상승률 ${percent(context.inflation)}(${monthLabel(context.inflationPeriod)})`,
+  ].filter(Boolean)
+  if (parts.length === 0) return null
+  return <p className="maturity-muted deposit-context">
+    참고로 {parts.join(', ')}이에요. 이 목록 가운데 상품의 금리는 {percent(middleRate)}예요. 평균은 우대조건이 없는 기준이라 상품 금리와 바로 견주기는 어려워요.
+  </p>
 }
 
 interface ProductListProps {
@@ -135,6 +150,7 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
       </dl>
       <p className="maturity-muted">{body.group} {noun} {body.count.toLocaleString('ko-KR')}개(단리·복리 따로 셈)를 기본금리로 계산한 범위예요. 같은 돈이라도 어느 상품이냐에 따라 받는 돈이 이만큼 달라져요.
         {typeof body.principal === 'number' && ` 내가 넣는 원금은 ${won(body.principal)}이에요.`}</p>
+      {body.context && <RateContextLine context={body.context} middleRate={body.middle.ratePercent} />}
       <ul className="deposit-products" aria-label={`${body.group} ${noun} 목록`}>
         {products.slice(0, shownCount).map((product) => {
           const item: WatchedProduct = { kind, company: product.company, productCode: product.productCode, productName: product.productName }

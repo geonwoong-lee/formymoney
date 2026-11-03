@@ -87,7 +87,7 @@ describe('MySavingsPage', () => {
       conditionAnswers: { salary: 'yes', card: 'no', app: 'unknown' } })
 
     expect(screen.getByRole('progressbar', { name: '납입 진행' })).toHaveAttribute('aria-valuenow', '11')
-    expect(screen.getByText('19,750,750원')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: '지금 내 적금' })).getByText('19,750,750원')).toBeInTheDocument()
     expect(screen.getByText(/매달 똑같이 넣었을 때보다 800,000원 적어요/)).toBeInTheDocument()
     const payments = screen.getByRole('region', { name: '납입 현황' })
     expect(payments).toHaveTextContent('이번 달까지 넣은 돈4,750,000원 (10회)')
@@ -98,6 +98,8 @@ describe('MySavingsPage', () => {
     expect(within(conditions).getByText('반영된 조건 1개')).toBeInTheDocument()
     expect(conditions).toHaveTextContent('카드 실적')
     expect(screen.getByRole('region', { name: '다가올 일정' })).toHaveTextContent('D-2 11월 5일 미국 FOMC 금리 결정')
+    expect(screen.getByRole('link', { name: '만기 후 계획으로 이어서 보기' })).toHaveAttribute('href', '/maturity?from=my-savings')
+    expect(screen.getByRole('region', { name: '만기 후엔 어떻게 할까요?' })).toHaveTextContent('예상 만기금액 19,750,750원')
     // The monthly check lists the counted condition and starts with nothing answered.
     const monthly = screen.getByRole('region', { name: /우대조건 체크/ })
     expect(monthly).toHaveTextContent('1개 중 0개 채웠어요, 1개는 아직이에요')

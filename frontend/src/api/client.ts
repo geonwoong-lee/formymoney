@@ -475,6 +475,15 @@ export interface DepositRatePoint {
   afterTax: number
 }
 
+export interface RateContext {
+  baseRate: string | null
+  baseRatePeriod: string | null
+  depositAverage: string | null
+  depositAveragePeriod: string | null
+  inflation: string | null
+  inflationPeriod: string | null
+}
+
 export interface DepositProductsResponse {
   amount: number
   months: number
@@ -489,6 +498,7 @@ export interface DepositProductsResponse {
   notes: string[]
   sourceName: string
   sourceUrl: string
+  context?: RateContext | null
 }
 
 export type DepositGroup = 'bank' | 'savings_bank'
@@ -525,6 +535,44 @@ export function getDepositProducts(payload: { amount: number; months: 12 | 24; g
 
 export function getSavingProducts(payload: { monthlyAmount: number; months: 6 | 12 | 24 | 36; group: DepositGroup; reserve: 'all' | 'fixed' | 'free' }, signal?: AbortSignal): Promise<DepositProductsResponse> {
   return request('/api/v1/saving-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
+}
+
+export interface LoanProduct {
+  company: string
+  productCode: string
+  productName: string
+  repayType: string
+  rateType: string
+  rateMin: string
+  rateMax: string
+  monthlyLabel: string
+  monthlyMin: number
+  monthlyMax: number
+  totalInterestMin: number
+  totalInterestMax: number
+  loanLimit: string
+  earlyRepayFee: string
+  delayRate: string
+  joinWay: string
+  disclosedMonth: string
+}
+
+export interface LoanProductsResponse {
+  principal: number
+  months: number
+  group: string
+  day: string | null
+  count: number
+  products: LoanProduct[]
+  notes: string[]
+  sourceName: string
+  sourceUrl: string
+}
+
+export function getLoanProducts(payload: {
+  principal: number; months: number; group: DepositGroup; repay: 'all' | 'interest_only' | 'instalment'; rateType: 'all' | 'fixed' | 'variable'
+}, signal?: AbortSignal): Promise<LoanProductsResponse> {
+  return request('/api/v1/loan-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
 }
 
 export function planAfterMaturity(payload: {
