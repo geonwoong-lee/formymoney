@@ -61,7 +61,7 @@ def test_answer_with_an_unsupported_number_is_retried_then_replaced(client: Test
     body = client.post(URL, json={"message": "금리가 몇 퍼센트예요?"}).json()
 
     assert len(ask.calls) == 2 and "7.77" in ask.calls[1]["feedback"][0]
-    assert body["source"] == "rule"
+    assert body["source"] == "unavailable"
     assert "7.77" not in body["answer"]
 
 
@@ -122,3 +122,14 @@ def test_limiter_expires_old_hits() -> None:
 def test_context_lists_only_reviewed_terms_with_explanations(client: TestClient) -> None:
     with client.app.state.session_factory() as session:
         assert "공개된 용어 설명이 아직 없습니다" in build_context(session)
+
+
+def test_a_refusal_that_says_it_cannot_recommend_is_not_rejected(client: TestClient) -> None:
+    # "추천할 수는 없어요" is what we want the model to say; only real recommendations are blocked.
+    ask = _ask(answer="목돈을 어디에 둘지는 성향마다 달라서 특정 상품을 추천할 수는 없어요. 만기 후 계획에서 비교해 보세요.")
+    client.app.state.assistant_ask = ask
+    body = client.post(URL, json={"message": "적금 만기되면 목돈은 어디에 둬?"}).json()
+    assert (body["source"], len(ask.calls)) == ("ai", 1)
+
+    client.app.state.assistant_ask = _ask(answer="이 예금을 추천드려요.")
+    assert client.post(URL, json={"message": "적금 만기되면 목돈은 어디에 둬?"}).json()["source"] == "unavailable"
