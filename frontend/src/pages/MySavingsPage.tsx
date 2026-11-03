@@ -1,3 +1,4 @@
+import { BankBadge } from '../components/BankBadge'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -58,7 +59,7 @@ function Status({ status, events }: { status: MyStatusResponse; events: Upcoming
   return <>
     <section className="my-savings__card" aria-labelledby="my-savings-now">
       <h2 id="my-savings-now">지금 내 적금</h2>
-      <p className="my-savings__muted">{result.bankName} {result.productName} · 예상금리 연 {result.expectedRate}%</p>
+      <p className="my-savings__muted"><BankBadge bankCode={result.bankCode} bankName={result.bankName} />{result.bankName} {result.productName} · 예상금리 연 {result.expectedRate}%</p>
       <Phase status={status} />
       <dl className="money-breakdown">
         <div><dt>예상 만기금액</dt><dd>{won(result.expectedMaturityAmount)}</dd></div>

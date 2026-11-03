@@ -1,3 +1,4 @@
+import { BankBadge } from '../components/BankBadge'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { calculateSavings, getSavingsProducts, type BankCalculationResult } from '../api/client'
@@ -40,7 +41,7 @@ export function BankDetailPage() {
     {error && <ErrorNotice message={error} onRetry={retry}><Link to="/banks">비교 목록으로</Link></ErrorNotice>}
     {!bank && !error && <p className="notice">계산 근거를 불러오는 중입니다.</p>}
     {bank && <>
-      <h1>{bank.bankName}</h1>
+      <h1><BankBadge bankCode={bank.bankCode} bankName={bank.bankName} />{bank.bankName}</h1>
       <p className="lead">예상금리 {bank.expectedRate}% · 예상 만기금액 {money.format(bank.expectedMaturityAmount)}원</p>
       <dl className="money-breakdown">
         <div><dt>내가 넣은 원금</dt><dd>{money.format(bank.principal)}원</dd></div>

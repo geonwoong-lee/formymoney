@@ -1,3 +1,4 @@
+import { BankBadge } from '../components/BankBadge'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { formatKrwExact } from '../features/krw'
@@ -53,7 +54,7 @@ function ProductRow({ kind, product, watched, onToggle, full }: { kind: 'deposit
   const limited = product.joinLimit && product.joinLimit !== '제한 없음'
   return <li className="deposit-product">
     <div className="deposit-product__top">
-      <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span>{product.reserveType && <> <span className="deposit-product__type">{product.reserveType}</span></>}</p>
+      <p className="deposit-product__name"><BankBadge bankName={product.company} /><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span>{product.reserveType && <> <span className="deposit-product__type">{product.reserveType}</span></>}</p>
       {product.productCode && <Link className="deposit-watch" to={`/product?${new URLSearchParams({ kind, company: product.company, code: product.productCode }).toString()}`}>상세</Link>}
       {product.productCode && <button
         type="button" className="deposit-watch" aria-pressed={watched} onClick={onToggle} disabled={!watched && full}
