@@ -165,7 +165,7 @@ describe('Assistant', () => {
 
     const answer = await screen.findByText(/잘 모르겠어요/).then((node) => node.closest('[role="status"]') as HTMLElement)
     expect(answer).toHaveTextContent('잘 모르겠어요')
-    expect(within(answer).getAllByRole('button')).toHaveLength(9)
+    expect(within(answer).getAllByRole('button')).toHaveLength(10)
   })
 
   it('can be hidden, stays hidden after a reload, and can be called back', async () => {

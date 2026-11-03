@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.calculators.maturity import (
     deposit_lump_sum_compound,
+    monthly_savings_after_tax,
     deposit_lump_sum,
     ending_value,
     holding_returns,
@@ -28,6 +29,7 @@ from app.schemas.maturity import (
     DepositProductsRequest,
     DepositProductsResponse,
     DepositRatePoint,
+    SavingProductsRequest,
     DepositOutcome,
     HoldingOutcome,
     MaturityOption,
@@ -214,16 +216,47 @@ def _after_tax(amount: int, months: int, rate: Decimal, rate_type: str) -> int:
     return calculate(amount, months, rate).ending_value_after_tax
 
 
-def deposit_products(session: Session, request: DepositProductsRequest) -> DepositProductsResponse:
-    """Today's disclosed fixed deposits for the term, each worked out for the user's own amount, highest base rate first."""
-    group = PRODUCT_GROUPS[request.group]
+def _saving_after_tax(monthly: int, months: int, rate: Decimal, rate_type: str) -> int:
+    return monthly_savings_after_tax(monthly, months, rate, rate_type == "복리").ending_value_after_tax
+
+
+SAVING_NOTES = {
+    "bank": [
+        "금융감독원 「금융상품 한눈에」에 공시된 은행 적금을 같은 월 납입액·기간으로 계산했어요. 세후 금액은 원금과 이자를 더한 뒤 이자에 붙는 15.4% 세금을 뺀 값이에요.",
+        "자유적립식도 매달 같은 금액을 넣는다고 보고 계산했어요. 실제로 넣는 금액이 달라지면 결과도 달라져요.",
+        "우대 포함 금리는 급여 이체, 카드 사용 같은 조건을 모두 채웠을 때만 받아요. 가입 대상·월 한도·가입 방법은 상품마다 달라 상품 설명서에서 확인해 주세요.",
+        "금리 순서로 보여 줄 뿐 어느 상품도 권하지 않아요.",
+    ],
+    "savings_bank": [
+        "금융감독원 「금융상품 한눈에」에 공시된 저축은행 적금을 같은 월 납입액·기간으로 계산했어요. 세후 금액은 원금과 이자를 더한 뒤 이자에 붙는 15.4% 세금을 뺀 값이에요.",
+        "저축은행 적금도 은행처럼 한 금융회사에서 1인당 원금과 이자를 합쳐 1억 원까지 예금자보호를 받아요. 넘는 금액은 보호받지 못해요.",
+        "자유적립식도 매달 같은 금액을 넣는다고 보고 계산했어요. 우대 포함 금리는 조건을 모두 채웠을 때만 받아요. 가입 대상·월 한도는 상품 설명서에서 확인해 주세요.",
+        "금리 순서로 보여 줄 뿐 어느 상품도 권하지 않아요.",
+    ],
+}
+RESERVE_TYPES = {"fixed": "정액적립식", "free": "자유적립식"}
+
+
+def _disclosed_products(
+    session: Session, kind: str, group_key: str, months: int, amount: int, after_tax, notes: list[str], principal: int | None,
+    reserve: str | None = None,
+) -> DepositProductsResponse:
+    """Today's disclosed products of one kind for a term, each worked out for the user's own amount.
+
+    `amount` is the lump sum for a deposit and the monthly payment for a savings plan; the screen shows the result
+    the same way for both: what the person gets at the end after tax.
+    """
+    group = PRODUCT_GROUPS[group_key]
     day = session.scalar(select(ProductRateSnapshot.day).order_by(ProductRateSnapshot.day.desc()).limit(1))
-    rows = [] if day is None else list(session.scalars(select(ProductRateSnapshot).where(
-        ProductRateSnapshot.day == day, ProductRateSnapshot.kind == "deposit", ProductRateSnapshot.group == group,
-        ProductRateSnapshot.term_months == request.months, ProductRateSnapshot.base_rate.is_not(None),
-    )))
+    conditions = [
+        ProductRateSnapshot.day == day, ProductRateSnapshot.kind == kind, ProductRateSnapshot.group == group,
+        ProductRateSnapshot.term_months == months, ProductRateSnapshot.base_rate.is_not(None),
+    ]
+    if reserve in RESERVE_TYPES:
+        conditions.append(ProductRateSnapshot.reserve_type == RESERVE_TYPES[reserve])
+    rows = [] if day is None else list(session.scalars(select(ProductRateSnapshot).where(*conditions)))
     infos = {(info.company, info.product_code): info for info in session.scalars(
-        select(ProductInfo).where(ProductInfo.kind == "deposit", ProductInfo.product_code.in_({row.product_code for row in rows}))
+        select(ProductInfo).where(ProductInfo.kind == kind, ProductInfo.product_code.in_({row.product_code for row in rows}))
     )} if rows else {}
 
     def terms(row: ProductRateSnapshot) -> dict[str, object]:
@@ -233,15 +266,17 @@ def deposit_products(session: Session, request: DepositProductsRequest) -> Depos
         return {
             "join_way": info.join_way, "join_member": info.join_member, "join_limit": info.join_limit,
             "special_conditions": info.special_conditions, "max_limit": info.max_limit,
-            "over_limit": info.max_limit is not None and request.amount > info.max_limit,
+            # For savings the disclosed limit may be monthly or total; being over it either way is worth flagging.
+            "over_limit": info.max_limit is not None and amount > info.max_limit,
             "etc_note": info.etc_note, "maturity_interest": info.maturity_interest,
         }
 
     products = [DepositProductRow(
-        company=shown_company(row.company), product_code=row.product_code, product_name=" ".join(row.product_name.split()), rate_type=row.rate_type or "단리",
+        company=shown_company(row.company), product_code=row.product_code, reserve_type=row.reserve_type,
+        product_name=" ".join(row.product_name.split()), rate_type=row.rate_type or "단리",
         base_rate=row.base_rate, max_rate=row.max_rate,
-        base_after_tax=_after_tax(request.amount, request.months, row.base_rate, row.rate_type),
-        max_after_tax=_after_tax(request.amount, request.months, row.max_rate, row.rate_type) if row.max_rate is not None else None,
+        base_after_tax=after_tax(amount, months, row.base_rate, row.rate_type),
+        max_after_tax=after_tax(amount, months, row.max_rate, row.rate_type) if row.max_rate is not None else None,
         **terms(row),
     ) for row in rows]
     products.sort(key=lambda item: (-item.base_after_tax, -(item.max_after_tax or 0), item.company, item.product_name))
@@ -252,9 +287,20 @@ def deposit_products(session: Session, request: DepositProductsRequest) -> Depos
     # Lowest, middle and highest by what the user would actually get at the base rate.
     by_result = sorted(products, key=lambda item: item.base_after_tax)
     return DepositProductsResponse(
-        amount=request.amount, months=request.months, group=group, day=day, count=len(products),
+        amount=amount, months=months, group=group, day=day, count=len(products), principal=principal,
         lowest=point(by_result[0]) if by_result else None,
         middle=point(by_result[(len(by_result) - 1) // 2]) if by_result else None,
         highest=point(by_result[-1]) if by_result else None,
-        products=products, notes=PRODUCT_NOTES[request.group], source_name=FINLIFE_NAME, source_url=FINLIFE_URL,
+        products=products, notes=notes, source_name=FINLIFE_NAME, source_url=FINLIFE_URL,
+    )
+
+
+def deposit_products(session: Session, request: DepositProductsRequest) -> DepositProductsResponse:
+    return _disclosed_products(session, "deposit", request.group, request.months, request.amount, _after_tax, PRODUCT_NOTES[request.group], None)
+
+
+def saving_products(session: Session, request: SavingProductsRequest) -> DepositProductsResponse:
+    return _disclosed_products(
+        session, "saving", request.group, request.months, request.monthly_amount, _saving_after_tax, SAVING_NOTES[request.group],
+        request.monthly_amount * request.months, request.reserve,
     )

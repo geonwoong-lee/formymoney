@@ -49,6 +49,23 @@ def monthly_savings_interest(monthly: int, months: int, rate_percent: Decimal) -
     return won(Decimal(monthly) * rate / PERCENT / MONTHS_IN_YEAR * Decimal(months * (months + 1) // 2))
 
 
+def monthly_savings_compound_interest(monthly: int, months: int, rate_percent: Decimal) -> int:
+    """Each monthly deposit compounds monthly for the months it stays: monthly × (Σ(1+i)^k − months), k = 1..months."""
+    rate = max(Decimal("0"), rate_percent)
+    if rate == 0 or months <= 0:
+        return 0
+    i = rate / PERCENT / MONTHS_IN_YEAR
+    return won(Decimal(monthly) * ((1 + i) * ((1 + i) ** months - 1) / i - months))
+
+
+def monthly_savings_after_tax(monthly: int, months: int, rate_percent: Decimal, compound: bool) -> DepositResult:
+    """What a fixed monthly deposit pays at the end: principal + interest, and the same after 15.4% interest tax."""
+    interest = (monthly_savings_compound_interest if compound else monthly_savings_interest)(monthly, months, rate_percent)
+    tax = int((Decimal(interest) * INTEREST_TAX).quantize(Decimal("1"), rounding=ROUND_DOWN))
+    principal = monthly * months
+    return DepositResult(max(Decimal("0"), rate_percent), interest, tax, principal + interest, principal + interest - tax)
+
+
 @dataclass(frozen=True)
 class HoldingRange:
     windows: int

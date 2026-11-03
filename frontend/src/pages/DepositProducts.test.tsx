@@ -6,13 +6,13 @@ import { DepositProducts } from './DepositProducts'
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
 const product = (company: string, baseRate: string, baseAfterTax: number, maxRate: string | null = null, maxAfterTax: number | null = null) => ({
-  company, productCode: `${company}-P`, productName: `${company} 정기예금`, rateType: '단리', baseRate, maxRate, baseAfterTax, maxAfterTax,
+  company, productCode: `${company}-P`, reserveType: '', productName: `${company} 정기예금`, rateType: '단리', baseRate, maxRate, baseAfterTax, maxAfterTax,
   joinWay: '', joinMember: '', joinLimit: '', specialConditions: '', maxLimit: null as number | null, overLimit: false, etcNote: '', maturityInterest: '',
 })
 
 function response(group: string, products: ReturnType<typeof product>[]) {
   return {
-    amount: 10_000_000, months: 12, group, day: '2026-11-03', count: products.length,
+    amount: 10_000_000, months: 12, group, day: '2026-11-03', count: products.length, principal: null,
     lowest: { ratePercent: '2.00', afterTax: 10_169_200 }, middle: { ratePercent: '3.00', afterTax: 10_253_800 }, highest: { ratePercent: '3.50', afterTax: 10_296_100 },
     products, notes: [`${group} 안내`, '금리 순서로 보여 줄 뿐 어느 상품도 권하지 않아요.'],
     sourceName: '금융감독원 금융상품 한눈에', sourceUrl: 'https://finlife.fss.or.kr/',

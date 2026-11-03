@@ -32,6 +32,7 @@ export const QUICK_LINKS: AssistantLink[] = [
   { to: '/alternatives', label: '대안 비교' },
   { to: '/maturity', label: '만기 후 계획' },
   { to: '/my-savings', label: '내 적금' },
+  { to: '/general-savings', label: '일반 적금 비교' },
   { to: '/daily', label: '오늘의 머니' },
   { to: '/market', label: '시장 지표' },
   { to: '/about', label: '계산 기준' },
@@ -52,6 +53,11 @@ const RULES: AnswerRule[] = [
     keywords: ['예금자보호', '예금자 보호', '보호 한도', '보호받', '보호돼', '보호 돼'],
     text: '예금자보호는 한 금융회사에서 한 사람당 원금과 이자를 합쳐 1억 원까지예요. 넘는 금액은 여러 금융회사에 나눠 맡기면 각각 보호받을 수 있어요. 보호 대상 상품인지는 가입 전에 상품 설명서에서 확인해 주세요.',
     links: [{ to: '/maturity', label: '만기 후 계획' }],
+  },
+  {
+    keywords: ['일반 적금', '대상이 아', '대상 아니', '청년이 아', '나이가 안', '자격이 안', '저축은행 적금', '적금 비교'],
+    text: '청년미래적금 대상이 아니어도 일반 적금 비교에서 공시된 적금마다 매달 넣은 돈이 만기에 얼마가 되는지 같은 기준으로 볼 수 있어요. 대상인지는 공식 안내에서 확인해 주세요.',
+    links: [{ to: '/general-savings', label: '일반 적금 비교' }],
   },
   {
     keywords: ['내 적금', '몇 회차', '회차', '지금까지 넣은', '얼마나 넣었', '진행 상황', '놓친 납입'],

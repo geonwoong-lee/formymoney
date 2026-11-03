@@ -68,7 +68,7 @@ def test_documents_cover_guide_published_terms_digests_notes_and_market(client: 
         _seed(session)
         documents = {document.key: document for document in build_documents(session)}
 
-    assert {"guide:intro", "guide:/cashflow", "guide:/auth", "guide:/market", "guide:/my-savings", "guide:calculation"} <= set(documents)
+    assert {"guide:intro", "guide:/cashflow", "guide:/auth", "guide:/market", "guide:/my-savings", "guide:/general-savings", "guide:calculation"} <= set(documents)
     assert "term:base-rate" in documents and "term:hidden" not in documents
     note = documents["money_note:2026-11-02:1"]
     assert note.published_on == TODAY and "빌린 돈(대출)" in note.title and note.url == "https://a.co.kr/n"

@@ -432,6 +432,7 @@ export interface MaturityPlanResponse {
 export interface DepositProduct {
   company: string
   productCode: string
+  reserveType: string
   productName: string
   rateType: string
   baseRate: string
@@ -459,6 +460,7 @@ export interface DepositProductsResponse {
   group: string
   day: string | null
   count: number
+  principal: number | null
   lowest: DepositRatePoint | null
   middle: DepositRatePoint | null
   highest: DepositRatePoint | null
@@ -498,6 +500,10 @@ export function getRateAlerts(payload: { bankCode?: string; watch: { kind: strin
 
 export function getDepositProducts(payload: { amount: number; months: 12 | 24; group: DepositGroup }, signal?: AbortSignal): Promise<DepositProductsResponse> {
   return request('/api/v1/maturity-plan/deposit-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
+}
+
+export function getSavingProducts(payload: { monthlyAmount: number; months: 6 | 12 | 24 | 36; group: DepositGroup; reserve: 'all' | 'fixed' | 'free' }, signal?: AbortSignal): Promise<DepositProductsResponse> {
+  return request('/api/v1/saving-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
 }
 
 export function planAfterMaturity(payload: {
