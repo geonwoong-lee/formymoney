@@ -1,13 +1,15 @@
 import { useId, useState, type FormEvent } from 'react'
 import {
-  judgeYouthEligibility, MAX_TABLE_HOUSEHOLD, RULES_SOURCE_NAME, RULES_SOURCE_URL, YOUTH_OFFICIAL_NAME, YOUTH_OFFICIAL_URL,
+  judgeYouthEligibility, MAX_TABLE_HOUSEHOLD, RULES_ROUND, RULES_SOURCE_NAME, RULES_SOURCE_URL, YOUTH_OFFICIAL_NAME, YOUTH_OFFICIAL_URL,
   type EligibilityResult, type EligibilityVerdict,
 } from '../features/eligibility'
+import { RULES, type IncomeKind } from '../features/eligibilityRules'
 
 const VERDICT_TITLE: Record<EligibilityVerdict, string> = {
   preferred: '우대형 조건에 맞아요',
   general: '일반형으로 가입할 수 있어요',
   tax_only: '가입은 되지만 정부 기여금은 없어요',
+  duplicate: '청년도약계좌와는 중복 가입이 안 돼요',
   not_eligible: '가입 대상이 아니에요',
 }
 
@@ -21,7 +23,8 @@ export function EligibilityJudge({ onJudged, today }: Props) {
   const id = useId()
   const [birthDate, setBirthDate] = useState('')
   const [militaryMonths, setMilitaryMonths] = useState('0')
-  const [kind, setKind] = useState<'worker' | 'business'>('worker')
+  const [kind, setKind] = useState<IncomeKind>('worker')
+  const [hasYouthAccount, setHasYouthAccount] = useState(false)
   const [amount, setAmount] = useState('')
   const [smallCompany, setSmallCompany] = useState(false)
   const [householdSize, setHouseholdSize] = useState('1')
@@ -37,11 +40,11 @@ export function EligibilityJudge({ onJudged, today }: Props) {
     event.preventDefault()
     setResult(null)
     if (!birthDate) return setError('생년월일을 넣어 주세요.')
-    if (amount.trim() === '' || Number(amount) < 0) return setError(kind === 'worker' ? '작년 총급여를 넣어 주세요.' : '작년 연매출을 넣어 주세요.')
+    if (amount.trim() === '' || Number(amount) < 0) return setError(`작년 ${RULES.income[kind].label}을 넣어 주세요.`)
     if (needsHousehold && (householdIncome.trim() === '' || Number(householdIncome) < 0)) return setError('가구 전체의 작년 소득을 넣어 주세요.')
     const judged = judgeYouthEligibility({
       birthDate, militaryMonths: Number(militaryMonths) || 0, kind, amount: Number(amount), smallCompany, householdSize: sizeNumber,
-      couple, householdIncome: Number(householdIncome) || 0,
+      couple, householdIncome: Number(householdIncome) || 0, hasYouthAccount,
     }, today)
     if (!judged) return setError('생년월일을 다시 확인해 주세요.')
     setError('')
@@ -62,21 +65,22 @@ export function EligibilityJudge({ onJudged, today }: Props) {
       </div>
       <fieldset className="eligibility__field">
         <legend>소득 종류</legend>
-        <label><input type="radio" name={`${id}-kind`} checked={kind === 'worker'} onChange={() => setKind('worker')} /> 근로소득자</label>
-        <label><input type="radio" name={`${id}-kind`} checked={kind === 'business'} onChange={() => setKind('business')} /> 소상공인</label>
+        <label><input type="radio" name={`${id}-kind`} checked={kind === 'worker'} onChange={() => setKind('worker')} /> 근로소득자(총급여)</label>
+        <label><input type="radio" name={`${id}-kind`} checked={kind === 'income'} onChange={() => setKind('income')} /> 종합소득 신고자</label>
+        <label><input type="radio" name={`${id}-kind`} checked={kind === 'business'} onChange={() => setKind('business')} /> 소상공인(연매출)</label>
       </fieldset>
       <div className="eligibility__field">
-        <label htmlFor={`${id}-amount`}>{kind === 'worker' ? '작년 총급여(만원)' : '작년 연매출(만원)'}</label>
+        <label htmlFor={`${id}-amount`}>작년 {RULES.income[kind].label}(만원)</label>
         <input id={`${id}-amount`} type="number" inputMode="numeric" min={0} value={amount} onChange={(event) => setAmount(event.target.value)} />
       </div>
-      {kind === 'worker' && <label className="eligibility__check">
+      {RULES.income[kind].needsSmallCompany && <label className="eligibility__check">
         <input type="checkbox" checked={smallCompany} onChange={(event) => setSmallCompany(event.target.checked)} /> 중소기업에 다니고 있어요
       </label>}
       <div className="eligibility__field">
         <label htmlFor={`${id}-size`}>가구원 수(나 포함)</label>
         <select id={`${id}-size`} value={householdSize} onChange={(event) => setHouseholdSize(event.target.value)}>
-          {[1, 2, 3, 4].map((count) => <option key={count} value={count}>{count}명</option>)}
-          <option value="5">5명 이상</option>
+          {Array.from({ length: MAX_TABLE_HOUSEHOLD }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count}명</option>)}
+          <option value={MAX_TABLE_HOUSEHOLD + 1}>{MAX_TABLE_HOUSEHOLD + 1}명 이상</option>
         </select>
       </div>
       {sizeNumber === 2 && <label className="eligibility__check">
@@ -86,6 +90,9 @@ export function EligibilityJudge({ onJudged, today }: Props) {
         <label htmlFor={`${id}-household`}>가구 전체의 작년 소득(만원)</label>
         <input id={`${id}-household`} type="number" inputMode="numeric" min={0} value={householdIncome} onChange={(event) => setHouseholdIncome(event.target.value)} />
       </div>}
+      <label className="eligibility__check">
+        <input type="checkbox" checked={hasYouthAccount} onChange={(event) => setHasYouthAccount(event.target.checked)} /> 청년도약계좌에 가입해 있어요
+      </label>
       <button type="submit" className="button button--small">확인하기</button>
       {error && <p className="eligibility__error" role="alert">{error}</p>}
     </form>
@@ -97,9 +104,9 @@ export function EligibilityJudge({ onJudged, today }: Props) {
       </p>
     </div>}
     <p className="eligibility__muted">
-      기준은 <a href={RULES_SOURCE_URL} target="_blank" rel="noreferrer">{RULES_SOURCE_NAME} ↗</a>(2026년 10월, 2차 가입)를 따랐어요.
+      기준은 <a href={RULES_SOURCE_URL} target="_blank" rel="noreferrer">{RULES_SOURCE_NAME} ↗</a>({RULES_ROUND})를 따랐어요.
       신청 기간과 출생일 범위는 모집 때마다 달라지고, 최종 심사는 서민금융진흥원과 가입 은행이 해요.
-      청년도약계좌와 중복 가입 불가, 소득 합산 대상 가구원 범위, 종합소득 신고자 기준, 중소기업 신규 재직 여부는 계산하지 않았으니
+      소득을 합산하는 가구원 범위, 중소기업 신규 재직의 정의, 금융소득종합과세, 모집 회차별 출생일 범위는 계산하지 않았으니
       {' '}<a href={YOUTH_OFFICIAL_URL} target="_blank" rel="noreferrer">{YOUTH_OFFICIAL_NAME} ↗</a>에서 확인해 주세요.
     </p>
   </details>

@@ -68,11 +68,34 @@ describe('judgeYouthEligibility', () => {
     expect(judgeYouthEligibility({ ...base, couple: true, householdIncome: 6155 }, TODAY)?.verdict).toBe('not_eligible')
   })
 
-  it('leaves the household to the bank for five or more people', () => {
-    const result = judgeYouthEligibility({ ...base, householdSize: 5, householdIncome: 99999 }, TODAY)
+  it('knows the median income up to six people and leaves seven or more to the bank', () => {
+    // Five people: 7,556,719 × 12 = 9,068만원/yr; 200% = 18,136만원. Six: 8,555,952 × 12 = 10,267만원; 200% = 20,534만원.
+    expect(judgeYouthEligibility({ ...base, householdSize: 5, householdIncome: 18136 }, TODAY)?.verdict).toBe('general')
+    expect(judgeYouthEligibility({ ...base, householdSize: 5, householdIncome: 18137 }, TODAY)?.verdict).toBe('not_eligible')
+    expect(judgeYouthEligibility({ ...base, householdSize: 6, householdIncome: 20534 }, TODAY)?.verdict).toBe('general')
+    expect(judgeYouthEligibility({ ...base, householdSize: 6, householdIncome: 20535 }, TODAY)?.verdict).toBe('not_eligible')
+    const result = judgeYouthEligibility({ ...base, householdSize: 7, householdIncome: 99999 }, TODAY)
     expect(result?.householdChecked).toBe(false)
     expect(result?.verdict).toBe('general')
-    expect(result?.lines.join(' ')).toContain('5명 이상')
+    expect(result?.lines.join(' ')).toContain('7명 이상')
+  })
+
+  it('judges a comprehensive-income filer on the 종합소득금액 limits', () => {
+    const filer = { ...base, kind: 'income' as const, householdIncome: 3000 }
+    expect(judgeYouthEligibility({ ...filer, amount: 2600 }, TODAY)?.verdict).toBe('preferred')
+    expect(judgeYouthEligibility({ ...filer, amount: 2601 }, TODAY)?.verdict).toBe('general')
+    expect(judgeYouthEligibility({ ...filer, amount: 4800 }, TODAY)?.verdict).toBe('general')
+    expect(judgeYouthEligibility({ ...filer, amount: 4801 }, TODAY)?.verdict).toBe('tax_only')
+    expect(judgeYouthEligibility({ ...filer, amount: 6300 }, TODAY)?.verdict).toBe('tax_only')
+    expect(judgeYouthEligibility({ ...filer, amount: 6301 }, TODAY)?.lines.at(-1)).toContain('종합소득금액이 6,300만원을 넘어요')
+  })
+
+  it('says a 청년도약계좌 holder cannot join twice, but only when everything else fits', () => {
+    const held = judgeYouthEligibility({ ...base, hasYouthAccount: true }, TODAY)
+    expect(held?.verdict).toBe('duplicate')
+    expect(held?.lines.at(-1)).toContain('중복 가입이 안 돼요')
+    expect(judgeYouthEligibility({ ...base, hasYouthAccount: true, birthDate: '1980-01-01' }, TODAY)?.verdict).toBe('not_eligible')
+    expect(verdictToAnswer('duplicate')).toBe('checking')
   })
 
   it('maps the verdict onto the visitor’s answer', () => {

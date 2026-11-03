@@ -543,6 +543,7 @@ export interface LoanProduct {
   productName: string
   repayType: string
   rateType: string
+  guarantee: string
   rateMin: string
   rateMax: string
   monthlyLabel: string
@@ -571,6 +572,7 @@ export interface LoanProductsResponse {
 
 export function getLoanProducts(payload: {
   principal: number; months: number; group: DepositGroup; repay: 'all' | 'interest_only' | 'instalment'; rateType: 'all' | 'fixed' | 'variable'
+  guarantee: 'all' | 'sgi' | 'hf' | 'hug'
 }, signal?: AbortSignal): Promise<LoanProductsResponse> {
   return request('/api/v1/loan-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
 }

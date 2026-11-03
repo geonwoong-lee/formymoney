@@ -6,13 +6,14 @@ import marketIcon from '../assets/icons/market-monitor.png'
 import maturityIcon from '../assets/icons/maturity-keys.png'
 import generalSavingsIcon from '../assets/icons/general-savings-search.png'
 import mySavingsIcon from '../assets/icons/my-savings-notebook.png'
+import rentLoansIcon from '../assets/icons/rent-loan-folder.png'
 import startLogo from '../assets/icons/start-logo.svg'
 import { PAGE_EVENTS, track } from '../features/analytics'
 import { AnalyticsConsentBar } from './AnalyticsConsent'
 import { Assistant } from './Assistant'
 import { RetroUtilityApp, type UtilityId } from './RetroUtilityApps'
 
-type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'maturity' | 'about' | 'daily' | 'market' | 'mySavings' | 'generalSavings'
+type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'maturity' | 'about' | 'daily' | 'market' | 'mySavings' | 'generalSavings' | 'rentLoans'
 interface DesktopApp { to: string; label: string; windowTitle: string; icon: IconKind }
 interface UtilityAppDefinition { id: UtilityId; label: string; windowTitle: string }
 interface Rect { x: number; y: number; width: number; height: number }
@@ -23,6 +24,7 @@ const desktopApps: DesktopApp[] = [
   { to: '/banks', label: '은행 비교', windowTitle: '은행 비교 탐색기', icon: 'banks' },
   { to: '/my-savings', label: '내 적금', windowTitle: '내 적금', icon: 'mySavings' },
   { to: '/general-savings', label: '적금 찾기', windowTitle: '일반 적금 비교', icon: 'generalSavings' },
+  { to: '/rent-loans', label: '전세대출', windowTitle: '전세자금대출 비교', icon: 'rentLoans' },
   { to: '/cashflow', label: '납입 계획', windowTitle: '월별 납입 계획', icon: 'cashflow' },
   { to: '/alternatives', label: '대안 비교', windowTitle: '같은 돈, 다른 선택', icon: 'alternatives' },
   { to: '/maturity', label: '만기 후 계획', windowTitle: '만기 후 계획', icon: 'maturity' },
@@ -45,7 +47,7 @@ function getCurrentApp(pathname: string) {
   return desktopApps.find((app) => app.to === pathname) ?? desktopApps[0]
 }
 
-const SINGLE_ICONS: Partial<Record<IconKind, string>> = { daily: dailyIcon, market: marketIcon, maturity: maturityIcon, mySavings: mySavingsIcon, generalSavings: generalSavingsIcon }
+const SINGLE_ICONS: Partial<Record<IconKind, string>> = { daily: dailyIcon, market: marketIcon, maturity: maturityIcon, mySavings: mySavingsIcon, generalSavings: generalSavingsIcon, rentLoans: rentLoansIcon }
 
 function PixelIcon({ kind, className = '' }: { kind: IconKind; className?: string }) {
   return <span className={`pixel-icon pixel-icon--${kind} ${className}`.trim()} style={{ backgroundImage: `url("${SINGLE_ICONS[kind] ?? dashboardSprite}")` }} aria-hidden="true" />

@@ -12,6 +12,7 @@ class LoanProductsRequest(CamelModel):
     group: Literal["bank", "savings_bank"] = "bank"
     repay: Literal["all", "interest_only", "instalment"] = "all"
     rate_type: Literal["all", "fixed", "variable"] = "all"
+    guarantee: Literal["all", "sgi", "hf", "hug"] = "all"
 
 
 class LoanProductRow(CamelModel):
@@ -20,6 +21,7 @@ class LoanProductRow(CamelModel):
     product_name: str
     repay_type: str
     rate_type: str
+    guarantee: str  # 서울보증보험 / 주택금융공사 / 주택도시보증공사, empty when the product name does not say
     rate_min: Decimal
     rate_max: Decimal
     monthly_label: str  # 월 이자 / 월 상환액

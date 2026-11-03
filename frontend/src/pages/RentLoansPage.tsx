@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getLoanProducts, type DepositGroup, type LoanProduct, type LoanProductsResponse } from '../api/client'
 import { MoneyInput } from '../components/MoneyInput'
+import { loadDraft } from '../storage/draftStorage'
 import './MaturityPage.css'
 
 const MIN_PRINCIPAL = 1_000_000
@@ -16,13 +17,32 @@ const rateRange = (product: LoanProduct) => (product.rateMin === product.rateMax
 
 type Repay = 'all' | 'interest_only' | 'instalment'
 type RateType = 'all' | 'fixed' | 'variable'
+type Guarantee = 'all' | 'sgi' | 'hf' | 'hug'
 
-function Row({ product }: { product: LoanProduct }) {
+interface Budget {
+  savings: number  // what the visitor already puts into savings each month, 0 when unknown
+  income: number | null  // monthly take-home pay, only when typed
+}
+
+function BudgetLines({ product, budget }: { product: LoanProduct; budget: Budget }) {
+  if (budget.savings === 0 && budget.income === null) return null
+  const low = product.monthlyMin + budget.savings
+  const high = product.monthlyMax + budget.savings
+  return <>
+    {budget.savings > 0 && <p className="maturity-muted">내 적금 {won(budget.savings)}을 더하면 매달 나가는 돈 {range(low, high)}</p>}
+    {budget.income !== null && <p className="maturity-muted">월 소득 {won(budget.income)}에서 빼면 {budget.income - high >= 0
+      ? `${range(budget.income - high, budget.income - low)} 남아요`
+      : `${won(high - budget.income)}${low > budget.income ? ' ~ ' + won(low - budget.income) : ''}이 모자라요`}</p>}
+  </>
+}
+
+function Row({ product, budget }: { product: LoanProduct; budget: Budget }) {
   return <li className="deposit-product">
-    <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span> <span className="deposit-product__type">{product.repayType}</span></p>
+    <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span> <span className="deposit-product__type">{product.repayType}</span>{product.guarantee && <> <span className="deposit-product__type">{product.guarantee} 보증</span></>}</p>
     <p>금리 {rateRange(product)}</p>
     <p>{product.monthlyLabel} <span className="deposit-product__amount">{range(product.monthlyMin, product.monthlyMax)}</span></p>
     <p>총이자 <span className="deposit-product__amount">{range(product.totalInterestMin, product.totalInterestMax)}</span></p>
+    <BudgetLines product={product} budget={budget} />
     <details className="deposit-terms">
       <summary>한도·수수료·가입 방법</summary>
       <dl>
@@ -44,20 +64,23 @@ export function RentLoansPage() {
   const [group, setGroup] = useState<DepositGroup>('bank')
   const [repay, setRepay] = useState<Repay>('all')
   const [rateType, setRateType] = useState<RateType>('all')
+  const [guarantee, setGuarantee] = useState<Guarantee>('all')
+  const [income, setIncome] = useState<number | null>(null)
+  const [savings] = useState(() => loadDraft().plan.monthlyAmount ?? 0)
   const [shown, setShown] = useState(PAGE)
   const [loaded, setLoaded] = useState<{ key: string; body: LoanProductsResponse | null } | null>(null)
   const principalValue = principal ?? 0
   const monthsValue = months ?? 0
   const invalid = !Number.isInteger(principalValue) || principalValue < MIN_PRINCIPAL || principalValue > MAX_PRINCIPAL
     || !Number.isInteger(monthsValue) || monthsValue < MIN_MONTHS || monthsValue > MAX_MONTHS
-  const key = `${principalValue}-${monthsValue}-${group}-${repay}-${rateType}`
+  const key = `${principalValue}-${monthsValue}-${group}-${repay}-${rateType}-${guarantee}`
   const body = loaded?.key === key ? loaded.body : undefined
 
   useEffect(() => {
     if (invalid) return
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
-      getLoanProducts({ principal: principalValue, months: monthsValue, group, repay, rateType }, controller.signal)
+      getLoanProducts({ principal: principalValue, months: monthsValue, group, repay, rateType, guarantee }, controller.signal)
         .then((response) => setLoaded({ key, body: response }))
         .catch((cause: unknown) => {
           if (cause instanceof DOMException && cause.name === 'AbortError') return
@@ -65,7 +88,7 @@ export function RentLoansPage() {
         })
     }, 250)
     return () => { window.clearTimeout(timer); controller.abort() }
-  }, [key, invalid, principalValue, monthsValue, group, repay, rateType])
+  }, [key, invalid, principalValue, monthsValue, group, repay, rateType, guarantee])
 
   return <section className="page page--wide maturity-page">
     <p className="eyebrow">Rent deposit loans</p>
@@ -99,7 +122,17 @@ export function RentLoansPage() {
             <option value="variable">변동금리</option>
           </select>
         </label>
+        <label><span>보증기관</span>
+          <select value={guarantee} onChange={(event) => { setGuarantee(event.target.value as Guarantee); setShown(PAGE) }}>
+            <option value="all">모두</option>
+            <option value="sgi">서울보증보험(SGI)</option>
+            <option value="hf">주택금융공사(HF)</option>
+            <option value="hug">주택도시보증공사(HUG)</option>
+          </select>
+        </label>
+        <label><span>월 소득(원, 선택)</span><MoneyInput value={income} onValueChange={setIncome} /></label>
       </div>
+      <p className="maturity-muted">월 소득을 넣으면 월 상환액과 내 적금 납입을 뺀 돈이 얼마 남는지 보여 줘요. 이 기기에서만 계산하고 저장하지 않아요.</p>
       {invalid && <p className="maturity-error" role="alert">빌릴 돈은 {won(MIN_PRINCIPAL)}부터 {won(MAX_PRINCIPAL)}까지, 기간은 {MIN_MONTHS}~{MAX_MONTHS}개월로 넣어 주세요.</p>}
     </section>
 
@@ -111,7 +144,7 @@ export function RentLoansPage() {
       {body && body.count > 0 && <>
         <p className="maturity-muted">{body.group} 전세자금대출 {body.count.toLocaleString('ko-KR')}개를 {won(body.principal)} · {body.months}개월 기준으로 계산했어요. 총이자가 적은 순서예요.</p>
         <ul className="deposit-products" aria-label={`${body.group} 전세자금대출 목록`}>
-          {body.products.slice(0, shown).map((product) => <Row key={`${product.company}-${product.productCode}-${product.repayType}-${product.rateType}`} product={product} />)}
+          {body.products.slice(0, shown).map((product) => <Row key={`${product.company}-${product.productCode}-${product.repayType}-${product.rateType}`} product={product} budget={{ savings, income }} />)}
         </ul>
         {shown < body.products.length && <button type="button" className="button button--secondary" onClick={() => setShown((count) => count + PAGE)}>
           {Math.min(PAGE, body.products.length - shown)}개 더 보기 ({shown}/{body.products.length})

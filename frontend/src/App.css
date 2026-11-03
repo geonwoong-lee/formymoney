@@ -103,7 +103,8 @@
 .pixel-icon--market,
 .pixel-icon--maturity,
 .pixel-icon--mySavings,
-.pixel-icon--generalSavings {
+.pixel-icon--generalSavings,
+.pixel-icon--rentLoans {
   background-position: center;
   background-size: 76%;
 }
