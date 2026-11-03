@@ -2,7 +2,7 @@
 
 Each question in evals/knowledge_questions.json lists acceptable source_key prefixes; "{today}" and
 "{yesterday}" stand for the Korean date the evaluation runs (or --today). Reports hit@1, hit@5 and MRR
-for plain vector search and for the day-aware search the assistant uses. Needs VERY_RICH_OPENAI_API_KEY.
+for plain vector search, day-aware search, and the hybrid (day-aware + letter overlap) search the assistant uses. Needs VERY_RICH_OPENAI_API_KEY.
 """
 
 from __future__ import annotations
@@ -51,11 +51,11 @@ def main() -> int:
 
     engine = create_database_engine(require_postgres_url(settings.database_url))
     with create_session_factory(engine)() as session:
-        for label, day_aware in (("벡터 검색만", False), ("날짜 반영 검색", True)):
+        for label, day_aware, lexical in (("벡터 검색만", False, False), ("날짜 반영", True, False), ("날짜 반영 + 글자 일치(하이브리드)", True, True)):
             totals = [0, 0, 0.0]
             for case in cases:
                 expected = [prefix.format(**fill) for prefix in case["expected"]]
-                ranked = [item.chunk.source_key for item in retrieve(session, case["question"], embed, today, 5, day_aware)]
+                ranked = [item.chunk.source_key for item in retrieve(session, case["question"], embed, today, 5, day_aware, lexical)]
                 top1, top5, reciprocal = score(ranked, expected)
                 totals[0] += top1
                 totals[1] += top5

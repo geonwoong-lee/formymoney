@@ -38,6 +38,10 @@ OTHER_DAY_PENALTY = 0.05
 SOON_BOOST = 0.1  # "다음 금통위 언제야?": among upcoming dates, the nearer the better
 SOON_DAYS = 120
 SOON_WORDS = ("다음", "언제", "예정", "앞으로", "곧")
+# Hybrid search: a small bonus for how many of the question's two-letter pieces appear in the chunk, so exact
+# words ("안정형", "금통위") the embedding underweights still count. Particles make whole words unreliable in Korean.
+LEXICAL_WEIGHT = 0.1
+WORD_PATTERN = re.compile(r"[가-힣A-Za-z0-9]+")
 DATED_TYPES = {"digest", "money_note", "event"}
 WEEKDAYS = "월화수목금토일"
 MONEY_NOTE_LABELS = {
@@ -269,8 +273,13 @@ def _nearest(session: Session, vector: list[float], limit: int) -> list[Retrieve
     return sorted(scored, key=lambda item: item.score, reverse=True)[:limit]
 
 
+def _bigrams(text: str) -> set[str]:
+    return {word[i:i + 2] for word in WORD_PATTERN.findall(text) for i in range(len(word) - 1)}
+
+
 def retrieve(
     session: Session, question: str, embed: Embed, today: date, limit: int = SEARCH_LIMIT, day_aware: bool = True,
+    lexical: bool = True,
 ) -> list[Retrieved]:
     """Best chunks for the question, or [] when the knowledge base is empty (the caller then falls back).
 
@@ -287,9 +296,13 @@ def retrieve(
             if chunk.id not in candidates and chunk.embedding:
                 candidates[chunk.id] = Retrieved(chunk, _cosine(vector, chunk.embedding))
     asks_soon = day_aware and any(word in question for word in SOON_WORDS)
+    pieces = _bigrams(question) if lexical else set()
     ranked = []
     for item in candidates.values():
         score = item.score
+        if pieces:
+            text = f"{item.chunk.title} {item.chunk.content}"
+            score += LEXICAL_WEIGHT * sum(1 for piece in pieces if piece in text) / len(pieces)
         if day is not None and item.chunk.source_type in DATED_TYPES:
             score += SAME_DAY_BOOST if item.chunk.published_on == day else -OTHER_DAY_PENALTY
         if asks_soon and item.chunk.source_type == "event" and item.chunk.published_on is not None:
