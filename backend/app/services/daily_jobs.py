@@ -11,18 +11,20 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.collectors.dart import BANK_CORPS, FILING_CORPS, DartError, fetch_filings, fetch_main_accounts
 from app.collectors.ecos import SERIES, EcosError, fetch_series
 from app.collectors.finlife import GROUPS as FINLIFE_GROUPS, FinlifeError, ProductRate, fetch_products
 from app.collectors.naver_news import NaverNewsError, fetch_headlines
 from app.collectors.official_rss import LINK_ONLY_FEEDS, OFFICIAL_FEEDS, OfficialRssError, fetch_feed
 from app.collectors.press_text import PressTextError, fetch_paragraphs
 from app.core.config import Settings
+from app.services.dart_service import DartService
 from app.services.headline_interpreter import InterpretationError, interpret
 from app.services.knowledge_base import sync as sync_knowledge
 from app.services.market_service import MarketService
@@ -148,8 +150,41 @@ def run_market_job(settings: Settings, session: Session, fetch: FetchSeries = fe
         result.collected += len(points)
         result.saved += service.save(series.code, points)
     collect_product_rates(settings, session, result, today)
+    collect_dart(settings, session, result, today)
     refresh_knowledge(settings, session, result)
     return result
+
+
+FILING_DAYS = 7
+
+
+def collect_dart(settings: Settings, session: Session, result: JobResult, today, fetch_accounts=fetch_main_accounts, fetch_list=fetch_filings) -> None:
+    """Compared banks' latest business-report accounts and the last week's bank/holding filings, from OpenDART."""
+    if not settings.dart_api_key:
+        result.notes.append("DART: VERY_RICH_DART_API_KEY가 없어 건너뜀")
+        return
+    service = DartService(session)
+    stored = 0
+    for bank_code, (corp_code, corp_name) in BANK_CORPS.items():
+        result.attempted += 1
+        try:
+            accounts = fetch_accounts(settings.dart_api_key, corp_code, today.year - 1)
+        except DartError as error:
+            result.fail(f"DART:{corp_name}", error)
+            continue
+        if accounts is not None:
+            service.save_financials(bank_code, accounts)
+            stored += 1
+    filings = []
+    for corp_code, corp_name in FILING_CORPS.items():
+        result.attempted += 1
+        try:
+            filings += fetch_list(settings.dart_api_key, corp_code, today - timedelta(days=FILING_DAYS - 1), today)
+        except DartError as error:
+            result.fail(f"DART 공시:{corp_name}", error)
+    added = service.save_filings(filings, today)
+    result.collected += stored + len(filings)
+    result.notes.append(f"DART 재무 {stored}개 은행, 공시 {len(filings)}건(새로 {added}건)")
 
 
 FetchProducts = Callable[[str, str, str], list[ProductRate]]

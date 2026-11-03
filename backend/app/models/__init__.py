@@ -1,5 +1,6 @@
 from app.models.analytics import AnalyticsDailyCount
 from app.models.collection_run import CollectionRun
+from app.models.dart import BankFinancial, DartFiling
 from app.models.daily_briefing import (
     DailyBriefingItem,
     DailyBriefingSource,
@@ -18,11 +19,13 @@ from app.models.savings_product import BankSavingsProduct, PreferentialCondition
 
 __all__ = [
     "AnalyticsDailyCount",
+    "BankFinancial",
     "BankSavingsProduct",
     "CollectionRun",
     "DailyBriefingItem",
     "DailyBriefingSource",
     "DailyTermAssignment",
+    "DartFiling",
     "FinancialTerm",
     "InvestmentAsset",
     "InvestmentMonthlyPoint",

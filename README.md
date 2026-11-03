@@ -70,7 +70,7 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 해외 헤드라인 한국어 해석에는 `backend/.env`의 `VERY_RICH_OPENAI_API_KEY`가 필요합니다.
 - 시장 지표(`/market`): 환율·코스피·코스닥·금리·해외 주요국 지수(월간)·소비자물가 상승률(전년 같은 달 대비, ECOS 소비자물가지수로 계산)과 금리·물가 흐름 그래프. 새 물가 숫자가 들어온 뒤 3일 동안은 `/daily` 맨 위에도 나옵니다. 수집은 `cd backend && python -m scripts.collect_market_data`이며 `backend/.env`에 `VERY_RICH_ECOS_API_KEY`(한국은행 ECOS 인증키)가 필요합니다.
 - 매일 자동 수집: n8n 워크플로 `automation/n8n/workflows/daily-market-news-jobs.json`이 오전 7시 30분에 시장 지표와 뉴스·요약 작업을 FastAPI 내부 API(`POST /api/v1/internal/daily/jobs/{market|news}`)로 실행하고 결과를 실행 기록에 남깁니다. 설정은 `automation/n8n/README.md` 8절.
-- `/daily`는 맨 위 "오늘 한눈에"(AI 한 줄 요약, 전 영업일보다 달라진 지표 ▲/▼)와 `요약 | 뉴스 | 일정 | 용어` 탭으로 나뉘고, 권유·예측 안내는 맨 아래 한 곳에 모았습니다. 요약 탭의 "만약 기준금리가 바뀐다면?"은 오르는 경우·그대로·내리는 경우의 적금 만기 금액을 같은 조건으로 나란히 계산합니다(예측 없음). `일정` 탭은 금통위·FOMC·물가 발표·선거 같은 공식 일정을 D-day와 출처로 보여 줍니다(`GET /api/v1/events`, 날짜는 `backend/app/services/events.py`에 출처와 함께 직접 관리).
+- `/daily`는 맨 위 "오늘 한눈에"(AI 한 줄 요약, 전 영업일보다 달라진 지표 ▲/▼)와 `요약 | 뉴스 | 일정 | 용어 | 재무제표` 탭으로 나뉘고, 권유·예측 안내는 맨 아래 한 곳에 모았습니다. 요약 탭의 "만약 기준금리가 바뀐다면?"은 오르는 경우·그대로·내리는 경우의 적금 만기 금액을 같은 조건으로 나란히 계산합니다(예측 없음). `일정` 탭은 금통위·FOMC·물가 발표·선거 같은 공식 일정을 D-day와 출처로 보여 줍니다(`GET /api/v1/events`, 날짜는 `backend/app/services/events.py`에 출처와 함께 직접 관리).
 - `/daily`의 금리 관계 설명과 오늘의 금융용어는 "금융 선생님"이 쉬운 말로 풀어 줍니다. 금리 관계 설명 맨 위의 "오늘 소식과 내 돈"은 매일 뉴스 요약을 만들 때 AI가 함께 쓰며(예측·권유 표현과 근거 없는 숫자는 서버가 거절), 그 아래 일반 설명은 고정 문장입니다. 쉬운 설명 문구를 고친 뒤 DB에 반영하려면 `cd backend && python -m scripts.import_financial_terms --explanations-only`를 실행합니다.
 - 헤드라인 수집: `cd backend && python -m scripts.collect_news_headlines` (네이버 키는 `backend/.env`의 `VERY_RICH_NAVER_*`에 입력, 하루 한 번 실행). 같은 실행에서 AI가 "오늘의 경제 뉴스 요약"(한 줄 개요와 3~5개 항목, 항목마다 원문 링크)을 만들어 `/daily` 맨 위에 보여 줍니다.
 - 진행 중: **Phase 16 로컬 범위 — 수집 실행 기록·상태 API(`/internal/daily/runs`), 하루 토큰 상한 표시, 비밀값 검사 완료**. 운영 위치 결정, 예약 실행 3회 연속 성공, n8n 워크플로 기록 노드 연결, 360px 전체 QA는 남았습니다.
@@ -80,6 +80,7 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 동의한 사용자에게서만 화면별 하루 사용 횟수를 익명으로 셉니다(누가 썼는지·입력값은 보내지 않음). 수신(예금·적금) 사업에 붙이는 가정 제안서: [`docs/proposal_deposit_growth.md`](docs/proposal_deposit_growth.md)
 - 예·적금 공시 금리 변동: 금융감독원 「금융상품 한눈에」 Open API로 매일 은행·저축은행 예·적금 금리를 모아 어제와 바뀐 것만 %p로 시장 지표에 보여 줍니다. `backend/.env`에 `VERY_RICH_FINLIFE_API_KEY`를 넣으면 동작하며, 없으면 건너뜁니다.
 - 로그인하면 내 정보의 "저장한 계획"에 지금 입력을 이름 붙여 저장(최대 10개)하고 다른 기기에서 불러올 수 있습니다. 저장 버튼을 누를 때만 저장하며 언제든 지울 수 있습니다(`/api/v1/me/plans`).
+- 은행 재무제표와 공시: DART Open API로 은행 11곳의 사업보고서 주요 숫자를 모아 은행 상세에 `재무제표 한눈에`로 보여 주고, `/daily` 뉴스 탭에 은행·금융지주 공시를, `재무제표` 탭에 실제 숫자로 배우는 `재무제표 읽는 법`을 둡니다. 숫자를 옮기고 나눗셈만 하며 은행의 안전성을 판단하지 않습니다. `backend/.env`에 `VERY_RICH_DART_API_KEY`가 있어야 수집합니다.
 - 다음: 금감원 키 발급, Phase 16 남은 항목(예약 3회 연속 성공, 실패 알림, 상시 서버), Phase 10 사용자 테스트
 - 완료: **Phase 11 — 공식 출처·저장 범위·Scrapling 제한·AI 검증 기준 확정**
 - 완료: **Phase 12 — 브리핑 DB·API 기반**

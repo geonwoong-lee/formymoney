@@ -319,6 +319,57 @@ export function deleteAllPlans(accessToken: string): Promise<void> {
   return request('/api/v1/me/plans', { method: 'DELETE', headers: bearer(accessToken) })
 }
 
+export interface FinancialItem {
+  key: 'assets' | 'liabilities' | 'equity' | 'deposits' | 'net_interest' | 'net_income'
+  label: string
+  current: string | null
+  previous: string | null
+  changePercent: string | null
+}
+
+export interface PeerRange {
+  count: number
+  min: string
+  minBank: string
+  max: string
+  maxBank: string
+}
+
+export interface BankFinancials {
+  bankCode: string
+  corpName: string
+  year: number
+  statement: string
+  periodEnd: string
+  items: FinancialItem[]
+  ratios: { equityToAssets: string | null; depositsToLiabilities: string | null; netIncomeToAssets: string | null }
+  peers: Partial<Record<'equityToAssets' | 'depositsToLiabilities' | 'netIncomeToAssets', PeerRange>>
+  balanced: boolean | null
+  sourceName: string
+  sourceUrl: string
+}
+
+export interface DartFiling {
+  receiptNo: string
+  corpName: string
+  title: string
+  filedOn: string
+  filer: string
+  url: string
+}
+
+export function getBankFinancials(bankCode: string, signal?: AbortSignal): Promise<BankFinancials> {
+  return request<BankFinancials>(`/api/v1/banks/${encodeURIComponent(bankCode)}/financials`, { signal })
+}
+
+export function getDartBanks(signal?: AbortSignal): Promise<{ banks: { bankCode: string; corpName: string }[] }> {
+  return request('/api/v1/dart/banks', { signal })
+}
+
+export function getDartFilings(signal?: AbortSignal, days = 14): Promise<{ items: DartFiling[]; routineBondFilings: number; sourceName: string; sourceUrl: string }> {
+  return request(`/api/v1/dart/filings?days=${days}&limit=30`, { signal })
+}
+
 export type RiskProfile = 'stable' | 'balanced' | 'aggressive'
 
 export interface HoldingOutcome {
