@@ -131,7 +131,7 @@ describe('Assistant', () => {
 
     const answer = await screen.findByText(/잘 모르겠어요/).then((node) => node.closest('[role="status"]') as HTMLElement)
     expect(answer).toHaveTextContent('잘 모르겠어요')
-    expect(within(answer).getAllByRole('button')).toHaveLength(7)
+    expect(within(answer).getAllByRole('button')).toHaveLength(8)
   })
 
   it('can be hidden, stays hidden after a reload, and can be called back', async () => {
@@ -244,6 +244,11 @@ describe('findAnswer', () => {
     expect(findAnswer('  ETF 투자 어때요 ').links[0].to).toBe('/alternatives')
     expect(findAnswer('청년미래적금 우대금리 조건').links[0].to).toBe('/conditions')
     expect(findAnswer('로그인이 안돼요').links[0].to).toBe('/auth')
+    expect(findAnswer('적금 만기되면 목돈 어떻게 해?').links[0].to).toBe('/maturity')
+    expect(findAnswer('나는 안정형인데').links[0].to).toBe('/maturity')
+    expect(findAnswer('적금 깨고 싶어요').links[0].to).toBe('/cashflow')
+    expect(findAnswer('요즘 물가 어때?').links[0].to).toBe('/market')
+    expect(findAnswer('다음 금통위 언제야').links[0].to).toBe('/daily?tab=events')
     expect(findAnswer('').links.length).toBeGreaterThan(1)
   })
 })
