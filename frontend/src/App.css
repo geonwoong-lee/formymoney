@@ -660,12 +660,11 @@
 
   .page h1 {
     font-size: clamp(28px, 9vw, 40px);
-    word-break: break-all;
+    overflow-wrap: anywhere;
   }
 
   .lead {
     font-size: 14px;
-    word-break: break-all;
   }
 
   .page > * {

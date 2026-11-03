@@ -420,6 +420,21 @@
 }
 
 @media (max-width: 480px) {
+  /* Four tabs share one row on a phone instead of running past the edge. */
+  .daily-tabs__list {
+    padding-left: 0;
+  }
+
+  .daily-tabs__tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 4px 4px;
+  }
+
+  .daily-tabs__tab[aria-selected="true"] {
+    padding-bottom: 6px;
+  }
+
   .daily-teacher {
     flex-direction: column;
     gap: 8px;

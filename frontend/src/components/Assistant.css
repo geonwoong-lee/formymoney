@@ -38,7 +38,7 @@
 
 .assistant__dog img {
   display: block;
-  width: 84px;
+  width: 120px;
   height: 100px;
   object-fit: contain;
   filter: drop-shadow(2px 3px 0 rgb(0 0 0 / 28%));
