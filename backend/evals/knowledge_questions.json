@@ -28,5 +28,7 @@
   {"question": "11월 물가 발표는 언제 나와?", "expected": ["event:stats-2026-12-02-cpi"]},
   {"question": "미국 중간선거 날짜 알려줘", "expected": ["event:election-us-2026-11-03"]},
   {"question": "요즘 물가 얼마나 올랐어?", "expected": ["market:cpi_yoy"]},
-  {"question": "소비자물가 상승률 알려줘", "expected": ["market:cpi_yoy"]}
+  {"question": "소비자물가 상승률 알려줘", "expected": ["market:cpi_yoy"]},
+  {"question": "적금 만기되면 목돈을 어디에 둘지 비교하고 싶어", "expected": ["guide:/maturity"]},
+  {"question": "나는 안정형인데 만기 금액을 어떻게 굴릴지 봐 줘", "expected": ["guide:/maturity"]}
 ]

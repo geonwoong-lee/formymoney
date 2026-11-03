@@ -314,3 +314,10 @@ def test_assistant_falls_back_to_the_fixed_guide_when_search_fails(client: TestC
     assert "화면 안내:" in seen[0]
     assert body["sources"] == []
     assert body["answer"] == "월별 납입 계획에서 확인해요."
+
+
+def test_answers_are_plain_text_without_markdown_links() -> None:
+    from app.services.assistant_chat import plain_text
+
+    assert plain_text("  [만기 후 계획](/maturity)에서 **성향**을 고르세요 ") == "만기 후 계획에서 성향을 고르세요"
+    assert plain_text("링크 없음") == "링크 없음"
