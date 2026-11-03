@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getHealth, type HealthResponse } from '../api/client'
-import { EligibilityCheck } from '../components/EligibilityCheck'
 import { RateAlerts } from '../components/RateAlerts'
 import { isSignedIn } from '../storage/authStorage'
 
@@ -36,7 +35,6 @@ export function HomePage() {
       <p className="lead">
         최고금리 대신 내가 받을 수 있는 금리를 계산하고, 빠뜨린 납입까지 반영해 적금과 다른 선택을 같은 기준으로 살펴봅니다.
       </p>
-      <EligibilityCheck />
       <section className="survey-evidence" aria-label="서비스 기획 근거">
         <div><strong>43%</strong><span>청년미래적금 가입 의향</span></div>
         <div><strong>32%</strong><span>가입 여부 유보</span></div>
