@@ -31,12 +31,12 @@ afterEach(() => {
 })
 
 describe('EligibilityCheck', () => {
-  it('keeps the visitor’s own answer, never judges it, and points to the official page and the next step', async () => {
+  it('keeps the visitor’s own answer and points to the official page and the next step', async () => {
     const user = userEvent.setup()
     render(<MemoryRouter><EligibilityCheck /></MemoryRouter>)
     expect(screen.queryByRole('link', { name: /일반 적금 비교하기|내 조건 입력하기/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /서민금융진흥원 청년미래적금 안내/ })).toHaveAttribute('href', YOUTH_OFFICIAL_URL)
-    expect(document.body).toHaveTextContent('이 사이트는 대상 여부를 판단하지 않으니')
+    for (const link of screen.getAllByRole('link', { name: /서민금융진흥원 청년미래적금 안내/ })) expect(link).toHaveAttribute('href', YOUTH_OFFICIAL_URL)
+    expect(document.body).toHaveTextContent('최종 확인은')
 
     await user.click(screen.getByRole('radio', { name: '대상이 아니에요' }))
     expect(window.localStorage.getItem(ELIGIBILITY_KEY)).toBe('not_eligible')

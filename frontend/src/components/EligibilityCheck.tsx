@@ -1,8 +1,9 @@
 import { useId, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
-  loadEligibility, saveEligibility, YOUTH_OFFICIAL_NAME, YOUTH_OFFICIAL_URL, type YouthEligibility,
+  loadEligibility, saveEligibility, verdictToAnswer, YOUTH_OFFICIAL_NAME, YOUTH_OFFICIAL_URL, type YouthEligibility,
 } from '../features/eligibility'
+import { EligibilityJudge } from './EligibilityJudge'
 import './EligibilityCheck.css'
 
 const CHOICES: { key: YouthEligibility; label: string }[] = [
@@ -17,7 +18,8 @@ const NEXT: Record<YouthEligibility, { text: string; to: string; label: string }
   not_eligible: { text: '대상이 아니어도 공시된 일반 적금을 같은 방식으로 비교할 수 있어요.', to: '/general-savings', label: '일반 적금 비교하기' },
 }
 
-// The first question for anyone who arrives: are you a target of the youth savings? Self-reported, never judged here.
+// The first question for anyone who arrives: are you a target of the youth savings? Picked by hand, or set by the check
+// that applies the published age and income rules to what the visitor types.
 export function EligibilityCheck({ compact = false }: { compact?: boolean }) {
   const id = useId()
   const [value, setValue] = useState(() => loadEligibility())
@@ -37,9 +39,10 @@ export function EligibilityCheck({ compact = false }: { compact?: boolean }) {
       </label>)}
     </div>
     <p className="eligibility__muted">
-      나이와 소득 기준은 제도를 운영하는 곳이 정해요. 이 사이트는 대상 여부를 판단하지 않으니
-      {' '}<a href={YOUTH_OFFICIAL_URL} target="_blank" rel="noreferrer">{YOUTH_OFFICIAL_NAME} ↗</a>에서 확인해 주세요.
+      나이와 소득 기준은 제도를 운영하는 곳이 정해요. 아래에서 공개된 기준으로 계산해 볼 수 있고, 최종 확인은
+      {' '}<a href={YOUTH_OFFICIAL_URL} target="_blank" rel="noreferrer">{YOUTH_OFFICIAL_NAME} ↗</a>에서 해 주세요.
     </p>
+    <EligibilityJudge onJudged={(verdict) => choose(verdictToAnswer(verdict))} />
     {/* The next step is skipped on the screen it points to. */}
     {value && NEXT[value].to !== pathname && <p className="eligibility__next">
       {NEXT[value].text} <Link className="button button--small" to={NEXT[value].to}>{NEXT[value].label}</Link>
