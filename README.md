@@ -66,7 +66,7 @@ v2에서는 `/daily`에서 공식 경제·금융 뉴스 최대 3개와 오늘의
 - 완료: **Phase 9 — 오류 응답·입력 유지·360px 모바일·계산 회귀 테스트·회원가입 동작 확인**
 - 완료: **Phase 15 — `/daily` 화면, 국내·해외 뉴스 헤드라인(해외는 AI 한국어 번역·요약), 오늘의 금융용어 12개 공개(저장 30개 중 점검 통과분)**
 - 도우미 머니독의 AI 답변(`POST /api/v1/assistant/chat`)도 `VERY_RICH_OPENAI_API_KEY`가 필요하며, 키가 없으면 키워드 답변만 합니다. 접속 주소별 분당 5회·하루 60회로 제한합니다.
-- 머니독은 RAG로 답합니다. 사이트 안내, 공개 용어, 날짜별 경제 뉴스 요약과 "오늘 소식과 내 돈", 시장 지표, 다가올 공식 일정을 조각으로 나눠 OpenAI 임베딩과 Supabase pgvector에 저장하고, 질문과 가까운 5개만 근거로 넘겨 답 아래에 근거를 보여 줍니다. 답의 숫자는 인용한 근거에 있어야 합니다. 자료는 n8n 매일 작업 끝에 바뀐 것만 다시 임베딩하며, 직접 만들 때는 `cd backend && python -m scripts.build_knowledge`. 검색 품질은 `python -m scripts.eval_knowledge`로 잽니다(2026-11-02, 일정 질문을 더한 28개: hit@1 82%, hit@5 100%, MRR 0.89).
+- 머니독은 RAG로 답합니다. 사이트 안내, 공개 용어, 날짜별 경제 뉴스 요약과 "오늘 소식과 내 돈", 시장 지표, 다가올 공식 일정을 조각으로 나눠 OpenAI 임베딩과 Supabase pgvector에 저장하고, 질문과 가까운 5개만 근거로 넘겨 답 아래에 근거를 보여 줍니다. 답의 숫자는 인용한 근거에 있어야 합니다. 자료는 n8n 매일 작업 끝에 바뀐 것만 다시 임베딩하며, 직접 만들 때는 `cd backend && python -m scripts.build_knowledge`. 검색 품질은 `python -m scripts.eval_knowledge`로 잽니다(2026-11-03, 질문 32개, 의미 검색에 글자 일치를 더한 하이브리드: hit@1 81%, hit@5 100%, MRR 0.89 / 의미 검색만: 62%, 97%, 0.76).
 - 해외 헤드라인 한국어 해석에는 `backend/.env`의 `VERY_RICH_OPENAI_API_KEY`가 필요합니다.
 - 시장 지표(`/market`): 환율·코스피·코스닥·금리·해외 주요국 지수(월간)·소비자물가 상승률(전년 같은 달 대비, ECOS 소비자물가지수로 계산)과 금리·물가 흐름 그래프. 새 물가 숫자가 들어온 뒤 3일 동안은 `/daily` 맨 위에도 나옵니다. 수집은 `cd backend && python -m scripts.collect_market_data`이며 `backend/.env`에 `VERY_RICH_ECOS_API_KEY`(한국은행 ECOS 인증키)가 필요합니다.
 - 매일 자동 수집: n8n 워크플로 `automation/n8n/workflows/daily-market-news-jobs.json`이 오전 7시 30분에 시장 지표와 뉴스·요약 작업을 FastAPI 내부 API(`POST /api/v1/internal/daily/jobs/{market|news}`)로 실행하고 결과를 실행 기록에 남깁니다. 설정은 `automation/n8n/README.md` 8절.

@@ -321,3 +321,19 @@ def test_answers_are_plain_text_without_markdown_links() -> None:
 
     assert plain_text("  [만기 후 계획](/maturity)에서 **성향**을 고르세요 ") == "만기 후 계획에서 성향을 고르세요"
     assert plain_text("링크 없음") == "링크 없음"
+
+
+def test_hybrid_search_lifts_chunks_that_share_the_question_words(client: TestClient) -> None:
+    def flat(texts: list[str]) -> list[list[float]]:
+        # Every text looks the same to this embedding, so only the letter overlap can order them.
+        return [[1.0] + [0.0] * (EMBEDDING_DIMENSIONS - 1) for _ in texts]
+
+    with client.app.state.session_factory() as session:
+        _seed(session)
+        sync(session, flat, datetime(2026, 11, 2, 3, tzinfo=timezone.utc))
+        question = "만기 후 계획 안정형 공격형"
+        hybrid = retrieve(session, question, flat, TODAY)
+        plain = retrieve(session, question, flat, TODAY, lexical=False)
+
+    assert hybrid[0].chunk.source_key == "guide:/maturity"
+    assert all(item.score == plain[0].score for item in plain)  # without letters every chunk ties
