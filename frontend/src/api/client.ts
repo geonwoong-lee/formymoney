@@ -475,6 +475,15 @@ export interface DepositRatePoint {
   afterTax: number
 }
 
+export interface RateContext {
+  baseRate: string | null
+  baseRatePeriod: string | null
+  depositAverage: string | null
+  depositAveragePeriod: string | null
+  inflation: string | null
+  inflationPeriod: string | null
+}
+
 export interface DepositProductsResponse {
   amount: number
   months: number
@@ -489,6 +498,7 @@ export interface DepositProductsResponse {
   notes: string[]
   sourceName: string
   sourceUrl: string
+  context?: RateContext | null
 }
 
 export type DepositGroup = 'bank' | 'savings_bank'

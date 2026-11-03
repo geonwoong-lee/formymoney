@@ -18,7 +18,8 @@ function savingsResponse(group: string, products: ReturnType<typeof product>[]) 
   return {
     amount: 300_000, months: 12, group, day: '2026-11-03', count: products.length, principal: 3_600_000,
     lowest: { ratePercent: '2.00', afterTax: 3_660_000 }, middle: { ratePercent: '3.00', afterTax: 3_680_000 }, highest: { ratePercent: '4.00', afterTax: 3_700_000 },
-    products, notes: ['금리 순서로 보여 줄 뿐 어느 상품도 권하지 않아요.'], sourceName: '금융감독원 금융상품 한눈에', sourceUrl: 'https://finlife.fss.or.kr/',
+    products, context: { baseRate: '2.50', baseRatePeriod: '20261101', depositAverage: '2.85', depositAveragePeriod: '202609', inflation: '2.1', inflationPeriod: '202609' },
+    notes: ['금리 순서로 보여 줄 뿐 어느 상품도 권하지 않아요.'], sourceName: '금융감독원 금융상품 한눈에', sourceUrl: 'https://finlife.fss.or.kr/',
   }
 }
 
@@ -73,6 +74,7 @@ describe('GeneralSavingsPage', () => {
     expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('가은행')
     expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('세후 3,680,000원')
     expect(document.body).toHaveTextContent('내가 넣는 원금은 3,600,000원이에요')
+    expect(document.body).toHaveTextContent('한국은행 기준금리 2.5%, 은행 신규 예금 평균금리 2.85%(2026.09), 소비자물가 상승률 2.1%(2026.09)')
     expect(document.body).toHaveTextContent('정부기여금이 없고, 이자에 15.4% 세금이 붙어요')
     // Already on the general savings screen, so its own link is not offered again.
     expect(screen.queryByRole('link', { name: '일반 적금 비교하기' })).not.toBeInTheDocument()

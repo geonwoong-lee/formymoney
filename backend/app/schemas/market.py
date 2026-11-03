@@ -37,3 +37,14 @@ class MarketResponse(CamelModel):
     source_name: str
     source_url: str
     updated_at: datetime | None = None
+
+
+class RateContext(CamelModel):
+    """Official figures to read the listed rates against; each one is left out when it has not been collected."""
+
+    base_rate: Decimal | None = None
+    base_rate_period: str | None = None
+    deposit_average: Decimal | None = None
+    deposit_average_period: str | None = None
+    inflation: Decimal | None = None
+    inflation_period: str | None = None

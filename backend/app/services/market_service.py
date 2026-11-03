@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.collectors.ecos import SERIES, SERIES_BY_CODE
 from app.models.market import MarketPoint
-from app.schemas.market import MarketGroupResponse, MarketItemResponse, MarketResponse, RateTrendPoint
+from app.schemas.market import MarketGroupResponse, MarketItemResponse, MarketResponse, RateContext, RateTrendPoint
 
 SOURCE_NAME = "한국은행 경제통계시스템(ECOS)"
 SOURCE_URL = "https://ecos.bok.or.kr/"
@@ -115,6 +115,21 @@ class MarketService:
         newest = self._latest("cpi_index", 1)
         item.is_new = bool(newest) and newest[0].period == latest and self._is_new(newest[0])
         return item
+
+    def rate_context(self) -> RateContext:
+        """The latest base rate, average new-deposit rate and consumer price rise, as collected from ECOS."""
+        context = RateContext()
+        base = self._latest("base_rate", 1)
+        if base:
+            context.base_rate, context.base_rate_period = Decimal(base[0].value), base[0].period
+        deposit = self._latest("deposit_rate", 1)
+        if deposit:
+            context.deposit_average, context.deposit_average_period = Decimal(deposit[0].value), deposit[0].period
+        rises = self._cpi_yoy()
+        if rises:
+            context.inflation_period = max(rises)
+            context.inflation = rises[context.inflation_period]
+        return context
 
     def rate_trend(self) -> list[RateTrendPoint]:
         by_period: dict[str, RateTrendPoint] = {}

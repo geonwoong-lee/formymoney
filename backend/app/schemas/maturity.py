@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from app.schemas.daily_briefing import CamelModel
+from app.schemas.market import RateContext
 
 Profile = Literal["stable", "balanced", "aggressive"]
 
@@ -158,6 +159,7 @@ class DepositProductsResponse(CamelModel):
     notes: list[str]
     source_name: str
     source_url: str
+    context: RateContext | None = None
 
 
 class SavingProductsRequest(CamelModel):

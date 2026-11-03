@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   calculateSavings, getSavingsProducts, planAfterMaturity,
   type HoldingOutcome, type MaturityOption, type MaturityPlanResponse, type RiskProfile,
@@ -99,6 +99,8 @@ export function MaturityPage() {
   const [plan, setPlan] = useState<MaturityPlanResponse | null>(null)
   const [error, setError] = useState('')
   const [importNote, setImportNote] = useState('')
+  const [searchParams] = useSearchParams()
+  const autoImported = useRef(false)
   const counted = useRef(false)  // one "plan_maturity" per visit, not one per slider move
   const [reminder, setReminder] = useState<{ startMonth: string; termMonths: number; bankName: string; productName: string } | null>(null)
 
@@ -155,6 +157,14 @@ export function MaturityPage() {
       })
       .catch((cause: unknown) => setImportNote(cause instanceof Error ? cause.message : '불러오지 못했어요.'))
   }
+
+  // Coming from 내 적금 fills in the expected maturity amount without another click.
+  useEffect(() => {
+    if (searchParams.get('from') !== 'my-savings' || autoImported.current) return
+    autoImported.current = true
+    importFromPlan()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   // A stale result is never shown for inputs that are now invalid or before a profile is chosen.
   const shown = profile && !amountError ? plan : null

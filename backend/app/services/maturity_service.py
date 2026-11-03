@@ -41,6 +41,7 @@ from app.schemas.maturity import (
     RateScenarioResponse,
 )
 from app.services.market_service import SOURCE_NAME as ECOS_NAME, SOURCE_URL as ECOS_URL
+from app.services.market_service import MarketService
 from app.services.product_rate_service import shown_company
 
 CHECKED_ON = date(2026, 11, 2)
@@ -292,6 +293,7 @@ def _disclosed_products(
         middle=point(by_result[(len(by_result) - 1) // 2]) if by_result else None,
         highest=point(by_result[-1]) if by_result else None,
         products=products, notes=notes, source_name=FINLIFE_NAME, source_url=FINLIFE_URL,
+        context=MarketService(session).rate_context(),
     )
 
 

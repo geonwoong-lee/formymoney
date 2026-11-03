@@ -103,6 +103,13 @@ function Status({ status, events }: { status: MyStatusResponse; events: Upcoming
       matured={status.timeline.phase === 'matured'}
     />}
 
+    {status.timeline.phase !== 'unknown' && <section className="my-savings__card" aria-labelledby="my-savings-after">
+      <h2 id="my-savings-after">만기 후엔 어떻게 할까요?</h2>
+      <p>예상 만기금액 <b>{won(result.expectedMaturityAmount)}</b>을 정기예금에 맡길 때와 다른 선택에 두었을 때를 과거 기록으로 견주어 볼 수 있어요.</p>
+      <Link className="button button--secondary" to="/maturity?from=my-savings">만기 후 계획으로 이어서 보기</Link>
+      <p className="my-savings__muted">예상 금액은 자동으로 넣어 드려요. 어떤 선택을 권하지는 않아요.</p>
+    </section>}
+
     <section className="my-savings__card" aria-labelledby="my-savings-events">
       <h2 id="my-savings-events">다가올 일정</h2>
       {events.length === 0

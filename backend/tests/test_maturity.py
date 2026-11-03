@@ -240,3 +240,26 @@ def test_saving_products_work_out_the_end_of_term_money_for_a_monthly_amount(cli
     # The deposit list is untouched by the refactor: same snapshot, no savings rows in it.
     deposits = client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 12}).json()
     assert [item["company"] for item in deposits["products"]] == ["가은행"] and deposits["principal"] is None
+
+
+def test_deposit_products_carry_the_official_rates_to_read_them_against(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        market = MarketService(session)
+        market.save("base_rate", [("20261031", Decimal("2.50")), ("20261101", Decimal("2.75"))])
+        market.save("deposit_rate", [("202608", Decimal("2.90")), ("202609", Decimal("2.85"))])
+        market.save("cpi_index", [("202509", Decimal("100")), ("202609", Decimal("102.1"))])
+
+    body = client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 12, "group": "bank"}).json()
+
+    context = body["context"]
+    assert (Decimal(context["baseRate"]), context["baseRatePeriod"]) == (Decimal("2.75"), "20261101")  # the newest day wins
+    assert (Decimal(context["depositAverage"]), context["depositAveragePeriod"]) == (Decimal("2.85"), "202609")
+    assert (Decimal(context["inflation"]), context["inflationPeriod"]) == (Decimal("2.1"), "202609")
+
+
+def test_the_context_is_empty_when_nothing_was_collected(client: TestClient) -> None:
+    body = client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 12, "group": "bank"}).json()
+
+    assert body["context"] == {
+        "baseRate": None, "baseRatePeriod": None, "depositAverage": None, "depositAveragePeriod": None, "inflation": None, "inflationPeriod": None,
+    }
