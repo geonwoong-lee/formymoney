@@ -105,7 +105,7 @@
 .reference-facts dd { margin: 5px 0 0; font-size: 12px; font-weight: 700; }
 .reference-caution, .reference-summary { padding: 9px; background: #fff; }
 .reference-caution { color: #555; }
-.reference-summary { border-left: 4px solid #000080; }
+.reference-summary { border: 2px solid; border-color: var(--panel-shadow) var(--panel-light) var(--panel-light) var(--panel-shadow); box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #dfdfdf; }
 .method-list, .limit-list { display: grid; gap: 7px; padding-left: 22px; }
 .source-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
 .source-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px; border: 1px solid #808080; background: #fff; }
@@ -148,7 +148,7 @@ html, body, #root { height: 100%; overflow: hidden; }
   .source-list li { align-items: flex-start; flex-direction: column; }
   .source-links { justify-content: flex-start; }
 }
-.cashflow-before-cancel { margin: 8px 0 12px; padding: 8px 12px; border: 1px solid #808080; border-left: 4px solid #000080; background: #f4f6fb; font-size: 13px; }
+.cashflow-before-cancel { margin: 8px 0 12px; padding: 8px 12px; border: 2px solid; border-color: var(--panel-shadow) var(--panel-light) var(--panel-light) var(--panel-shadow); box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #dfdfdf; background: #f4f6fb; font-size: 13px; }
 .cashflow-before-cancel ul { margin: 4px 0; padding-left: 18px; }
 .cashflow-before-cancel li { margin: 3px 0; line-height: 1.5; }
 .bank-results .bank-why { grid-column: 1 / -1; padding-top: 6px; border-top: 1px dotted #808080; font-size: 14px; }

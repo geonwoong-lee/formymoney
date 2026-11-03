@@ -107,17 +107,11 @@
 
 .maturity-option {
   padding: 10px 12px;
-  border: 2px solid #808080;
-  border-left-width: 6px;
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-shadow) var(--panel-shadow) var(--panel-light);
   background: #f4f4f4;
 }
 
-/* The left edge darkens with risk; the badge and label carry the meaning without colour. */
-.maturity-option--risk0 { border-left-color: #1f4e9c; }
-.maturity-option--risk1 { border-left-color: #6d8fc4; }
-.maturity-option--risk2 { border-left-color: #b08a2e; }
-.maturity-option--risk3 { border-left-color: #c2560e; }
-.maturity-option--risk4 { border-left-color: #8b1a1a; }
 
 .maturity-option__head {
   display: flex;

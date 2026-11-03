@@ -1,8 +1,9 @@
 .daily-glance {
   margin: 0 0 14px;
   padding: 12px;
-  border: 2px solid #808080;
-  border-left: 6px solid #000080;
+  border: 2px solid;
+  border-color: var(--panel-shadow) var(--panel-light) var(--panel-light) var(--panel-shadow);
+  box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #dfdfdf;
   background: #fff;
   overflow-wrap: anywhere;
 }
@@ -237,8 +238,10 @@
 .daily-why {
   margin: 0 0 8px;
   padding: 8px 10px;
-  border-left: 4px solid #008080;
-  background: #eef8f8;
+  border: 2px solid;
+  border-color: var(--panel-shadow) var(--panel-light) var(--panel-light) var(--panel-shadow);
+  box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #dfdfdf;
+  background: #fff;
 }
 
 .daily-why p,
@@ -353,8 +356,10 @@
 .daily-featured {
   margin-bottom: 8px;
   padding: 8px 10px;
-  border-left: 4px solid #008080;
-  background: #eef8f8;
+  border: 2px solid;
+  border-color: var(--panel-shadow) var(--panel-light) var(--panel-light) var(--panel-shadow);
+  box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #dfdfdf;
+  background: #fff;
 }
 
 .daily-headlines__reason {
@@ -468,8 +473,9 @@
 .daily-digest {
   margin-top: 18px;
   padding: 12px;
-  border: 2px solid #808080;
-  border-left: 6px solid #000080;
+  border: 2px solid;
+  border-color: var(--panel-shadow) var(--panel-light) var(--panel-light) var(--panel-shadow);
+  box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #dfdfdf;
   background: #fff;
   overflow-wrap: anywhere;
 }
