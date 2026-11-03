@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError, getMe, type AuthUser } from '../api/client'
+import { SavedPlans } from '../components/SavedPlans'
 import { clearAuthSession, loadAuthSession } from '../storage/authStorage'
 import './AuthPage.css'
 
@@ -51,6 +52,7 @@ export function MyPage() {
           <button className="button button--secondary" type="button" onClick={logout}>로그아웃</button>
         </div>
       )}
+      {state.kind === 'ready' && session && <SavedPlans accessToken={session.accessToken} />}
     </section>
   )
 }

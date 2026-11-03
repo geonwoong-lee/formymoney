@@ -1,3 +1,4 @@
+import type { VeryRichDraft } from '../storage/draftStorage'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
 export interface HealthResponse {
@@ -282,6 +283,40 @@ export interface EventsResponse {
 
 export function getEvents(signal?: AbortSignal, days = 60): Promise<EventsResponse> {
   return request<EventsResponse>(`/api/v1/events?days=${days}`, { signal })
+}
+
+export interface SavedPlan {
+  id: number
+  name: string
+  draft: VeryRichDraft
+  createdAt: string
+  updatedAt: string
+}
+
+const bearer = (accessToken: string) => ({ Authorization: `Bearer ${accessToken}` })
+
+export function listSavedPlans(accessToken: string, signal?: AbortSignal): Promise<{ plans: SavedPlan[]; limit: number }> {
+  return request('/api/v1/me/plans', { headers: bearer(accessToken), signal })
+}
+
+export function savePlan(accessToken: string, name: string, draft: VeryRichDraft): Promise<SavedPlan> {
+  return request('/api/v1/me/plans', {
+    method: 'POST', headers: { ...bearer(accessToken), 'Content-Type': 'application/json' }, body: JSON.stringify({ name, draft }),
+  })
+}
+
+export function overwritePlan(accessToken: string, id: number, name: string, draft: VeryRichDraft): Promise<SavedPlan> {
+  return request(`/api/v1/me/plans/${id}`, {
+    method: 'PUT', headers: { ...bearer(accessToken), 'Content-Type': 'application/json' }, body: JSON.stringify({ name, draft }),
+  })
+}
+
+export function deletePlan(accessToken: string, id: number): Promise<void> {
+  return request(`/api/v1/me/plans/${id}`, { method: 'DELETE', headers: bearer(accessToken) })
+}
+
+export function deleteAllPlans(accessToken: string): Promise<void> {
+  return request('/api/v1/me/plans', { method: 'DELETE', headers: bearer(accessToken) })
 }
 
 export type RiskProfile = 'stable' | 'balanced' | 'aggressive'
@@ -593,5 +628,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(message, response.status)
   }
 
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
