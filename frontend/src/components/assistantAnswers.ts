@@ -105,6 +105,15 @@ const RULES: AnswerRule[] = [
 ]
 
 export const GREETING = '무엇을 도와 드릴까요?'
+
+// Shown as buttons before the first question so people see what the dog can answer.
+export const EXAMPLE_QUESTIONS = [
+  '이번 달 적금 못 넣으면 어떻게 돼?',
+  '적금 만기되면 목돈은 어디에 둬?',
+  '요즘 물가 얼마나 올랐어?',
+  '다음 금통위 언제야?',
+  '예금자보호는 얼마까지 돼?',
+]
 export const FALLBACK: AssistantAnswer = {
   text: '잘 모르겠어요. 이런 걸 도와드릴 수 있어요. 궁금한 걸 골라 보세요.',
   links: QUICK_LINKS,

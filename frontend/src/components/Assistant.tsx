@@ -7,7 +7,7 @@ import dogReadImage from '../assets/icons/moneydog-read.png'
 import dogRestImage from '../assets/icons/moneydog-rest.png'
 import dogSearchImage from '../assets/icons/moneydog-search.png'
 import dogSniffImage from '../assets/icons/moneydog-sniff.png'
-import { findAnswer, GREETING, type AssistantAnswer, type AssistantSource } from './assistantAnswers'
+import { EXAMPLE_QUESTIONS, findAnswer, GREETING, type AssistantAnswer, type AssistantSource } from './assistantAnswers'
 import './Assistant.css'
 
 const INTERNAL_PATH = /^\/[a-z]+$/
@@ -128,10 +128,10 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
     setOpen(true)
   }
 
-  async function search(event?: FormEvent) {
+  async function search(event?: FormEvent, asked?: string) {
     event?.preventDefault()
     setOptionsOpen(false)
-    const question = query.trim()
+    const question = (asked ?? query).trim()
     const fallback = findAnswer(question)
     if (!question || fallback.recommendation) {
       setAnswer(fallback)
@@ -214,6 +214,10 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
       {optionsOpen && <div className="assistant-bubble__options" role="menu">
         <button type="button" role="menuitem" onClick={hide}>도우미 숨기기</button>
         <button type="button" role="menuitem" onClick={() => { setOpen(false); setOptionsOpen(false) }}>말풍선 닫기</button>
+      </div>}
+      {!answer && !thinking && <div className="assistant-bubble__examples" aria-label="질문 예시">
+        <span>이렇게 물어보세요</span>
+        {EXAMPLE_QUESTIONS.map((example) => <button type="button" key={example} onClick={() => { setQuery(example); void search(undefined, example) }}>{example}</button>)}
       </div>}
       {thinking && <p className="assistant-bubble__thinking" role="status">생각하는 중이에요…</p>}
       {answer && <div className="assistant-bubble__answer" role="status">

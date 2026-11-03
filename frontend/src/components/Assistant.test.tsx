@@ -110,6 +110,23 @@ describe('Assistant', () => {
     }
   })
 
+  it('offers example questions that ask right away, and hides them once answered', async () => {
+    const user = userEvent.setup()
+    const fetch = vi.fn().mockResolvedValue(aiReply('다음 금통위는 2026년 11월 26일(목)이에요.'))
+    vi.stubGlobal('fetch', fetch)
+    renderAssistant()
+    await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
+
+    const examples = screen.getByLabelText('질문 예시')
+    expect(within(examples).getAllByRole('button')).toHaveLength(5)
+    await user.click(within(examples).getByRole('button', { name: '다음 금통위 언제야?' }))
+
+    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toEqual({ message: '다음 금통위 언제야?' })
+    expect(screen.getByRole('textbox')).toHaveValue('다음 금통위 언제야?')
+    expect(await screen.findByText(/11월 26일/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('질문 예시')).not.toBeInTheDocument()
+  })
+
   it('never recommends a product and says so', async () => {
     const user = userEvent.setup()
     renderAssistant()

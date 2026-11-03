@@ -61,7 +61,7 @@ describe('SavedPlans', () => {
     await user.click(screen.getByRole('button', { name: '지금 입력 저장' }))
 
     const [, init] = calls(fetch, 'POST')[0]
-    expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer token-a')
+    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer token-a')
     expect(JSON.parse(String(init?.body))).toEqual({ name: '월 50만 원 국민은행', draft: draft(500_000) })
     expect(await screen.findByText('지금 입력을 계획으로 저장했어요.')).toBeInTheDocument()
     expect(within(screen.getByRole('list', { name: '저장한 계획 목록' })).getByText('월 50만 원 국민은행')).toBeInTheDocument()
