@@ -15,7 +15,7 @@ const BY_CODE: Record<string, string> = {
 // For lists that only carry the company's name as 금감원 disclosed it. 저축은행 are separate companies and are skipped.
 const BY_NAME: [RegExp, string][] = [
   [/국민/, 'kb'], [/신한/, 'shinhan'], [/농협|NH/, 'nh'], [/우리/, 'woori'], [/하나/, 'hana'], [/중소기업|IBK|기업은행/, 'ibk'],
-  [/수협|Sh/, 'sh'], [/아이엠|iM/, 'im'], [/부산|경남/, 'busan-gyeongnam'], [/광주|전북/, 'gwangju-jeonbuk'], [/카카오/, 'kakao'],
+  [/수협|Sh/, 'sh'], [/아이엠|iM/, 'im'], [/부산|경남/, 'busan-gyeongnam'], [/광주|전북/, 'gwangju-jeonbuk'], [/카카오/, 'kakao'], [/케이뱅크/, 'kbank'], [/토스/, 'toss'],
 ]
 
 export function bankLogoUrl(bankCode: string | undefined, bankName: string): string | undefined {
