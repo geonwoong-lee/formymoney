@@ -120,6 +120,7 @@ class DepositProductsRequest(CamelModel):
 
 class DepositProductRow(CamelModel):
     company: str
+    product_code: str = ""
     product_name: str
     rate_type: str
     base_rate: Decimal

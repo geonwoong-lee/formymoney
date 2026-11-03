@@ -6,6 +6,7 @@ import {
   type MoneyNoteCategory, type NewsDigest, type NewsHeadline, type UpcomingEvent,
 } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
+import { RateAlerts } from '../components/RateAlerts'
 import { TeacherNote } from '../components/TeacherNote'
 import './DailyPage.css'
 import { FinanceLesson } from './FinanceLesson'
@@ -531,6 +532,7 @@ export function DailyPage() {
       <h1>오늘의 머니</h1>
       <p className="lead">오늘 경제 소식과 그 소식이 내 돈에 어떻게 닿는지 한곳에서 봐요.</p>
 
+      <RateAlerts />
       {error && <ErrorNotice message={error} onRetry={retry} />}
       {!data && !error && <p className="notice">오늘의 브리핑을 불러오는 중입니다.</p>}
 

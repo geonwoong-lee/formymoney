@@ -100,3 +100,28 @@ def test_changes_endpoint_names_the_source(client: TestClient) -> None:
     assert body["latestDay"] is None and body["changes"] == []
     assert body["sourceName"] == "금융감독원 금융상품 한눈에" and body["sourceUrl"] == "https://finlife.fss.or.kr/"
     assert daily_jobs.FINLIFE_GROUPS == {"020000": "은행", "030300": "저축은행"}
+
+
+def _bank_rate(company: str, code: str, rate: str, kind: str = "deposit") -> ProductRate:
+    return ProductRate(kind, "은행", company, code, f"{code} 상품", 12, "단리", "", Decimal(rate), None, "202611")
+
+
+def test_alerts_show_only_my_banks_moves_and_my_starred_products(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        service = ProductRateService(session)
+        first = [_bank_rate("국민은행", "KB1", "3.00"), _bank_rate("주식회사 카카오뱅크", "KK1", "3.10"), _bank_rate("우리은행", "WR1", "2.90"),
+                 _bank_rate("우리은행", "WR2", "2.80", "saving")]
+        service.save_snapshot(date(2026, 11, 3), first)
+        quiet = client.post("/api/v1/market/product-rates/alerts", json={"bankCode": "kb"}).json()
+        assert (quiet["previousDay"], quiet["bank"]) == (None, {"bankCode": "kb", "company": "국민은행", "changes": []})
+        service.save_snapshot(date(2026, 11, 4), [_bank_rate("국민은행", "KB1", "2.90"), _bank_rate("주식회사 카카오뱅크", "KK1", "3.20"),
+                                                  _bank_rate("우리은행", "WR1", "3.00"), _bank_rate("우리은행", "WR2", "2.80", "saving")])
+
+    body = client.post("/api/v1/market/product-rates/alerts", json={
+        "bankCode": "kb", "watch": [{"kind": "deposit", "company": "카카오뱅크", "productCode": "KK1"}, {"kind": "saving", "company": "우리은행", "productCode": "WR2"}],
+    }).json()
+    assert (body["latestDay"], body["previousDay"]) == ("2026-11-04", "2026-11-03")
+    assert [(item["productCode"], item["before"], item["after"], item["changePoint"]) for item in body["bank"]["changes"]] == [("KB1", "3.00", "2.90", "-0.10")]
+    assert [item["productCode"] for item in body["watched"]] == ["KK1"]  # 우리은행 WR1 moved but is neither my bank nor starred
+    assert client.post("/api/v1/market/product-rates/alerts", json={"bankCode": "post"}).json()["bank"] is None  # 우체국 is not disclosed
+    assert client.post("/api/v1/market/product-rates/alerts", json={"watch": [{"kind": "x", "company": "a", "productCode": "b"}]}).status_code == 422

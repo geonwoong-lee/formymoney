@@ -15,6 +15,17 @@ from app.collectors.finlife import ProductRate
 from app.models.product_rate import ProductInfo, ProductRateSnapshot
 
 KEEP_DAYS = 14
+# The site's bank codes and how 금감원 names those banks. 우체국 is not in the disclosure.
+FINLIFE_COMPANIES = {
+    "kb": "국민은행", "shinhan": "신한은행", "nh": "농협은행주식회사", "woori": "우리은행", "hana": "주식회사 하나은행",
+    "ibk": "중소기업은행", "sh": "수협은행", "im": "아이엠뱅크", "busan": "부산은행", "gwangju": "광주은행",
+    "jeonbuk": "전북은행", "gyeongnam": "경남은행", "kakao": "주식회사 카카오뱅크",
+}
+
+
+def shown_company(name: str) -> str:
+    """"주식회사 케이뱅크" and "토스뱅크 주식회사" read as 케이뱅크 and 토스뱅크."""
+    return " ".join(word for word in name.replace("(주)", " ").split() if word != "주식회사") or name
 Key = tuple[str, str, str, int, str, str]
 
 
@@ -67,17 +78,17 @@ class ProductRateService:
             row.maturity_interest = info.maturity_interest
             row.updated_on = day
 
-    def changes(self) -> dict[str, object]:
+    def _latest_two(self) -> tuple[list[date], dict[Key, ProductRateSnapshot], dict[Key, ProductRateSnapshot]]:
         days = list(self.session.scalars(
             select(ProductRateSnapshot.day).group_by(ProductRateSnapshot.day).order_by(ProductRateSnapshot.day.desc()).limit(2)
         ))
-        empty = {"latestDay": None, "previousDay": None, "productCount": 0, "changes": [], "added": 0, "removed": 0}
-        if not days:
-            return empty
-        latest = {_key(row): row for row in self.session.scalars(select(ProductRateSnapshot).where(ProductRateSnapshot.day == days[0]))}
-        if len(days) < 2:
-            return {**empty, "latestDay": days[0].isoformat(), "productCount": len(latest)}
-        previous = {_key(row): row for row in self.session.scalars(select(ProductRateSnapshot).where(ProductRateSnapshot.day == days[1]))}
+        snapshot = lambda day: {_key(row): row for row in self.session.scalars(select(ProductRateSnapshot).where(ProductRateSnapshot.day == day))}  # noqa: E731
+        latest = snapshot(days[0]) if days else {}
+        previous = snapshot(days[1]) if len(days) > 1 else {}
+        return days, latest, previous
+
+    @staticmethod
+    def _diff(latest: dict[Key, ProductRateSnapshot], previous: dict[Key, ProductRateSnapshot]) -> list[dict[str, str | int]]:
         changes = []
         for key, row in latest.items():
             before = previous.get(key)
@@ -88,13 +99,48 @@ class ProductRateService:
                 if old is None or new is None or Decimal(old) == Decimal(new):
                     continue
                 changes.append({
-                    "kind": row.kind, "group": row.group, "company": row.company, "productName": row.product_name,
-                    "termMonths": row.term_months, "rateType": row.rate_type, "reserveType": row.reserve_type,
-                    "field": field, "fieldLabel": label, "before": str(Decimal(old)), "after": str(Decimal(new)),
-                    "changePoint": str(Decimal(new) - Decimal(old)),
+                    "kind": row.kind, "group": row.group, "company": row.company, "productCode": row.product_code,
+                    "productName": row.product_name, "termMonths": row.term_months, "rateType": row.rate_type,
+                    "reserveType": row.reserve_type, "field": field, "fieldLabel": label,
+                    "before": str(Decimal(old)), "after": str(Decimal(new)), "changePoint": str(Decimal(new) - Decimal(old)),
                 })
         changes.sort(key=lambda item: (-abs(Decimal(item["changePoint"])), item["company"], item["productName"], item["termMonths"]))
+        return changes
+
+    def changes(self) -> dict[str, object]:
+        days, latest, previous = self._latest_two()
+        empty = {"latestDay": None, "previousDay": None, "productCount": 0, "changes": [], "added": 0, "removed": 0}
+        if not days:
+            return empty
+        if len(days) < 2:
+            return {**empty, "latestDay": days[0].isoformat(), "productCount": len(latest)}
         return {
             "latestDay": days[0].isoformat(), "previousDay": days[1].isoformat(), "productCount": len(latest),
-            "changes": changes, "added": len(latest.keys() - previous.keys()), "removed": len(previous.keys() - latest.keys()),
+            "changes": self._diff(latest, previous),
+            "added": len(latest.keys() - previous.keys()), "removed": len(previous.keys() - latest.keys()),
         }
+
+    def alerts(self, bank_code: str | None, watched: list[tuple[str, str, str]]) -> dict[str, object]:
+        """Only the moves that concern this person: their savings bank's own products and the products they starred.
+
+        `watched` holds (kind, company as shown on screen, product code); companies are compared after dropping
+        "주식회사" the same way the product list shows them.
+        """
+        days, latest, previous = self._latest_two()
+        company = FINLIFE_COMPANIES.get(bank_code or "")
+        bank = None if company is None else {"bankCode": bank_code, "company": shown_company(company), "changes": []}
+        result = {
+            "latestDay": days[0].isoformat() if days else None, "previousDay": days[1].isoformat() if len(days) > 1 else None,
+            "bank": bank, "watched": [],
+        }
+        if len(days) < 2:
+            return result
+        changes = self._diff(latest, previous)
+        wanted = {(kind, name, code) for kind, name, code in watched}
+        if bank is not None:
+            bank["changes"] = [item for item in changes if item["company"] == company]
+        result["watched"] = [
+            item for item in changes
+            if (item["kind"], shown_company(str(item["company"])), item["productCode"]) in wanted
+        ]
+        return result

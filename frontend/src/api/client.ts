@@ -431,6 +431,7 @@ export interface MaturityPlanResponse {
 
 export interface DepositProduct {
   company: string
+  productCode: string
   productName: string
   rateType: string
   baseRate: string
@@ -468,6 +469,32 @@ export interface DepositProductsResponse {
 }
 
 export type DepositGroup = 'bank' | 'savings_bank'
+
+export interface RateChange {
+  kind: 'deposit' | 'saving'
+  company: string
+  productCode: string
+  productName: string
+  termMonths: number
+  rateType: string
+  fieldLabel: string
+  before: string
+  after: string
+  changePoint: string
+}
+
+export interface RateAlerts {
+  latestDay: string | null
+  previousDay: string | null
+  bank: { bankCode: string; company: string; changes: RateChange[] } | null
+  watched: RateChange[]
+  sourceName: string
+  sourceUrl: string
+}
+
+export function getRateAlerts(payload: { bankCode?: string; watch: { kind: string; company: string; productCode: string }[] }, signal?: AbortSignal): Promise<RateAlerts> {
+  return request('/api/v1/market/product-rates/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
+}
 
 export function getDepositProducts(payload: { amount: number; months: 12 | 24; group: DepositGroup }, signal?: AbortSignal): Promise<DepositProductsResponse> {
   return request('/api/v1/maturity-plan/deposit-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })

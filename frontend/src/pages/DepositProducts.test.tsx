@@ -6,7 +6,7 @@ import { DepositProducts } from './DepositProducts'
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
 const product = (company: string, baseRate: string, baseAfterTax: number, maxRate: string | null = null, maxAfterTax: number | null = null) => ({
-  company, productName: `${company} 정기예금`, rateType: '단리', baseRate, maxRate, baseAfterTax, maxAfterTax,
+  company, productCode: `${company}-P`, productName: `${company} 정기예금`, rateType: '단리', baseRate, maxRate, baseAfterTax, maxAfterTax,
   joinWay: '', joinMember: '', joinLimit: '', specialConditions: '', maxLimit: null as number | null, overLimit: false, etcNote: '', maturityInterest: '',
 })
 
@@ -20,6 +20,7 @@ function response(group: string, products: ReturnType<typeof product>[]) {
 }
 
 afterEach(() => {
+  window.localStorage.clear()
   cleanup()
   vi.unstubAllGlobals()
 })
@@ -83,6 +84,15 @@ describe('DepositProducts', () => {
     expect(terms).toHaveTextContent('가입 한도500만 원까지')
     expect(terms).not.toHaveTextContent('그 밖의 안내')  // "해당사항 없음" is left out
     expect(within(second).queryByText('가입 조건 보기')).not.toBeInTheDocument()
+
+    // Starring keeps the product in this browser for the rate alerts.
+    await user.click(within(first).getByRole('button', { name: '☆ 관심' }))
+    expect(within(first).getByRole('button', { name: '★ 관심 상품' })).toHaveAttribute('aria-pressed', 'true')
+    expect(JSON.parse(window.localStorage.getItem('very-rich:watch-products:v1') ?? '[]')).toEqual([
+      { kind: 'deposit', company: '가은행', productCode: '가은행-P', productName: '가은행 정기예금' },
+    ])
+    await user.click(within(first).getByRole('button', { name: '★ 관심 상품' }))
+    expect(JSON.parse(window.localStorage.getItem('very-rich:watch-products:v1') ?? '[]')).toEqual([])
     expect(second).not.toHaveTextContent('내 금액이 넘어요')
   })
 

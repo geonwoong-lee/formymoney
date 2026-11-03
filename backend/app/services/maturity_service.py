@@ -39,6 +39,7 @@ from app.schemas.maturity import (
     RateScenarioResponse,
 )
 from app.services.market_service import SOURCE_NAME as ECOS_NAME, SOURCE_URL as ECOS_URL
+from app.services.product_rate_service import shown_company
 
 CHECKED_ON = date(2026, 11, 2)
 DEPOSIT_PROTECTION_LIMIT = 100_000_000
@@ -208,11 +209,6 @@ FINLIFE_NAME = "금융감독원 금융상품 한눈에"
 FINLIFE_URL = "https://finlife.fss.or.kr/"
 
 
-def _company(name: str) -> str:
-    """"주식회사 케이뱅크" and "토스뱅크 주식회사" read as 케이뱅크 and 토스뱅크."""
-    return " ".join(word for word in name.replace("(주)", " ").split() if word != "주식회사") or name
-
-
 def _after_tax(amount: int, months: int, rate: Decimal, rate_type: str) -> int:
     calculate = deposit_lump_sum_compound if rate_type == "복리" else deposit_lump_sum
     return calculate(amount, months, rate).ending_value_after_tax
@@ -242,7 +238,7 @@ def deposit_products(session: Session, request: DepositProductsRequest) -> Depos
         }
 
     products = [DepositProductRow(
-        company=_company(row.company), product_name=" ".join(row.product_name.split()), rate_type=row.rate_type or "단리",
+        company=shown_company(row.company), product_code=row.product_code, product_name=" ".join(row.product_name.split()), rate_type=row.rate_type or "단리",
         base_rate=row.base_rate, max_rate=row.max_rate,
         base_after_tax=_after_tax(request.amount, request.months, row.base_rate, row.rate_type),
         max_after_tax=_after_tax(request.amount, request.months, row.max_rate, row.rate_type) if row.max_rate is not None else None,
