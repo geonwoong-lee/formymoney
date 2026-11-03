@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getHealth, type HealthResponse } from '../api/client'
+import { RateAlerts } from '../components/RateAlerts'
 import { isSignedIn } from '../storage/authStorage'
 
 type HealthState =
@@ -30,6 +31,7 @@ export function HomePage() {
     <section className="page">
       <p className="eyebrow">How to be rich, very rich?</p>
       <h1>같은 돈의 다른 미래를 비교하세요.</h1>
+      <RateAlerts />
       <p className="lead">
         최고금리 대신 내가 받을 수 있는 금리를 계산하고, 빠뜨린 납입까지 반영해 적금과 다른 선택을 같은 기준으로 살펴봅니다.
       </p>

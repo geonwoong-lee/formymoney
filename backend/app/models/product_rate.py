@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import Date, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import BigInteger, Date, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -28,3 +28,23 @@ class ProductRateSnapshot(Base):
     base_rate: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
     max_rate: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
     disclosed_month: Mapped[str] = mapped_column(String(6))
+
+
+class ProductInfo(Base):
+    """A product's joining terms (who, how, limit, bonus-rate conditions) as last disclosed; one row per product."""
+
+    __tablename__ = "product_infos"
+    __table_args__ = (UniqueConstraint("kind", "company", "product_code", name="uq_product_info"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(10))
+    company: Mapped[str] = mapped_column(String(100))
+    product_code: Mapped[str] = mapped_column(String(60))
+    join_way: Mapped[str] = mapped_column(String(200))
+    join_member: Mapped[str] = mapped_column(Text)
+    join_limit: Mapped[str] = mapped_column(String(20))
+    special_conditions: Mapped[str] = mapped_column(Text)
+    max_limit: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    etc_note: Mapped[str] = mapped_column(Text)
+    maturity_interest: Mapped[str] = mapped_column(Text)
+    updated_on: Mapped[date] = mapped_column(Date)

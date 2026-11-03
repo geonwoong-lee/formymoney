@@ -6,7 +6,8 @@ import { DepositProducts } from './DepositProducts'
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
 const product = (company: string, baseRate: string, baseAfterTax: number, maxRate: string | null = null, maxAfterTax: number | null = null) => ({
-  company, productName: `${company} 정기예금`, rateType: '단리', baseRate, maxRate, baseAfterTax, maxAfterTax,
+  company, productCode: `${company}-P`, productName: `${company} 정기예금`, rateType: '단리', baseRate, maxRate, baseAfterTax, maxAfterTax,
+  joinWay: '', joinMember: '', joinLimit: '', specialConditions: '', maxLimit: null as number | null, overLimit: false, etcNote: '', maturityInterest: '',
 })
 
 function response(group: string, products: ReturnType<typeof product>[]) {
@@ -19,6 +20,7 @@ function response(group: string, products: ReturnType<typeof product>[]) {
 }
 
 afterEach(() => {
+  window.localStorage.clear()
   cleanup()
   vi.unstubAllGlobals()
 })
@@ -59,6 +61,39 @@ describe('DepositProducts', () => {
     await user.click(screen.getByRole('radio', { name: '저축은행' }))
     expect(await screen.findByRole('list', { name: '저축은행 정기예금 목록' })).toHaveTextContent('가저축은행')
     expect(screen.getByText('저축은행 안내')).toBeInTheDocument()
+  })
+
+  it('shows the joining terms of each product as disclosed and flags an amount over the limit', async () => {
+    const user = userEvent.setup()
+    const strict = {
+      ...product('가은행', '3.00', 10_253_800, '3.40', 10_287_640),
+      joinWay: '인터넷,스마트폰', joinMember: '실명의 개인', joinLimit: '서민 전용', specialConditions: '1. 급여 이체 시 0.2%p\n2. 카드 사용 시 0.2%p',
+      maxLimit: 5_000_000, overLimit: true, etcNote: '해당사항 없음', maturityInterest: '만기 후 1개월: 약정이율의 50%',
+    }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(respond(response('은행', [strict, product('나은행', '2.00', 10_169_200)])))))
+    render(<DepositProducts amount={10_000_000} months={12} headingId="x" />)
+
+    const list = await screen.findByRole('list', { name: '은행 정기예금 목록' })
+    const [first, second] = within(list).getAllByRole('listitem')
+    expect(first).toHaveTextContent('한도 500만 원: 내 금액이 넘어요')
+    expect(first).toHaveTextContent('서민 전용')
+    await user.click(within(first).getByText('가입 조건 보기'))
+    const terms = within(first).getByRole('group')
+    expect(terms).toHaveTextContent('우대 조건1. 급여 이체 시 0.2%p')
+    expect(terms).toHaveTextContent('가입 방법인터넷, 스마트폰')
+    expect(terms).toHaveTextContent('가입 한도500만 원까지')
+    expect(terms).not.toHaveTextContent('그 밖의 안내')  // "해당사항 없음" is left out
+    expect(within(second).queryByText('가입 조건 보기')).not.toBeInTheDocument()
+
+    // Starring keeps the product in this browser for the rate alerts.
+    await user.click(within(first).getByRole('button', { name: '☆ 관심' }))
+    expect(within(first).getByRole('button', { name: '★ 관심 상품' })).toHaveAttribute('aria-pressed', 'true')
+    expect(JSON.parse(window.localStorage.getItem('very-rich:watch-products:v1') ?? '[]')).toEqual([
+      { kind: 'deposit', company: '가은행', productCode: '가은행-P', productName: '가은행 정기예금' },
+    ])
+    await user.click(within(first).getByRole('button', { name: '★ 관심 상품' }))
+    expect(JSON.parse(window.localStorage.getItem('very-rich:watch-products:v1') ?? '[]')).toEqual([])
+    expect(second).not.toHaveTextContent('내 금액이 넘어요')
   })
 
   it('says so when nothing is collected or the request fails', async () => {

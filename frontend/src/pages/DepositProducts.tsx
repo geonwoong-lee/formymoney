@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { formatKrwExact } from '../features/krw'
+import { isWatched, loadWatchlist, MAX_WATCHED, toggleWatched, type WatchedProduct } from '../features/watchlist'
 import { getDepositProducts, type DepositGroup, type DepositProduct, type DepositProductsResponse } from '../api/client'
 
 const PAGE = 10
@@ -22,12 +24,47 @@ function formatDay(iso: string) {
   return `${year}년 ${month}월 ${day}일`
 }
 
-function ProductRow({ product }: { product: DepositProduct }) {
+// "해당사항 없음", "없음" and the like mean there is nothing to show.
+const isEmpty = (text: string) => !text.trim() || /^(해당\s*사항\s*없음|없음|-)$/.test(text.trim())
+
+function Terms({ product }: { product: DepositProduct }) {
+  const rows: [string, string][] = [
+    ['우대 조건', product.specialConditions],
+    ['가입 대상', product.joinMember],
+    ['가입 방법', product.joinWay.split(',').map((way) => way.trim()).filter(Boolean).join(', ')],
+    ['가입 한도', product.maxLimit === null ? '' : `${formatKrwExact(product.maxLimit)}까지`],
+    ['만기 후 이자', product.maturityInterest],
+    ['그 밖의 안내', product.etcNote],
+  ]
+  const shown = rows.filter(([, text]) => !isEmpty(text))
+  if (shown.length === 0) return null
+  return <details className="deposit-terms">
+    <summary>가입 조건 보기</summary>
+    <dl>
+      {shown.map(([label, text]) => <div key={label}><dt>{label}</dt><dd>{text}</dd></div>)}
+    </dl>
+    <p className="maturity-muted">은행이 금융감독원에 공시한 문장 그대로예요. 바뀌었을 수 있으니 가입 전에 은행에서 다시 확인해 주세요.</p>
+  </details>
+}
+
+function ProductRow({ product, watched, onToggle, full }: { product: DepositProduct; watched: boolean; onToggle: () => void; full: boolean }) {
   const hasBonus = product.maxRate !== null && product.maxAfterTax !== null && Number(product.maxRate) > Number(product.baseRate)
+  const limited = product.joinLimit && product.joinLimit !== '제한 없음'
   return <li className="deposit-product">
-    <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span></p>
+    <div className="deposit-product__top">
+      <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span></p>
+      {product.productCode && <button
+        type="button" className="deposit-watch" aria-pressed={watched} onClick={onToggle} disabled={!watched && full}
+        title={!watched && full ? `관심 상품은 ${MAX_WATCHED}개까지 둘 수 있어요` : undefined}
+      >{watched ? '★ 관심 상품' : '☆ 관심'}</button>}
+    </div>
+    {(product.overLimit || limited) && <p className="deposit-product__flags">
+      {product.overLimit && product.maxLimit !== null && <span className="deposit-flag deposit-flag--warn">한도 {formatKrwExact(product.maxLimit)}: 내 금액이 넘어요</span>}
+      {limited && <span className="deposit-flag">{product.joinLimit}</span>}
+    </p>}
     <p>기본금리 {percent(product.baseRate)} → 세후 <span className="deposit-product__amount">{won(product.baseAfterTax)}</span></p>
     {hasBonus && <p className="maturity-muted">우대 조건을 다 채우면 {percent(product.maxRate as string)} → 세후 {won(product.maxAfterTax as number)}</p>}
+    <Terms product={product} />
   </li>
 }
 
@@ -38,6 +75,7 @@ export function DepositProducts({ amount, months, headingId }: { amount: number;
   const [sort, setSort] = useState<SortKey>('base')
   const [shownCount, setShownCount] = useState(PAGE)
   const [loaded, setLoaded] = useState<{ key: string; body: DepositProductsResponse | null } | null>(null)
+  const [watchlist, setWatchlist] = useState(() => loadWatchlist())
   const key = `${amount}-${months}-${group}`
   const body = loaded?.key === key ? loaded.body : undefined
 
@@ -82,11 +120,19 @@ export function DepositProducts({ amount, months, headingId }: { amount: number;
       </dl>
       <p className="maturity-muted">{body.group} 정기예금 {body.count.toLocaleString('ko-KR')}개(단리·복리 따로 셈)를 기본금리로 계산한 범위예요. 같은 돈이라도 어느 상품에 맡기느냐에 따라 받는 돈이 이만큼 달라져요.</p>
       <ul className="deposit-products" aria-label={`${body.group} 정기예금 목록`}>
-        {products.slice(0, shownCount).map((product) => <ProductRow key={`${product.company}-${product.productName}-${product.rateType}`} product={product} />)}
+        {products.slice(0, shownCount).map((product) => {
+          const item: WatchedProduct = { kind: 'deposit', company: product.company, productCode: product.productCode, productName: product.productName }
+          return <ProductRow
+            key={`${product.company}-${product.productName}-${product.rateType}`} product={product}
+            watched={isWatched(watchlist, item)} full={watchlist.length >= MAX_WATCHED}
+            onToggle={() => setWatchlist((current) => toggleWatched(current, item))}
+          />
+        })}
       </ul>
       {shownCount < products.length && <button type="button" className="button button--secondary" onClick={() => setShownCount((count) => count + PAGE)}>
         {Math.min(PAGE, products.length - shownCount)}개 더 보기 ({shownCount}/{products.length})
       </button>}
+      <p className="maturity-muted">☆ 관심을 누른 상품은 금리가 바뀌면 첫 화면과 오늘의 머니 위에 알려 드려요. 관심 상품은 이 기기에만 저장돼요.</p>
       <ul className="deposit-notes">{body.notes.map((note) => <li key={note}>{note}</li>)}</ul>
       <p className="maturity-muted">출처 <a href={body.sourceUrl} target="_blank" rel="noreferrer">{body.sourceName} ↗</a>{body.day ? ` · ${formatDay(body.day)} 수집` : ''}</p>
     </>}
