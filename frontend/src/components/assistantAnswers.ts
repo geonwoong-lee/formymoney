@@ -31,6 +31,7 @@ export const QUICK_LINKS: AssistantLink[] = [
   { to: '/cashflow', label: '월별 납입 계획' },
   { to: '/alternatives', label: '대안 비교' },
   { to: '/maturity', label: '만기 후 계획' },
+  { to: '/my-savings', label: '내 적금' },
   { to: '/daily', label: '오늘의 머니' },
   { to: '/market', label: '시장 지표' },
   { to: '/about', label: '계산 기준' },
@@ -46,6 +47,11 @@ const RULES: AnswerRule[] = [
     keywords: ['추천', '뭐가 좋', '어디가 좋', '사야', '가입해야', '가입할까', '수익 보장'],
     text: '저는 특정 상품을 추천하거나 가입을 권하지 않아요. 같은 기준으로 계산해서 비교하는 것만 도와드려요.',
     links: [{ to: '/banks', label: '은행 비교 보기' }, { to: '/about', label: '계산 기준 보기' }],
+  },
+  {
+    keywords: ['내 적금', '몇 회차', '회차', '지금까지 넣은', '얼마나 넣었', '진행 상황', '놓친 납입'],
+    text: '내 적금에서 지금 몇 회차인지, 만기에 받을 예상 금액, 지금까지 넣은 돈과 건너뛴 회차, 우대조건 상태를 한 화면에 볼 수 있어요.',
+    links: [{ to: '/my-savings', label: '내 적금' }],
   },
   {
     keywords: ['만기 후', '만기되', '만기 되', '목돈', '재예치', '성향', '안정형', '공격형', '중립형', '만기 알림', '정기예금', '예금 상품'],

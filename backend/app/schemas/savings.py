@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -163,3 +164,44 @@ class MonthImpactResponse(CamelModel):
     unavailable_notes: list[str]
     source_url: str
     source_date: str
+
+
+class MyStatusRequest(CashflowCalculationRequest):
+    start_month: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    enrolled: bool = False
+
+
+class MyTimeline(CamelModel):
+    # before_start: 가입 전·첫 달 전, saving: 납입 중, matured: 만기 지남, unknown: 가입월을 모름
+    phase: Literal["before_start", "saving", "matured", "unknown"]
+    start_month: str | None
+    maturity_month: str | None
+    current_round: int | None  # 이번 달이 몇 회차인지(1부터), 납입 중일 때만
+    term_months: int
+    months_to_maturity: int | None
+
+
+class MyPayments(CamelModel):
+    # Rounds up to and including this month; only counted for someone who has joined and gave a start month.
+    paid_rounds: int
+    paid_amount: int
+    remaining_rounds: int
+    remaining_amount: int
+    skipped_rounds: list[int]
+    reduced_rounds: list[int]
+
+
+class MyConditions(CamelModel):
+    applied: list[ConditionResult]
+    not_applied: list[ConditionResult]
+    needs_check: list[ConditionResult]
+    # If every condition answered "모름" turned out to be met: the expected maturity amount and the gain.
+    if_checked_maturity_amount: int | None
+    if_checked_gain: int | None
+
+
+class MyStatusResponse(CamelModel):
+    timeline: MyTimeline
+    payments: MyPayments
+    cashflow: CashflowCalculationResponse
+    conditions: MyConditions

@@ -11,6 +11,7 @@ import { ConditionsPage } from './pages/ConditionsPage'
 import { DailyPage } from './pages/DailyPage'
 import { MarketPage } from './pages/MarketPage'
 import { MaturityPage } from './pages/MaturityPage'
+import { MySavingsPage } from './pages/MySavingsPage'
 import { SharePage } from './pages/SharePage'
 import { HomePage } from './pages/HomePage'
 import { AuthPage } from './pages/AuthPage'
@@ -33,6 +34,7 @@ function App() {
         <Route path="/market" element={<MarketPage />} />
         <Route path="/maturity" element={<MaturityPage />} />
         <Route path="/share" element={<SharePage />} />
+        <Route path="/my-savings" element={<MySavingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>
