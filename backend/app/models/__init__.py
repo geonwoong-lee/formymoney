@@ -13,6 +13,7 @@ from app.models.knowledge import KnowledgeChunk
 from app.models.market import MarketPoint
 from app.models.product_rate import ProductRateSnapshot
 from app.models.reference_item import ReferenceItem
+from app.models.saved_plan import SavedPlan
 from app.models.savings_product import BankSavingsProduct, PreferentialCondition, SavingsPolicy
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "PreferentialCondition",
     "ProductRateSnapshot",
     "ReferenceItem",
+    "SavedPlan",
     "SavingsPolicy",
 ]
