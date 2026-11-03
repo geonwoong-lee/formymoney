@@ -120,6 +120,7 @@ class DepositProductsRequest(CamelModel):
 
 
 class DepositProductRow(CamelModel):
+    disclosed_month: str = ""  # YYYYMM the product's rate was disclosed
     company: str
     product_code: str = ""
     reserve_type: str = ""  # savings only: 정액적립식 / 자유적립식

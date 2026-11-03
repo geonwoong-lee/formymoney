@@ -695,3 +695,10 @@
   .utility-window-layer { inset: 0; }
   .utility-window { inset: 8px 6px 8px 6px !important; width: calc(100% - 12px) !important; height: calc(100% - 16px) !important; min-width: 0; min-height: 0; max-width: none; max-height: none; resize: none; }
 }
+.glossary { margin: 12px 0; }
+.glossary__item { padding: 10px 4px; border-bottom: 1px dotted #808080; }
+.glossary dt { font-weight: 700; margin: 0 0 4px; }
+.glossary dd { margin: 0; }
+.glossary dd p { margin: 2px 0; }
+.maturity-search { display: grid; gap: 4px; max-width: 360px; margin: 8px 0; }
+.maturity-search input { padding: 6px 8px; font: inherit; }

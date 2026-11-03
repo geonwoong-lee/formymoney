@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -25,7 +26,7 @@ describe('AboutPage', () => {
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     ))))
 
-    render(<AboutPage />)
+    render(<MemoryRouter><AboutPage /></MemoryRouter>)
 
     expect(screen.getByRole('heading', { name: '계산 기준과 출처' })).toBeInTheDocument()
     expect(screen.getByText(/전국 만 20~34세 금융소비자 266명/)).toBeInTheDocument()
@@ -45,7 +46,7 @@ describe('AboutPage', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify(investments), { status: 200, headers: { 'Content-Type': 'application/json' } }))
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<AboutPage />)
+    render(<MemoryRouter><AboutPage /></MemoryRouter>)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('현재 상품별 출처는 확인할 수 없습니다')
     expect(screen.getByRole('heading', { name: '2. 적금 계산 방법' })).toBeInTheDocument()

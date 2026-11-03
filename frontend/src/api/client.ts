@@ -451,6 +451,7 @@ export interface MaturityPlanResponse {
 }
 
 export interface DepositProduct {
+  disclosedMonth?: string
   company: string
   productCode: string
   reserveType: string

@@ -62,7 +62,7 @@ function ProductRow({ product, watched, onToggle, full }: { product: DepositProd
       {product.overLimit && product.maxLimit !== null && <span className="deposit-flag deposit-flag--warn">한도 {formatKrwExact(product.maxLimit)}: 내 금액이 넘어요</span>}
       {limited && <span className="deposit-flag">{product.joinLimit}</span>}
     </p>}
-    <p>기본금리 {percent(product.baseRate)} → 세후 <span className="deposit-product__amount">{won(product.baseAfterTax)}</span></p>
+    <p>기본금리 {percent(product.baseRate)} → 세후 <span className="deposit-product__amount">{won(product.baseAfterTax)}</span>{product.disclosedMonth && <span className="maturity-muted"> · 공시 {monthLabel(product.disclosedMonth)}</span>}</p>
     {hasBonus && <p className="maturity-muted">우대 조건을 다 채우면 {percent(product.maxRate as string)} → 세후 {won(product.maxAfterTax as number)}</p>}
     <Terms product={product} />
   </li>

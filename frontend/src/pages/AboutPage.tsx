@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   getInvestmentAssets,
   getSavingsProducts,
@@ -45,7 +46,7 @@ export function AboutPage() {
     <section className="page page--wide about-page">
       <p className="eyebrow">About</p>
       <h1>계산 기준과 출처</h1>
-      <p className="lead">결과를 어떻게 계산했는지, 어떤 자료를 사용했고 무엇을 반영하지 않았는지 공개합니다.</p>
+      <p className="lead">결과를 어떻게 계산했는지, 어떤 자료를 사용했고 무엇을 반영하지 않았는지 공개합니다. 낯선 말은 <Link to="/terms">쉬운 용어 풀이</Link>에서 찾아볼 수 있어요.</p>
 
       <div className="about-warning" role="note">
         <strong>의사결정 참고 자료입니다.</strong>
