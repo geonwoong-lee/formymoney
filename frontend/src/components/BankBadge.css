@@ -5,3 +5,5 @@
   vertical-align: middle;
   image-rendering: pixelated;
 }
+
+.bank-badge--logo { border-radius: 22%; image-rendering: auto; }
