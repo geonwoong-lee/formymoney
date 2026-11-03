@@ -52,6 +52,15 @@ ACCOUNTS: dict[str, str] = {
     "순이자손익": "net_interest",
     "영업이익(손실)": "operating_income",
     "당기순이익(손실)": "net_income",
+    # The rest of a bank's main accounts, for the balance sheet and income statement the lesson draws.
+    "자본금": "capital",
+    "이익잉여금": "retained_earnings",
+    "당기손익-공정가치측정금융자산": "fvtpl_assets",
+    "기타포괄손익-공정가치측정금융자산": "fvoci_assets",
+    "파생상품자산": "derivative_assets",
+    "파생상품부채": "derivative_liabilities",
+    "순수수료손익": "net_fee",
+    "법인세차감전 순이익": "pretax_income",
 }
 
 

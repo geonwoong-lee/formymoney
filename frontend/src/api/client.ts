@@ -335,6 +335,18 @@ export interface PeerRange {
   maxBank: string
 }
 
+export interface StatementLine {
+  key: string | null
+  label: string
+  amount: string | null
+}
+
+export interface StatementSection {
+  label: string
+  total: string | null
+  lines: StatementLine[]
+}
+
 export interface BankFinancials {
   bankCode: string
   corpName: string
@@ -345,6 +357,10 @@ export interface BankFinancials {
   ratios: { equityToAssets: string | null; depositsToLiabilities: string | null; netIncomeToAssets: string | null }
   peers: Partial<Record<'equityToAssets' | 'depositsToLiabilities' | 'netIncomeToAssets', PeerRange>>
   balanced: boolean | null
+  statements: {
+    balanceSheet: { assets: StatementSection; liabilities: StatementSection; equity: StatementSection }
+    incomeStatement: StatementLine[]
+  }
   sourceName: string
   sourceUrl: string
 }

@@ -25,6 +25,24 @@ function financials(bankCode: string, corpName: string, overrides: Record<string
     ratios: { equityToAssets: '6.87', depositsToLiabilities: '80.71', netIncomeToAssets: '0.75' },
     peers: { equityToAssets: { count: 11, min: '5.90', minBank: '하나은행', max: '8.83', maxBank: '카카오뱅크' } },
     balanced: true,
+    statements: {
+      balanceSheet: {
+        assets: { label: '자산총계', total: '563592553000000', lines: [
+          { key: 'fvtpl_assets', label: '당기손익-공정가치측정금융자산', amount: '22458493000000' },
+          { key: null, label: '그 밖의 자산(대출채권·현금 등)', amount: '541134060000000' },
+        ] },
+        liabilities: { label: '부채총계', total: '524880638000000', lines: [
+          { key: 'deposits', label: '예수부채(고객이 맡긴 예금)', amount: '423627466000000' },
+          { key: null, label: '그 밖의 부채(은행이 낸 채권·빌린 돈 등)', amount: '101253172000000' },
+        ] },
+        equity: { label: '자본총계', total: '38711915000000', lines: [{ key: 'capital', label: '자본금', amount: '2021896000000' }] },
+      },
+      incomeStatement: [
+        { key: 'interest_income', label: '이자수익', amount: '20187292000000' },
+        { key: 'net_interest', label: '순이자손익', amount: '9829730000000' },
+        { key: 'net_income', label: '당기순이익', amount: '4224016000000' },
+      ],
+    },
     sourceName: '금융감독원 전자공시시스템(DART) 사업보고서',
     sourceUrl: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814002787',
     fetchedAt: '2026-11-03T01:02:49Z',
@@ -66,13 +84,24 @@ describe('FinanceLesson', () => {
     expect(await screen.findByText(/국민은행이 2025년 말에 가진 것/)).toBeInTheDocument()
     expect(paragraph(/국민은행이 2025년 말에 가진 것\(자산\)은 563조 5,926억 원이에요/)).toBeInTheDocument()
     expect(screen.getByLabelText('예시로 볼 은행')).toHaveValue('kb')
+
+    // The statements come first, drawn like the printed ones, then the explanation.
+    const assets = screen.getByRole('table', { name: '자산' })
+    expect(within(assets).getByRole('row', { name: /그 밖의 자산\(대출채권·현금 등\)/ })).toHaveTextContent('541조 1,341억 원')
+    const right = screen.getByRole('table', { name: '부채와 자본' })
+    expect(within(right).getAllByRole('rowgroup').map((group) => group.querySelector('th')?.textContent)).toEqual(['부채', '자본'])
+    expect(within(right).getByRole('row', { name: /예수부채/ })).toHaveTextContent('423조 6,275억 원')
+    expect(screen.getByText('국민은행 · 2025.12.31 기준')).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: '손익계산서' })).toHaveTextContent('순이자손익9조 8,297억 원')
+    const sheet = screen.getByText('재무상태표', { selector: 'figcaption b' })
+    expect(sheet.compareDocumentPosition(screen.getByText('1. 위의 두 표가 재무제표예요')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText(/부채와 자본을 더하면 자산과 똑같아요/)).toBeInTheDocument()
     expect(paragraph(/부채 전체의 80.71%예요/)).toBeInTheDocument()
     expect(screen.getByText(/비교해 보면/)).toHaveTextContent('가장 낮은 곳 하나은행 5.90%, 가장 높은 곳 카카오뱅크 8.83%')
     expect(screen.getByText(/BIS 자기자본비율/)).toBeInTheDocument()
     expect(paragraph(/국민은행은 4조 2,240억 원을 남겼고, 한 해 전보다 – 바뀌었어요/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /DART\) 사업보고서/ })).toHaveAttribute('href', 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814002787')
-    expect(screen.getByRole('table')).toHaveTextContent('+2.50%')
+    expect(screen.getByRole('table', { name: /주요 숫자/ })).toHaveTextContent('+2.50%')
     expect(document.body).not.toHaveTextContent(/안전합니다|위험합니다|추천/)
 
     await userEvent.selectOptions(screen.getByLabelText('예시로 볼 은행'), 'kakao')
