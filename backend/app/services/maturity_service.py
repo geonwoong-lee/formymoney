@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.calculators.maturity import (
+    deposit_lump_sum_compound,
     deposit_lump_sum,
     ending_value,
     holding_returns,
@@ -21,7 +22,12 @@ from app.calculators.maturity import (
 )
 from app.models.investment import InvestmentAsset
 from app.models.market import MarketPoint
+from app.models.product_rate import ProductRateSnapshot
 from app.schemas.maturity import (
+    DepositProductRow,
+    DepositProductsRequest,
+    DepositProductsResponse,
+    DepositRatePoint,
     DepositOutcome,
     HoldingOutcome,
     MaturityOption,
@@ -180,4 +186,63 @@ def rate_scenario(request: RateScenarioRequest) -> RateScenarioResponse:
             key=key, rate_percent=rate, principal=principal, interest=interest, tax=tax, after_tax=after,
             difference_from_same=after - same,
         ) for key, rate, interest, tax, after in rows],
+    )
+
+
+PRODUCT_GROUPS = {"bank": "은행", "savings_bank": "저축은행"}
+PRODUCT_NOTES = {
+    "bank": [
+        "금융감독원 「금융상품 한눈에」에 공시된 정기예금을 같은 금액·기간으로 계산했어요. 세후 금액은 이자에 붙는 15.4% 세금을 뺀 값이에요.",
+        "우대 포함 금리는 급여 이체, 카드 사용 같은 조건을 모두 채웠을 때만 받아요. 조건을 못 채우면 기본금리로 받아요.",
+        "가입 대상·한도·가입 방법(앱 전용 등)이 상품마다 달라요. 가입 전에 은행 상품 설명서를 꼭 확인해 주세요.",
+        "금리 순서로 보여 줄 뿐 어느 상품도 권하지 않아요.",
+    ],
+    "savings_bank": [
+        "금융감독원 「금융상품 한눈에」에 공시된 저축은행 정기예금을 같은 금액·기간으로 계산했어요. 세후 금액은 이자에 붙는 15.4% 세금을 뺀 값이에요.",
+        "저축은행 예금도 은행처럼 한 금융회사에서 1인당 원금과 이자를 합쳐 1억 원까지 예금자보호를 받아요. 넘는 금액은 보호받지 못해요.",
+        "우대 포함 금리는 조건을 모두 채웠을 때만 받아요. 가입 대상·한도·가입 방법은 상품 설명서에서 확인해 주세요.",
+        "금리 순서로 보여 줄 뿐 어느 상품도 권하지 않아요.",
+    ],
+}
+FINLIFE_NAME = "금융감독원 금융상품 한눈에"
+FINLIFE_URL = "https://finlife.fss.or.kr/"
+
+
+def _company(name: str) -> str:
+    """"주식회사 케이뱅크" and "토스뱅크 주식회사" read as 케이뱅크 and 토스뱅크."""
+    return " ".join(word for word in name.replace("(주)", " ").split() if word != "주식회사") or name
+
+
+def _after_tax(amount: int, months: int, rate: Decimal, rate_type: str) -> int:
+    calculate = deposit_lump_sum_compound if rate_type == "복리" else deposit_lump_sum
+    return calculate(amount, months, rate).ending_value_after_tax
+
+
+def deposit_products(session: Session, request: DepositProductsRequest) -> DepositProductsResponse:
+    """Today's disclosed fixed deposits for the term, each worked out for the user's own amount, highest base rate first."""
+    group = PRODUCT_GROUPS[request.group]
+    day = session.scalar(select(ProductRateSnapshot.day).order_by(ProductRateSnapshot.day.desc()).limit(1))
+    rows = [] if day is None else list(session.scalars(select(ProductRateSnapshot).where(
+        ProductRateSnapshot.day == day, ProductRateSnapshot.kind == "deposit", ProductRateSnapshot.group == group,
+        ProductRateSnapshot.term_months == request.months, ProductRateSnapshot.base_rate.is_not(None),
+    )))
+    products = [DepositProductRow(
+        company=_company(row.company), product_name=" ".join(row.product_name.split()), rate_type=row.rate_type or "단리",
+        base_rate=row.base_rate, max_rate=row.max_rate,
+        base_after_tax=_after_tax(request.amount, request.months, row.base_rate, row.rate_type),
+        max_after_tax=_after_tax(request.amount, request.months, row.max_rate, row.rate_type) if row.max_rate is not None else None,
+    ) for row in rows]
+    products.sort(key=lambda item: (-item.base_after_tax, -(item.max_after_tax or 0), item.company, item.product_name))
+
+    def point(item: DepositProductRow) -> DepositRatePoint:
+        return DepositRatePoint(rate_percent=item.base_rate, after_tax=item.base_after_tax)
+
+    # Lowest, middle and highest by what the user would actually get at the base rate.
+    by_result = sorted(products, key=lambda item: item.base_after_tax)
+    return DepositProductsResponse(
+        amount=request.amount, months=request.months, group=group, day=day, count=len(products),
+        lowest=point(by_result[0]) if by_result else None,
+        middle=point(by_result[(len(by_result) - 1) // 2]) if by_result else None,
+        highest=point(by_result[-1]) if by_result else None,
+        products=products, notes=PRODUCT_NOTES[request.group], source_name=FINLIFE_NAME, source_url=FINLIFE_URL,
     )

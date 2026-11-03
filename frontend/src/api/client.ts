@@ -429,6 +429,42 @@ export interface MaturityPlanResponse {
   checkedOn: string
 }
 
+export interface DepositProduct {
+  company: string
+  productName: string
+  rateType: string
+  baseRate: string
+  maxRate: string | null
+  baseAfterTax: number
+  maxAfterTax: number | null
+}
+
+export interface DepositRatePoint {
+  ratePercent: string
+  afterTax: number
+}
+
+export interface DepositProductsResponse {
+  amount: number
+  months: number
+  group: string
+  day: string | null
+  count: number
+  lowest: DepositRatePoint | null
+  middle: DepositRatePoint | null
+  highest: DepositRatePoint | null
+  products: DepositProduct[]
+  notes: string[]
+  sourceName: string
+  sourceUrl: string
+}
+
+export type DepositGroup = 'bank' | 'savings_bank'
+
+export function getDepositProducts(payload: { amount: number; months: 12 | 24; group: DepositGroup }, signal?: AbortSignal): Promise<DepositProductsResponse> {
+  return request('/api/v1/maturity-plan/deposit-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
+}
+
 export function planAfterMaturity(payload: {
   amount: number
   months: 12 | 24

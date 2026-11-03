@@ -3,7 +3,11 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 
-from app.calculators.maturity import deposit_lump_sum, holding_returns, monthly_savings_interest, summarize
+from datetime import date
+
+from app.calculators.maturity import deposit_lump_sum, deposit_lump_sum_compound, holding_returns, monthly_savings_interest, summarize
+from app.collectors.finlife import ProductRate
+from app.services.product_rate_service import ProductRateService
 from app.services.market_service import MarketService
 
 URL = "/api/v1/maturity-plan"
@@ -122,3 +126,46 @@ def test_rate_scenario_is_calculated_on_the_server(client: TestClient) -> None:
     floor = client.post("/api/v1/rate-scenario", json={"monthlyAmount": 500_000, "months": 6, "ratePercent": "0.1", "step": "1"}).json()
     assert floor["cases"][2]["ratePercent"] == "0" and floor["cases"][2]["interest"] == 0
     assert client.post("/api/v1/rate-scenario", json={"monthlyAmount": 500_000, "months": 12, "ratePercent": "3", "step": "0.3"}).status_code == 422
+
+
+def test_compound_deposit_compounds_monthly() -> None:
+    result = deposit_lump_sum_compound(10_000_000, 12, Decimal("3.6"))
+    assert result.interest == 366_000  # 10,000,000 × (1.003^12 − 1) = 365,999.8
+    assert result.tax == 56_364 and result.ending_value_after_tax == 10_309_636
+
+
+def _deposit(company: str, name: str, base: str | None, best: str | None, months: int = 12, group: str = "은행", rate_type: str = "단리") -> ProductRate:
+    return ProductRate("deposit", group, company, f"{company}-{name}", name, months, rate_type, "",
+                       Decimal(base) if base else None, Decimal(best) if best else None, "202611")
+
+
+def test_deposit_products_work_out_each_disclosed_deposit_for_the_users_amount(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        ProductRateService(session).save_snapshot(date(2026, 11, 3), [
+            _deposit("가은행", "가 정기예금", "3.00", "3.50"),
+            _deposit("나은행", "나\n정기예금", "3.50", None),
+            _deposit("주식회사 다은행", "다 정기예금", "2.00", "4.00"),
+            _deposit("라은행", "라 정기예금", None, "3.00"),  # no base rate: left out
+            _deposit("마은행", "마 24개월", "3.90", "3.90", months=24),
+            _deposit("바저축은행", "바 복리예금", "4.00", "4.00", group="저축은행", rate_type="복리"),
+        ])
+
+    body = client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 12}).json()
+    assert (body["group"], body["day"], body["count"]) == ("은행", "2026-11-03", 3)
+    assert [item["company"] for item in body["products"]] == ["나은행", "가은행", "다은행"]  # base-rate result, highest first
+    first = body["products"][0]
+    assert first["productName"] == "나 정기예금" and first["maxAfterTax"] is None
+    assert first["baseAfterTax"] == deposit_lump_sum(10_000_000, 12, Decimal("3.50")).ending_value_after_tax
+    assert body["products"][2]["maxAfterTax"] == deposit_lump_sum(10_000_000, 12, Decimal("4.00")).ending_value_after_tax
+    assert (body["lowest"]["ratePercent"], body["middle"]["ratePercent"], body["highest"]["ratePercent"]) == ("2.00", "3.00", "3.50")
+    assert any("권하지 않아요" in note for note in body["notes"])
+
+    savings = client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 12, "group": "savings_bank"}).json()
+    assert savings["products"][0]["baseAfterTax"] == deposit_lump_sum_compound(10_000_000, 12, Decimal("4.00")).ending_value_after_tax
+    assert any("1억 원까지 예금자보호" in note for note in savings["notes"])
+    assert client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 6}).status_code == 422
+
+
+def test_deposit_products_say_nothing_is_collected_yet(client: TestClient) -> None:
+    body = client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 24}).json()
+    assert (body["day"], body["count"], body["products"], body["highest"]) == (None, 0, [], None)

@@ -9,6 +9,7 @@ import { track } from '../features/analytics'
 import { buildMaturityIcs, downloadIcs, maturityMonth, REMINDER_DAYS } from '../features/maturityCalendar'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
+import { DepositProducts } from './DepositProducts'
 import { PROFILES, PROFILE_QUESTIONS, profileFromAnswers } from './maturityProfile'
 import './MaturityPage.css'
 
@@ -226,8 +227,10 @@ export function MaturityPage() {
         </details>}
       </section>
 
+      <DepositProducts amount={shown.amount} months={shown.months as 12 | 24} headingId={`${id}-products`} />
+
       <section className="maturity-step" aria-labelledby={`${id}-mix`}>
-        <h2 id={`${id}-mix`}>4. 예금과 섞어 보기</h2>
+        <h2 id={`${id}-mix`}>5. 예금과 섞어 보기</h2>
         <p className="maturity-muted">한 곳에 다 넣지 않고 일부만 예금에 두면 결과가 어떻게 달라졌는지 볼 수 있어요.</p>
         <div className="maturity-inputs">
           <label><span>섞어 볼 투자</span>
