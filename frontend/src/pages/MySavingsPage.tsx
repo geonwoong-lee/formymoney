@@ -5,6 +5,9 @@ import {
   type ConditionResult, type MyStatusResponse, type SavedPlan, type UpcomingEvent,
 } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
+import { MonthlyConditionCheck } from '../components/MonthlyConditionCheck'
+import { MyReminders } from '../components/MyReminders'
+import { MyWatchlist } from '../components/MyWatchlist'
 import { RateAlerts } from '../components/RateAlerts'
 import { answersForApi } from '../features/savingsDraft'
 import { loadAuthSession } from '../storage/authStorage'
@@ -93,6 +96,13 @@ function Status({ status, events }: { status: MyStatusResponse; events: Upcoming
       <p className="my-savings__muted">우대조건은 은행이 정한 기간 동안 계속 채워야 하는 경우가 많아요. 정확한 조건은 은행 상품 설명서에서 확인해 주세요.</p>
     </section>
 
+    {status.timeline.phase === 'saving' && conditions.applied.length > 0 && <MonthlyConditionCheck applied={conditions.applied} impacts={conditions.impacts} />}
+
+    {status.timeline.startMonth && status.timeline.phase !== 'unknown' && <MyReminders
+      startMonth={status.timeline.startMonth} termMonths={status.timeline.termMonths} bankName={result.bankName} productName={result.productName}
+      matured={status.timeline.phase === 'matured'}
+    />}
+
     <section className="my-savings__card" aria-labelledby="my-savings-events">
       <h2 id="my-savings-events">다가올 일정</h2>
       {events.length === 0
@@ -170,6 +180,8 @@ export function MySavingsPage() {
     {bankCode && !current && <p className="notice">내 적금을 계산하는 중입니다.</p>}
     {current?.error && <ErrorNotice message={current.error} onRetry={() => setReloadKey((key) => key + 1)} />}
     {current?.status && <Status status={current.status} events={events} />}
+
+    <MyWatchlist />
 
     <p className="my-savings__muted my-savings__foot">이 화면은 입력한 내용으로 계산한 예상치예요. 실제 금액은 은행 앱의 계좌 정보를 기준으로 확인해 주세요. 가입·해지를 권하지 않아요.</p>
   </section>

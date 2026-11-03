@@ -121,6 +121,7 @@ class DepositProductsRequest(CamelModel):
 class DepositProductRow(CamelModel):
     company: str
     product_code: str = ""
+    reserve_type: str = ""  # savings only: 정액적립식 / 자유적립식
     product_name: str
     rate_type: str
     base_rate: Decimal
@@ -149,6 +150,7 @@ class DepositProductsResponse(CamelModel):
     group: str
     day: date | None
     count: int
+    principal: int | None = None  # savings only: what the person pays in over the term
     lowest: DepositRatePoint | None
     middle: DepositRatePoint | None
     highest: DepositRatePoint | None
@@ -156,3 +158,10 @@ class DepositProductsResponse(CamelModel):
     notes: list[str]
     source_name: str
     source_url: str
+
+
+class SavingProductsRequest(CamelModel):
+    monthly_amount: int = Field(ge=10_000, le=5_000_000)
+    months: Literal[6, 12, 24, 36]
+    group: Literal["bank", "savings_bank"] = "bank"
+    reserve: Literal["all", "fixed", "free"] = "all"

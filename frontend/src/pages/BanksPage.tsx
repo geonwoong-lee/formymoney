@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { calculateSavings, getSavingsProducts, type SavingsCalculationResponse } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
+import { loadEligibility } from '../features/eligibility'
 import { ShareResult } from '../components/ShareResult'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
@@ -36,6 +37,7 @@ export function BanksPage() {
     <section className="page page--wide">
       <p className="eyebrow">Banks</p>
       <h1>내 조건으로 계산한 은행 비교</h1>
+      {loadEligibility() === 'not_eligible' && <p className="notice">청년미래적금 대상이 아니라고 답하셨어요. 아래는 참고용이고, <Link to="/general-savings">일반 적금 비교</Link>에서 받을 수 있는 적금을 볼 수 있어요.</p>}
       <p className="lead">예상 만기금액이 큰 순서입니다. 같은 금액이면 예상금리가 높은 상품이 먼저 보입니다.</p>
       {error && <ErrorNotice message={error} onRetry={retry}><Link to="/conditions">조건 다시 입력하기</Link></ErrorNotice>}
       {!result && !error && <p className="notice">14개 상품을 계산하는 중입니다.</p>}

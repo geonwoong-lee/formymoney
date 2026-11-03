@@ -1,0 +1,9 @@
+.eligibility { margin: 16px 0; padding: 12px 14px; border: 2px solid #808080; background: #f4f4f4; }
+.eligibility h2 { margin: 0 0 8px; font-size: 18px; }
+.eligibility--compact h2 { font-size: 16px; }
+.eligibility__choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.eligibility__choice { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 2px outset #fff; background: #c0c0c0; cursor: pointer; white-space: nowrap; }
+.eligibility__choice--active { border-style: inset; background: #fff; font-weight: 700; }
+.eligibility__muted { margin: 8px 0 0; color: #555; font-size: 13px; }
+.eligibility__next { margin: 8px 0 0; }
+.eligibility__next .button { margin-left: 6px; }

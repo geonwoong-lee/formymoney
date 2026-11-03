@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { formatKrwExact } from '../features/krw'
 import { isWatched, loadWatchlist, MAX_WATCHED, toggleWatched, type WatchedProduct } from '../features/watchlist'
-import { getDepositProducts, type DepositGroup, type DepositProduct, type DepositProductsResponse } from '../api/client'
+import { getDepositProducts, getSavingProducts, type DepositGroup, type DepositProduct, type DepositProductsResponse } from '../api/client'
 
 const PAGE = 10
 const won = (value: number) => `${value.toLocaleString('ko-KR')}원`
@@ -52,7 +52,7 @@ function ProductRow({ product, watched, onToggle, full }: { product: DepositProd
   const limited = product.joinLimit && product.joinLimit !== '제한 없음'
   return <li className="deposit-product">
     <div className="deposit-product__top">
-      <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span></p>
+      <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span>{product.reserveType && <> <span className="deposit-product__type">{product.reserveType}</span></>}</p>
       {product.productCode && <button
         type="button" className="deposit-watch" aria-pressed={watched} onClick={onToggle} disabled={!watched && full}
         title={!watched && full ? `관심 상품은 ${MAX_WATCHED}개까지 둘 수 있어요` : undefined}
@@ -68,33 +68,47 @@ function ProductRow({ product, watched, onToggle, full }: { product: DepositProd
   </li>
 }
 
-// Step "실제 정기예금으로 보면": every disclosed fixed deposit for the chosen term, worked out on the server for
-// the user's own amount. Listed by what the user would get, with the bonus-rate catch and protection limits said.
-export function DepositProducts({ amount, months, headingId }: { amount: number; months: 12 | 24; headingId: string }) {
+interface ProductListProps {
+  kind: 'deposit' | 'saving'
+  noun: string  // 정기예금 / 적금
+  headingId: string
+  heading: string
+  intro: ReactNode
+  months: number
+  loadKey: string  // changes whenever the inputs that decide the numbers change
+  load: (group: DepositGroup, signal: AbortSignal) => Promise<DepositProductsResponse>
+  extraControls?: ReactNode
+}
+
+// The disclosed products of one kind for the chosen inputs, worked out on the server for the user's own amount.
+// Listed by what the user would get, with the bonus-rate catch and protection limits said.
+export function ProductList({ kind, noun, headingId, heading, intro, months, loadKey, load, extraControls }: ProductListProps) {
   const [group, setGroup] = useState<DepositGroup>('bank')
   const [sort, setSort] = useState<SortKey>('base')
   const [shownCount, setShownCount] = useState(PAGE)
   const [loaded, setLoaded] = useState<{ key: string; body: DepositProductsResponse | null } | null>(null)
   const [watchlist, setWatchlist] = useState(() => loadWatchlist())
-  const key = `${amount}-${months}-${group}`
+  const key = `${loadKey}-${group}`
   const body = loaded?.key === key ? loaded.body : undefined
 
   useEffect(() => {
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
-      getDepositProducts({ amount, months, group }, controller.signal).then((response) => setLoaded({ key, body: response })).catch((cause: unknown) => {
+      load(group, controller.signal).then((response) => setLoaded({ key, body: response })).catch((cause: unknown) => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return
         setLoaded({ key, body: null })
       })
     }, 250)
     return () => { window.clearTimeout(timer); controller.abort() }
-  }, [amount, months, group, key])
+    // `load` is rebuilt on every render; the key already says when the inputs changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, group])
 
   const products = body ? [...body.products].sort(SORTS[sort].compare) : []
 
   return <section className="maturity-step" aria-labelledby={headingId}>
-    <h2 id={headingId}>4. 실제 정기예금으로 보면</h2>
-    <p className="maturity-muted">위 예금 계산은 평균금리 하나로 본 거예요. 지금 공시된 {months}개월 정기예금에 {won(amount)}을 맡기면 만기에 세금 떼고 얼마를 받는지 상품마다 계산했어요.</p>
+    <h2 id={headingId}>{heading}</h2>
+    <p className="maturity-muted">{intro}</p>
     <div className="deposit-controls">
       <div className="deposit-groups" role="radiogroup" aria-label="금융회사 종류">
         {GROUPS.map((item) => <label key={item.key} className={`maturity-profile${group === item.key ? ' maturity-profile--active' : ''}`}>
@@ -102,6 +116,7 @@ export function DepositProducts({ amount, months, headingId }: { amount: number;
           <b>{item.label}</b>
         </label>)}
       </div>
+      {extraControls}
       <label><span>보는 순서</span>
         <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
           {Object.entries(SORTS).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}
@@ -111,19 +126,20 @@ export function DepositProducts({ amount, months, headingId }: { amount: number;
 
     {body === undefined && <p className="maturity-muted">공시 금리를 불러오는 중이에요.</p>}
     {body === null && <p className="maturity-muted">공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.</p>}
-    {body && body.count === 0 && <p className="maturity-muted">아직 모은 {months}개월 정기예금 공시 금리가 없어요.</p>}
+    {body && body.count === 0 && <p className="maturity-muted">아직 모은 {months}개월 {noun} 공시 금리가 없어요.</p>}
     {body && body.count > 0 && body.lowest && body.middle && body.highest && <>
       <dl className="deposit-range" aria-label="기본금리로 받는 돈의 범위">
         <div><dt>가장 적게</dt><dd>{won(body.lowest.afterTax)}<span>연 {percent(body.lowest.ratePercent)}</span></dd></div>
         <div><dt>가운데</dt><dd>{won(body.middle.afterTax)}<span>연 {percent(body.middle.ratePercent)}</span></dd></div>
         <div><dt>가장 많이</dt><dd>{won(body.highest.afterTax)}<span>연 {percent(body.highest.ratePercent)}</span></dd></div>
       </dl>
-      <p className="maturity-muted">{body.group} 정기예금 {body.count.toLocaleString('ko-KR')}개(단리·복리 따로 셈)를 기본금리로 계산한 범위예요. 같은 돈이라도 어느 상품에 맡기느냐에 따라 받는 돈이 이만큼 달라져요.</p>
-      <ul className="deposit-products" aria-label={`${body.group} 정기예금 목록`}>
+      <p className="maturity-muted">{body.group} {noun} {body.count.toLocaleString('ko-KR')}개(단리·복리 따로 셈)를 기본금리로 계산한 범위예요. 같은 돈이라도 어느 상품이냐에 따라 받는 돈이 이만큼 달라져요.
+        {typeof body.principal === 'number' && ` 내가 넣는 원금은 ${won(body.principal)}이에요.`}</p>
+      <ul className="deposit-products" aria-label={`${body.group} ${noun} 목록`}>
         {products.slice(0, shownCount).map((product) => {
-          const item: WatchedProduct = { kind: 'deposit', company: product.company, productCode: product.productCode, productName: product.productName }
+          const item: WatchedProduct = { kind, company: product.company, productCode: product.productCode, productName: product.productName }
           return <ProductRow
-            key={`${product.company}-${product.productName}-${product.rateType}`} product={product}
+            key={`${product.company}-${product.productName}-${product.rateType}-${product.reserveType}`} product={product}
             watched={isWatched(watchlist, item)} full={watchlist.length >= MAX_WATCHED}
             onToggle={() => setWatchlist((current) => toggleWatched(current, item))}
           />
@@ -137,4 +153,24 @@ export function DepositProducts({ amount, months, headingId }: { amount: number;
       <p className="maturity-muted">출처 <a href={body.sourceUrl} target="_blank" rel="noreferrer">{body.sourceName} ↗</a>{body.day ? ` · ${formatDay(body.day)} 수집` : ''}</p>
     </>}
   </section>
+}
+
+// Step "실제 정기예금으로 보면" of 만기 후 계획.
+export function DepositProducts({ amount, months, headingId }: { amount: number; months: 12 | 24; headingId: string }) {
+  return <ProductList
+    kind="deposit" noun="정기예금" headingId={headingId} heading="4. 실제 정기예금으로 보면" months={months}
+    intro={`위 예금 계산은 평균금리 하나로 본 거예요. 지금 공시된 ${months}개월 정기예금에 ${won(amount)}을 맡기면 만기에 세금 떼고 얼마를 받는지 상품마다 계산했어요.`}
+    loadKey={`${amount}-${months}`} load={(group, signal) => getDepositProducts({ amount, months, group }, signal)}
+  />
+}
+
+export type ReserveChoice = 'all' | 'fixed' | 'free'
+
+// 일반 적금 비교: every disclosed regular savings plan for a monthly amount and term.
+export function SavingProducts({ monthly, months, reserve, headingId }: { monthly: number; months: 6 | 12 | 24 | 36; reserve: ReserveChoice; headingId: string }) {
+  return <ProductList
+    kind="saving" noun="적금" headingId={headingId} heading="공시된 적금 비교" months={months}
+    intro={`지금 공시된 ${months}개월 적금에 매달 ${won(monthly)}씩 넣으면 만기에 세금 떼고 얼마를 받는지 상품마다 계산했어요.`}
+    loadKey={`${monthly}-${months}-${reserve}`} load={(group, signal) => getSavingProducts({ monthlyAmount: monthly, months, group, reserve }, signal)}
+  />
 }

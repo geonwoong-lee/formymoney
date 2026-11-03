@@ -9,6 +9,7 @@ from datetime import date
 from app.schemas.savings import (
     Answer,
     CashflowCalculationRequest,
+    ConditionImpact,
     MyConditions,
     MyPayments,
     MyStatusRequest,
@@ -72,6 +73,14 @@ def my_status(service: SavingsService, request: MyStatusRequest, today: date) ->
         if_checked_amount = checked.result.expected_maturity_amount
         if_checked_gain = if_checked_amount - cashflow.result.expected_maturity_amount
 
+    base = cashflow.result.expected_maturity_amount
+    impacts = []
+    for item in conditions:
+        if item.status != "applied":
+            continue
+        missed = service.calculate_cashflow(cashflow_request.model_copy(update={"condition_answers": {**request.condition_answers, item.code: Answer.no}}))
+        impacts.append(ConditionImpact(code=item.code, maturity_amount=missed.result.expected_maturity_amount, loss=base - missed.result.expected_maturity_amount))
+
     timeline = _timeline(request, cashflow.term_months, today)
     return MyStatusResponse(
         timeline=timeline,
@@ -81,6 +90,6 @@ def my_status(service: SavingsService, request: MyStatusRequest, today: date) ->
             applied=[item for item in conditions if item.status == "applied"],
             not_applied=[item for item in conditions if item.status == "not_applied"],
             needs_check=[item for item in conditions if item.status == "needs_review"],
-            if_checked_maturity_amount=if_checked_amount, if_checked_gain=if_checked_gain,
+            if_checked_maturity_amount=if_checked_amount, if_checked_gain=if_checked_gain, impacts=impacts,
         ),
     )

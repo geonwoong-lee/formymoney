@@ -285,6 +285,27 @@ export function getEvents(signal?: AbortSignal, days = 60): Promise<EventsRespon
   return request<EventsResponse>(`/api/v1/events?days=${days}`, { signal })
 }
 
+export interface AccountWatchItem {
+  kind: 'deposit' | 'saving'
+  company: string
+  productCode: string
+  productName: string
+}
+
+export function getAccountWatchlist(accessToken: string, signal?: AbortSignal): Promise<{ items: AccountWatchItem[]; updatedAt: string | null; limit: number }> {
+  return request('/api/v1/me/watchlist', { headers: bearer(accessToken), signal })
+}
+
+export function putAccountWatchlist(accessToken: string, items: AccountWatchItem[]): Promise<{ items: AccountWatchItem[]; updatedAt: string | null; limit: number }> {
+  return request('/api/v1/me/watchlist', {
+    method: 'PUT', headers: { ...bearer(accessToken), 'Content-Type': 'application/json' }, body: JSON.stringify({ items }),
+  })
+}
+
+export function deleteAccountWatchlist(accessToken: string): Promise<void> {
+  return request('/api/v1/me/watchlist', { method: 'DELETE', headers: bearer(accessToken) })
+}
+
 export interface SavedPlan {
   id: number
   name: string
@@ -432,6 +453,7 @@ export interface MaturityPlanResponse {
 export interface DepositProduct {
   company: string
   productCode: string
+  reserveType: string
   productName: string
   rateType: string
   baseRate: string
@@ -459,6 +481,7 @@ export interface DepositProductsResponse {
   group: string
   day: string | null
   count: number
+  principal: number | null
   lowest: DepositRatePoint | null
   middle: DepositRatePoint | null
   highest: DepositRatePoint | null
@@ -498,6 +521,10 @@ export function getRateAlerts(payload: { bankCode?: string; watch: { kind: strin
 
 export function getDepositProducts(payload: { amount: number; months: 12 | 24; group: DepositGroup }, signal?: AbortSignal): Promise<DepositProductsResponse> {
   return request('/api/v1/maturity-plan/deposit-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
+}
+
+export function getSavingProducts(payload: { monthlyAmount: number; months: 6 | 12 | 24 | 36; group: DepositGroup; reserve: 'all' | 'fixed' | 'free' }, signal?: AbortSignal): Promise<DepositProductsResponse> {
+  return request('/api/v1/saving-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
 }
 
 export function planAfterMaturity(payload: {
@@ -626,6 +653,7 @@ export interface MyStatusResponse {
     needsCheck: ConditionResult[]
     ifCheckedMaturityAmount: number | null
     ifCheckedGain: number | null
+    impacts: { code: string; maturityAmount: number; loss: number }[]
   }
 }
 
