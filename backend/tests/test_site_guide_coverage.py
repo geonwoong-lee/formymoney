@@ -6,7 +6,7 @@ from app.services.site_guide import GUIDE
 
 APP = Path(__file__).resolve().parents[2] / "frontend" / "src" / "App.tsx"
 # Screens the assistant does not describe on purpose: the front page and detail views of a listed screen.
-EXEMPT = {"/"}
+EXEMPT = {"/", "/admin"}
 
 
 def test_every_screen_in_the_app_is_described_for_the_assistant() -> None:

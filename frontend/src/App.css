@@ -702,3 +702,5 @@
 .glossary dd p { margin: 2px 0; }
 .maturity-search { display: grid; gap: 4px; max-width: 360px; margin: 8px 0; }
 .maturity-search input { padding: 6px 8px; font: inherit; }
+.admin-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+.admin-table th, .admin-table td { padding: 4px 6px; border-bottom: 1px dotted #808080; text-align: left; word-break: break-word; }

@@ -887,3 +887,40 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
+
+export interface CollectionOverview {
+  today: string
+  productRates: { day: string | null; rows: number; stale: boolean }
+  productInfos: { rows: number }
+  loans: { day: string | null; rows: number; stale: boolean }
+  dart: { banks: number; latestFilingDay: string | null }
+  market: { code: string; name: string; period: string; fetchedAt: string | null }[]
+}
+
+export interface CollectionRun {
+  id: number
+  workflow: string
+  status: string
+  stage: string | null
+  errorMessage: string | null
+  published: number
+  finishedAt: string
+}
+
+export interface CollectionStatus {
+  latestStatus: string | null
+  recent: CollectionRun[]
+  todayTokens: number
+  dailyTokenLimit: number
+  tokenLimitExceeded: boolean
+}
+
+export interface FunnelStep { event: string; label: string; inFunnel: boolean; count: number; ofFirstStepPercent: number | null }
+export interface Funnel { start: string; end: string; steps: FunnelStep[] }
+
+const ingestHeaders = (secret: string) => ({ 'X-Very-Rich-Ingest-Secret': secret })
+
+// Operator screens: the secret is typed by the operator, kept only in memory, and sent only as this header.
+export const getCollectionOverview = (secret: string) => request<CollectionOverview>('/api/v1/internal/collection/overview', { headers: ingestHeaders(secret) })
+export const getCollectionStatus = (secret: string) => request<CollectionStatus>('/api/v1/internal/daily/runs/status', { headers: ingestHeaders(secret) })
+export const getFunnel = (secret: string, days: number) => request<Funnel>(`/api/v1/internal/analytics/funnel?days=${days}`, { headers: ingestHeaders(secret) })

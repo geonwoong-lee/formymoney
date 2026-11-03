@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.analytics import router as analytics_router
 from app.api.v1.endpoints.assistant import router as assistant_router
 from app.api.v1.endpoints.auth import router as auth_router
@@ -18,6 +19,7 @@ from app.api.v1.endpoints.savings import router as savings_router
 
 
 api_router = APIRouter()
+api_router.include_router(admin_router, tags=["admin"])
 api_router.include_router(analytics_router, tags=["analytics"])
 api_router.include_router(assistant_router, tags=["assistant"])
 api_router.include_router(auth_router, tags=["auth"])
