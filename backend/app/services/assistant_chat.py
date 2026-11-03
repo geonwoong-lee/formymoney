@@ -49,6 +49,9 @@ RECOMMEND_PATTERN = re.compile(r"추천|뭐가 좋|어디가 좋|제일 좋|가�
 ADVICE_REPLY = "저는 특정 상품을 추천하거나 가입을 권하지 않아요. 같은 기준으로 계산해서 비교하는 것만 도와드려요."
 UNAVAILABLE_ANSWER = "지금은 질문에 답하기 어려워요. 아래 화면에서 직접 확인해 보세요."
 MAX_ANSWER_LENGTH = 500
+# "추천할 수는 없어요", "추천하지 않아요" and "확실하지 않아요" are the refusals we want, not advice; only the
+# negated form is set aside before the forbidden-word check, and never across a sentence end.
+NEGATED_EXPRESSION = re.compile(r"(추천|확실|무조건)[^.!?\n]{0,8}?(않|없|못하|어려)")
 UNKNOWN_WORDS = ("모르", "확인하기 어려", "알 수 없", "찾지 못", "자료가 없")
 
 
@@ -109,7 +112,7 @@ def validate_answer(answer: str, message: str, context: str) -> list[str]:
     for token in NUMBER_PATTERN.findall(answer):
         if token.replace(",", "") not in allowed_numbers:
             errors.append(f"참고 자료에 없는 숫자입니다: {token}")
-    checked = answer.replace("불확실", "")
+    checked = NEGATED_EXPRESSION.sub("", answer.replace("불확실", ""))
     for expression in FORBIDDEN_EXPRESSIONS:
         if expression in checked:
             errors.append(f"사용할 수 없는 표현입니다: {expression}")
@@ -172,4 +175,5 @@ def answer_question(
             feedback = validate_citations(answer, text, used)
         if not feedback:
             return AssistantReply(answer, _links(paths), "ai", used)
-    return AssistantReply(UNAVAILABLE_ANSWER, _links(["/about", "/daily"]), "rule")
+    # "unavailable" lets the screen show its own keyword answer for the topic instead of this generic line.
+    return AssistantReply(UNAVAILABLE_ANSWER, _links(["/about", "/daily"]), "unavailable")

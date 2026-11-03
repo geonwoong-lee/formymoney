@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Assistant, ASSISTANT_HIDDEN_KEY, ASSISTANT_SEEN_KEY } from './Assistant'
-import { findAnswer } from './assistantAnswers'
+import { EXAMPLE_QUESTIONS, FALLBACK, findAnswer } from './assistantAnswers'
 
 function Where() {
   return <p data-testid="where">{useLocation().pathname}</p>
@@ -125,6 +125,23 @@ describe('Assistant', () => {
     expect(screen.getByRole('textbox')).toHaveValue('다음 금통위 언제야?')
     expect(await screen.findByText(/11월 26일/)).toBeInTheDocument()
     expect(screen.queryByLabelText('질문 예시')).not.toBeInTheDocument()
+  })
+
+  it('every example question has a built-in answer to fall back on', () => {
+    for (const example of EXAMPLE_QUESTIONS) expect(findAnswer(example), example).not.toBe(FALLBACK)
+  })
+
+  it('shows the built-in answer when the AI answer did not pass the server checks', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({
+      answer: '지금은 질문에 답하기 어려워요. 아래 화면에서 직접 확인해 보세요.', links: [{ to: '/about', label: '계산 기준' }], source: 'unavailable',
+    })))
+    renderAssistant()
+    await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
+    await user.click(within(screen.getByLabelText('질문 예시')).getByRole('button', { name: '적금 만기되면 목돈은 어디에 둬?' }))
+
+    expect(await screen.findByText(findAnswer('적금 만기되면 목돈은 어디에 둬?').text)).toBeInTheDocument()
+    expect(screen.queryByText(/답하기 어려워요/)).not.toBeInTheDocument()
   })
 
   it('never recommends a product and says so', async () => {

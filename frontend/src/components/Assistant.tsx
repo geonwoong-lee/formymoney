@@ -7,10 +7,10 @@ import dogReadImage from '../assets/icons/moneydog-read.png'
 import dogRestImage from '../assets/icons/moneydog-rest.png'
 import dogSearchImage from '../assets/icons/moneydog-search.png'
 import dogSniffImage from '../assets/icons/moneydog-sniff.png'
-import { EXAMPLE_QUESTIONS, findAnswer, GREETING, type AssistantAnswer, type AssistantSource } from './assistantAnswers'
+import { EXAMPLE_QUESTIONS, FALLBACK, findAnswer, GREETING, type AssistantAnswer, type AssistantSource } from './assistantAnswers'
 import './Assistant.css'
 
-const INTERNAL_PATH = /^\/[a-z]+$/
+const INTERNAL_PATH = /^\/[a-z-]+$/
 
 // A cited source opens our own page in place, an https article in a new tab, and anything else is plain text.
 function SourceLink({ source, onInternal }: { source: AssistantSource; onInternal: (to: string) => void }) {
@@ -144,7 +144,9 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
     try {
       const reply = await askAssistant(question)
       if (current !== requestId.current) return
-      setAnswer({ text: reply.answer, links: reply.links, ai: reply.source === 'ai', sources: reply.sources ?? [] })
+      // When the AI answer did not pass the server's checks, the built-in answer for the topic beats "can't answer".
+      if (reply.source === 'unavailable' && fallback !== FALLBACK) setAnswer(fallback)
+      else setAnswer({ text: reply.answer, links: reply.links, ai: reply.source === 'ai', sources: reply.sources ?? [] })
     } catch (cause) {
       if (current !== requestId.current) return
       const busy = cause instanceof ApiError && cause.status === 429

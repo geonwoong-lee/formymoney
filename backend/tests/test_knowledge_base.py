@@ -219,7 +219,7 @@ def test_rag_answers_must_cite_and_take_numbers_from_the_cited_chunks() -> None:
         return next(answers)
 
     first = answer_question(Settings(_env_file=None), "환율 얼마야?", context, ask, sources)
-    assert first.source == "rule"  # wrong date from the other chunk, then no citation: both rejected
+    assert first.source == "unavailable"  # wrong date from the other chunk, then no citation: both rejected
     assert feedbacks[1] == ["인용한 참고 자료에 없는 숫자입니다: 11", "인용한 참고 자료에 없는 숫자입니다: 2"]
 
     second = answer_question(Settings(_env_file=None), "환율 얼마야?", context, ask, sources)
@@ -235,7 +235,7 @@ def test_rag_answers_must_cite_and_take_numbers_from_the_cited_chunks() -> None:
         Settings(_env_file=None), "환율 얼마야?", context,
         lambda *_: {"answer": "잘 모르겠지만 1337.2원이에요.", "link_paths": [], "source_ids": []}, sources,
     )
-    assert hedged.source == "rule"  # "모르" with a number still needs a source
+    assert hedged.source == "unavailable"  # "모르" with a number still needs a source
 
 
 GOOD_VECTOR = [0.1] * EMBEDDING_DIMENSIONS
