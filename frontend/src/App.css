@@ -704,3 +704,4 @@
 .maturity-search input { padding: 6px 8px; font: inherit; }
 .admin-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
 .admin-table th, .admin-table td { padding: 4px 6px; border-bottom: 1px dotted #808080; text-align: left; word-break: break-word; }
+.rate-line { display: block; width: 100%; max-width: 520px; height: auto; margin: 8px 0; background: #fff; border: 2px inset #fff; }

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { formatKrwExact } from '../features/krw'
 import { isWatched, loadWatchlist, MAX_WATCHED, toggleWatched, type WatchedProduct } from '../features/watchlist'
 import { getDepositProducts, getSavingProducts, type RateContext, type DepositGroup, type DepositProduct, type DepositProductsResponse } from '../api/client'
@@ -47,12 +48,13 @@ function Terms({ product }: { product: DepositProduct }) {
   </details>
 }
 
-function ProductRow({ product, watched, onToggle, full }: { product: DepositProduct; watched: boolean; onToggle: () => void; full: boolean }) {
+function ProductRow({ kind, product, watched, onToggle, full }: { kind: 'deposit' | 'saving'; product: DepositProduct; watched: boolean; onToggle: () => void; full: boolean }) {
   const hasBonus = product.maxRate !== null && product.maxAfterTax !== null && Number(product.maxRate) > Number(product.baseRate)
   const limited = product.joinLimit && product.joinLimit !== '제한 없음'
   return <li className="deposit-product">
     <div className="deposit-product__top">
       <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span>{product.reserveType && <> <span className="deposit-product__type">{product.reserveType}</span></>}</p>
+      {product.productCode && <Link className="deposit-watch" to={`/product?${new URLSearchParams({ kind, company: product.company, code: product.productCode }).toString()}`}>상세</Link>}
       {product.productCode && <button
         type="button" className="deposit-watch" aria-pressed={watched} onClick={onToggle} disabled={!watched && full}
         title={!watched && full ? `관심 상품은 ${MAX_WATCHED}개까지 둘 수 있어요` : undefined}
@@ -155,7 +157,7 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
         {products.slice(0, shownCount).map((product) => {
           const item: WatchedProduct = { kind, company: product.company, productCode: product.productCode, productName: product.productName }
           return <ProductRow
-            key={`${product.company}-${product.productName}-${product.rateType}-${product.reserveType}`} product={product}
+            kind={kind} key={`${product.company}-${product.productName}-${product.rateType}-${product.reserveType}`} product={product}
             watched={isWatched(watchlist, item)} full={watchlist.length >= MAX_WATCHED}
             onToggle={() => setWatchlist((current) => toggleWatched(current, item))}
           />

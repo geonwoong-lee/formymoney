@@ -13,6 +13,7 @@ from app.api.v1.endpoints.investments import router as investments_router
 from app.api.v1.endpoints.loans import router as loans_router
 from app.api.v1.endpoints.market import router as market_router
 from app.api.v1.endpoints.maturity import router as maturity_router
+from app.api.v1.endpoints.product_detail import router as product_detail_router
 from app.api.v1.endpoints.plans import router as plans_router
 from app.api.v1.endpoints.watchlist import router as watchlist_router
 from app.api.v1.endpoints.savings import router as savings_router
@@ -33,5 +34,6 @@ api_router.include_router(loans_router, tags=["loans"])
 api_router.include_router(market_router, tags=["market"])
 api_router.include_router(maturity_router, tags=["maturity"])
 api_router.include_router(plans_router, tags=["plans"])
+api_router.include_router(product_detail_router, tags=["products"])
 api_router.include_router(watchlist_router, tags=["watchlist"])
 api_router.include_router(savings_router, tags=["savings"])

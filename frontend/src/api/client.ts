@@ -924,3 +924,32 @@ const ingestHeaders = (secret: string) => ({ 'X-Very-Rich-Ingest-Secret': secret
 export const getCollectionOverview = (secret: string) => request<CollectionOverview>('/api/v1/internal/collection/overview', { headers: ingestHeaders(secret) })
 export const getCollectionStatus = (secret: string) => request<CollectionStatus>('/api/v1/internal/daily/runs/status', { headers: ingestHeaders(secret) })
 export const getFunnel = (secret: string, days: number) => request<Funnel>(`/api/v1/internal/analytics/funnel?days=${days}`, { headers: ingestHeaders(secret) })
+
+export interface ProductOptionDetail {
+  termMonths: number
+  rateType: string
+  reserveType: string
+  disclosedMonth: string
+  history: { day: string; baseRate: string | null; maxRate: string | null }[]
+}
+
+export interface ProductDetail {
+  kind: 'deposit' | 'saving'
+  company: string
+  productCode: string
+  productName: string
+  group: string
+  firstDay: string
+  lastDay: string
+  daysCollected: number
+  terms: { joinWay: string; joinMember: string; joinLimit: string; specialConditions: string; maxLimit: number | null; etcNote: string; maturityInterest: string } | null
+  options: ProductOptionDetail[]
+  notes: string[]
+  sourceName: string
+  sourceUrl: string
+}
+
+export function getProductDetail(kind: 'deposit' | 'saving', company: string, code: string, signal?: AbortSignal): Promise<ProductDetail> {
+  const query = new URLSearchParams({ kind, company, code })
+  return request<ProductDetail>(`/api/v1/product-detail?${query.toString()}`, { signal })
+}
