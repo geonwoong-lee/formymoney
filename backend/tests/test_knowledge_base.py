@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from app.models.daily_briefing import FinancialTerm, NewsDigest
+from app.models.daily_briefing import FinancialTerm, NewsDigest, NewsHeadline
 from app.models.knowledge import KnowledgeChunk
 from app.services.knowledge_base import build_documents, mentioned_day, retrieve, sync
 from app.services.market_service import MarketService
@@ -160,6 +160,10 @@ def test_upcoming_events_are_searchable_and_drop_off_once_past(client: TestClien
     ("12월 25일 소식", date(2026, 12, 25)),
     ("5월 1일 뉴스", date(2026, 5, 1)),
     ("2월 30일", None),
+    ("11/1 소식", date(2026, 11, 1)),
+    ("12/2 물가 발표", date(2026, 12, 2)),
+    ("금리 3.5% 어때", None),
+    ("2026/11/1 일정", None),
     ("기준금리가 뭐야?", None),
 ])
 def test_mentioned_day(question: str, expected: date | None) -> None:
@@ -337,3 +341,64 @@ def test_hybrid_search_lifts_chunks_that_share_the_question_words(client: TestCl
 
     assert hybrid[0].chunk.source_key == "guide:/maturity"
     assert all(item.score == plain[0].score for item in plain)  # without letters every chunk ties
+
+
+def _headline(session, number: int, published: datetime, title: str, **extra) -> None:
+    session.add(NewsHeadline(
+        provider="naver", region="domestic", topic="물가", title=title, publisher="news.example.kr",
+        url=f"https://news.example.kr/{number}", published_at=published, fetched_at=published, **extra,
+    ))
+
+
+def test_recent_headline_titles_become_dated_chunks_with_only_title_publisher_and_link(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        _headline(session, 1, datetime(2026, 11, 2, 1, tzinfo=timezone.utc), "10월 소비자물가 2.8% 상승", summary_ko="요약문은 넣지 않아요")
+        _headline(session, 2, datetime(2026, 10, 30, 1, tzinfo=timezone.utc), "사흘 전보다 오래된 기사")
+        _headline(session, 3, datetime(2026, 10, 31, 1, tzinfo=timezone.utc), "Fed holds rates", title_ko="연준이 금리를 동결했어요")
+        session.commit()
+        documents = [document for document in build_documents(session, TODAY) if document.kind == "headline"]
+
+    by_title = {document.title: document for document in documents}
+    assert set(by_title) == {"10월 소비자물가 2.8% 상승", "연준이 금리를 동결했어요"}
+    first = by_title["10월 소비자물가 2.8% 상승"]
+    assert first.content == "2026년 11월 2일 news.example.kr 보도 제목: 10월 소비자물가 2.8% 상승"
+    assert first.url == "https://news.example.kr/1" and first.published_on == TODAY
+    assert "요약문" not in first.content and "Fed holds" not in " ".join(document.content for document in documents)
+
+
+def test_a_slash_date_finds_that_days_headlines(client: TestClient) -> None:
+    embed = FakeEmbed()
+    with client.app.state.session_factory() as session:
+        _headline(session, 1, datetime(2026, 11, 2, 1, tzinfo=timezone.utc), "소비자물가 상승률 발표")
+        _headline(session, 2, datetime(2026, 11, 1, 1, tzinfo=timezone.utc), "소비자물가 전망 기사")
+        session.commit()
+        sync(session, embed, datetime(2026, 11, 2, 3, tzinfo=timezone.utc))
+        found = retrieve(session, "11/2 소비자물가 정리해줘", embed, TODAY)
+
+    headlines = [item.chunk for item in found if item.chunk.source_type == "headline"]
+    assert headlines and headlines[0].published_on == TODAY
+
+
+def test_the_release_of_today_is_not_called_upcoming_and_carries_no_result(client: TestClient) -> None:
+    release_day = date(2026, 11, 3)
+    with client.app.state.session_factory() as session:
+        documents = {document.key: document for document in build_documents(session, release_day)}
+
+    today = next(document for key, document in documents.items() if key.startswith("event:") and document.published_on == release_day)
+    assert today.title.startswith("오늘 발표 ") and "다가올 일정" not in today.title
+    assert "발표 결과 숫자가 들어 있지 않아요" in today.content
+    later = next(document for key, document in documents.items() if key.startswith("event:") and document.published_on and document.published_on > release_day)
+    assert later.title.startswith("다가올 일정 ")
+
+
+def test_scheduled_dates_cannot_fill_every_slot_when_other_chunks_are_close(client: TestClient) -> None:
+    embed = FakeEmbed()
+    with client.app.state.session_factory() as session:
+        for number in range(1, 4):
+            _headline(session, number, datetime(2026, 11, 2, number, tzinfo=timezone.utc), f"금융통화위원회 기준금리 결정 기사 {number}")
+        session.commit()
+        sync(session, embed, datetime(2026, 11, 2, 3, tzinfo=timezone.utc))
+        found = retrieve(session, "금융통화위원회 기준금리 결정", embed, TODAY)
+
+    kinds = [item.chunk.source_type for item in found]
+    assert len(found) == 5 and kinds.count("event") <= 2 and "headline" in kinds

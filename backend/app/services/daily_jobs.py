@@ -35,7 +35,12 @@ from app.services.openai_client import OpenAIError, embed_texts
 from app.services.loan_service import save_loans
 from app.services.product_rate_service import ProductRateService
 
-NEWS_TOPICS = ["예금 금리", "적금", "기준금리", "청년미래적금", "금융당국", "가계대출"]
+# The first six are about the savings and loans this site compares; the rest let 머니독 and the digest answer about the
+# economy around them (prices, exchange rate, housing, stocks, trade, growth).
+NEWS_TOPICS = [
+    "예금 금리", "적금", "기준금리", "청년미래적금", "금융당국", "가계대출",
+    "소비자물가", "환율", "부동산 주택담보대출", "코스피 증시", "수출 무역수지", "경제성장률",
+]
 INTERPRET_LIMIT = 10
 
 
