@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { calculateSavings, getSavingsProducts, type BankCalculationResult } from '../api/client'
+import { BankFinancialsSection } from '../components/BankFinancials'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
@@ -55,6 +56,7 @@ export function BankDetailPage() {
         </li>)}
       </ul>
       <p className="source-note">공시 확인일 {bank.sourceDate} · <a href={bank.sourceUrl} target="_blank" rel="noreferrer">원문 보기</a></p>
+      <BankFinancialsSection bankCode={bank.bankCode} />
       <div className="actions"><Link className="button" to="/banks">비교 목록으로</Link><Link className="button button--secondary" to="/conditions">조건 수정</Link></div>
     </>}
   </section>

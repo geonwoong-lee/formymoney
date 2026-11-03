@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,8 @@ class Settings(BaseSettings):
     openai_model: str | None = None
     ecos_api_key: str | None = None
     finlife_api_key: str | None = None  # 금융감독원 금융상품 한눈에 Open API
+    # 금융감독원 전자공시(OpenDART). Read from VERY_RICH_DART_API_KEY or the plain DART_API_KEY name.
+    dart_api_key: str | None = Field(default=None, validation_alias=AliasChoices("VERY_RICH_DART_API_KEY", "DART_API_KEY"))
     daily_token_limit: int = 200_000
 
     model_config = SettingsConfigDict(

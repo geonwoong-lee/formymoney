@@ -1,13 +1,14 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  getDaily, getEvents, getMarket, getNewsDigest, getNewsHeadlines,
-  type DailyBriefingItem, type DailyBriefingResponse, type DailyTerm, type DigestSource, type EventKind, type MarketItem,
+  getDaily, getDartFilings, getEvents, getMarket, getNewsDigest, getNewsHeadlines,
+  type DailyBriefingItem, type DartFiling, type DailyBriefingResponse, type DailyTerm, type DigestSource, type EventKind, type MarketItem,
   type MoneyNoteCategory, type NewsDigest, type NewsHeadline, type UpcomingEvent,
 } from '../api/client'
-import teacherImage from '../assets/icons/finance-teacher.png'
 import { ErrorNotice } from '../components/ErrorNotice'
+import { TeacherNote } from '../components/TeacherNote'
 import './DailyPage.css'
+import { FinanceLesson } from './FinanceLesson'
 import { RateScenario } from './RateScenario'
 
 const KST = 'Asia/Seoul'
@@ -64,16 +65,6 @@ function BriefingCard({ item }: { item: DailyBriefingItem }) {
       <p className="daily-muted">AI 생성 {formatGenerated(item.generatedAt)}</p>
     </section>
   </article>
-}
-
-function TeacherNote({ children }: { children: ReactNode }) {
-  return <div className="daily-teacher">
-    <img className="daily-teacher__face" src={teacherImage} alt="" width={96} height={96} />
-    <div className="daily-teacher__bubble">
-      <b className="daily-teacher__name">금융 선생님</b>
-      {children}
-    </div>
-  </div>
 }
 
 function TermCard({ term }: { term: DailyTerm | null }) {
@@ -207,6 +198,43 @@ function BokPressList() {
       </li>)}
     </ul>
     <p className="daily-muted">출처: 한국은행 보도자료 · 제목과 원문 링크만 보여 주며 내용을 가져오거나 요약하지 않아요</p>
+  </section>
+}
+
+// Bank and financial-holding filings from DART: title, date and link only. Routine bond paperwork is
+// counted instead of listed so results, dividends and major events stay visible.
+// DART titles have no spaces ("현금ㆍ현물배당을위한주주명부폐쇄(기준일)결정"); let a narrow screen break
+// at their natural seams instead of in the middle of a word.
+function withSeams(title: string) {
+  return title.split(/(?<=[ㆍ)])|(?=\()/).map((part, index) => <span key={index}>{index > 0 && <wbr />}{part}</span>)
+}
+
+function DartFilingList() {
+  const [body, setBody] = useState<{ items: DartFiling[]; routineBondFilings: number } | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getDartFilings(controller.signal).then(setBody).catch(() => setBody(null))
+    return () => controller.abort()
+  }, [])
+
+  if (!body || (body.items.length === 0 && body.routineBondFilings === 0)) return null
+  const [first, rest] = [body.items.slice(0, 8), body.items.slice(8)]
+  const row = (item: DartFiling) => <li key={item.receiptNo}>
+    {item.url.startsWith('https://dart.fss.or.kr/')
+      ? <a href={item.url} target="_blank" rel="noreferrer">{withSeams(item.title)} ↗</a>
+      : <span>{withSeams(item.title)}</span>}
+    <span className="daily-muted"> {item.corpName} · {formatDate(item.filedOn)}</span>
+  </li>
+  return <section className="daily-headlines" aria-labelledby="headlines-dart">
+    <h2 id="headlines-dart">은행·금융지주 공시</h2>
+    {body.items.length > 0 && <ul className="daily-headlines__list">{first.map(row)}</ul>}
+    {rest.length > 0 && <details className="daily-fold">
+      <summary>공시 {rest.length}건 더 보기</summary>
+      <ul className="daily-headlines__list">{rest.map(row)}</ul>
+    </details>}
+    {body.routineBondFilings > 0 && <p className="daily-muted">채권을 낼 때마다 반복해서 내는 서류(투자설명서 등) {body.routineBondFilings}건은 목록에서 뺐어요.</p>}
+    <p className="daily-muted">출처: 금융감독원 전자공시시스템(DART) · 최근 14일 · 제목과 원문 링크만 보여 줘요</p>
   </section>
 }
 
@@ -400,6 +428,7 @@ const TABS = [
   { key: 'news', label: '뉴스' },
   { key: 'events', label: '일정' },
   { key: 'term', label: '용어' },
+  { key: 'finance', label: '재무제표' },
 ] as const
 type TabKey = (typeof TABS)[number]['key']
 
@@ -523,9 +552,11 @@ export function DailyPage() {
           news: <>
             {HEADLINE_REGIONS.map((entry) => <HeadlineList key={entry.region} {...entry} />)}
             <BokPressList />
+            <DartFilingList />
           </>,
           events: <EventList events={events} />,
           term: <TermCard term={data.term} />,
+          finance: <FinanceLesson />,
         }} />
 
         <nav className="daily-links" aria-label="관련 계산 화면">

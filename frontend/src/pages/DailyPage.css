@@ -425,10 +425,13 @@
     padding-left: 0;
   }
 
+  /* Five tabs on a phone: each takes the width its label needs so "재무제표" stays on one line. */
   .daily-tabs__tab {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     min-width: 0;
-    padding: 4px 4px;
+    padding: 4px 2px;
+    font-size: 14px;
+    white-space: nowrap;
   }
 
   .daily-tabs__tab[aria-selected="true"] {
@@ -718,3 +721,25 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+/* DART financials: bank detail section and the 재무제표 lesson tab */
+.table-scroll { max-width: 100%; overflow-x: auto; }
+.financials-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.financials-table caption { text-align: left; font-weight: 700; padding-bottom: 6px; }
+.financials-table th, .financials-table td { padding: 6px 8px; border-bottom: 1px dotted #808080; white-space: nowrap; }
+.financials-table td { text-align: right; }
+.financials-table thead th { text-align: right; }
+.financials-table thead th:first-child, .financials-table tbody th { text-align: left; }
+.financials-ratios { display: grid; gap: 8px; margin: 16px 0; }
+.financials-ratios div { padding: 10px 12px; border: 2px inset #fff; background: var(--panel-mid, #f4f4f4); }
+.financials-ratios dt { font-size: 13px; }
+.financials-ratios dd { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 0; }
+.bank-financials { margin-top: 24px; }
+.finance-lesson { margin-top: 18px; }
+.finance-lesson__pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; font-weight: 700; }
+.finance-lesson__pick select { min-width: 160px; padding: 6px; font: inherit; }
+.finance-lesson__steps { margin: 0; padding: 0; list-style: none; }
+.finance-lesson__steps h3 { margin: 22px 0 6px; }
+.finance-lesson__steps .daily-teacher p + p { margin-top: 6px; }
+/* The digit font has no bold, so "563조 5,926억 원" in bold looked patchy; mark lesson numbers by colour instead. */
+.finance-lesson__steps .daily-teacher__bubble p b { font-weight: inherit; color: #000080; text-decoration: underline dotted; text-underline-offset: 3px; }

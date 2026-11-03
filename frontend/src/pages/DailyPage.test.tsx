@@ -46,6 +46,7 @@ const headline = (number: number, region = 'domestic') => ({
 const noBok = () => respond({ region: 'domestic', items: [] })
 const noMarket = () => respond({ groups: [], rateTrend: [], sourceName: 'ECOS', sourceUrl: 'https://ecos.bok.or.kr/', updatedAt: null })
 const noDigest = () => respond({ error: { code: 'not_found', message: '아직 경제 뉴스 요약이 없습니다.' } }, 404)
+const noDart = () => respond({ items: [], routineBondFilings: 0, sourceName: 'DART', sourceUrl: 'https://dart.fss.or.kr/' })
 const noEvents = () => respond({ today: '2026-11-02', items: [] })
 
 function routeFetch(
@@ -53,9 +54,11 @@ function routeFetch(
   market: () => Response = noMarket,
   bok: () => Response = noBok,
   events: () => Response = noEvents,
+  dart: () => Response = noDart,
 ) {
   return vi.fn((input: RequestInfo | URL) => {
     const url = String(input)
+    if (url.includes('/dart/filings')) return Promise.resolve(dart())
     if (url.includes('/api/v1/events')) return Promise.resolve(events())
     if (url.includes('/rate-scenario')) return Promise.resolve(respond({ monthlyAmount: 500_000, months: 12, step: '0.25', cases: [] }))
     if (url.includes('/daily/digest')) return Promise.resolve(digest())
@@ -475,8 +478,12 @@ describe('DailyPage', () => {
     }
 
     await user.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: '재무제표' })).toHaveAttribute('aria-selected', 'true')
+    await user.keyboard('{ArrowRight}')
     expect(screen.getByRole('tab', { name: '요약' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tab', { name: '요약' })).toHaveFocus()
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.getByRole('tab', { name: '재무제표' })).toHaveAttribute('aria-selected', 'true')
     await user.keyboard('{ArrowLeft}')
     expect(screen.getByRole('tab', { name: '용어' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.queryByRole('region', { name: '국내 경제 헤드라인' })).not.toBeInTheDocument()
@@ -620,5 +627,35 @@ describe('DailyPage', () => {
     const bok = await screen.findByRole('region', { name: '한국은행 새 소식' })
     expect(bok).toHaveTextContent('외부 주소 항목')
     expect(within(bok).queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  it('lists bank and holding filings with DART links and counts the bond paperwork it left out', async () => {
+    const filing = (number: number) => ({
+      receiptNo: `2026102900000${number}`, corpName: 'KB금융', title: `현금ㆍ현물배당결정 ${number}`, filedOn: '2026-10-29', filer: 'KB금융',
+      url: `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=2026102900000${number}`,
+    })
+    const items = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(filing)
+    items.push({ ...filing(0), title: '외부 링크 공시', url: 'https://example.com/x' })
+    vi.stubGlobal('fetch', routeFetch(
+      () => respond({ date: '2026-10-29', generatedAt: null, items: [], term: null }),
+      noHeadlines, noDigest, noMarket, noBok, noEvents,
+      () => respond({ items, routineBondFilings: 45, sourceName: 'DART', sourceUrl: 'https://dart.fss.or.kr/' }),
+    ))
+    renderPage('news')
+
+    const dart = await screen.findByRole('region', { name: '은행·금융지주 공시' })
+    expect(within(dart).getByRole('link', { name: /현금ㆍ현물배당결정 1/ })).toHaveAttribute('href', 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261029000001')
+    expect(dart).toHaveTextContent('KB금융 · 2026년 10월 29일')
+    expect(within(dart).getByText('공시 2건 더 보기')).toBeInTheDocument()
+    expect(within(dart).queryByRole('link', { name: /외부 링크 공시/ })).not.toBeInTheDocument()
+    expect(dart).toHaveTextContent('투자설명서 등) 45건은 목록에서 뺐어요')
+    expect(dart).not.toHaveTextContent('AI')
+  })
+
+  it('hides the filings list when nothing came in', async () => {
+    stubDaily([])
+    renderPage('news')
+    expect(await screen.findAllByText('아직 수집된 헤드라인이 없습니다.')).toHaveLength(2)
+    expect(screen.queryByRole('region', { name: '은행·금융지주 공시' })).not.toBeInTheDocument()
   })
 })
