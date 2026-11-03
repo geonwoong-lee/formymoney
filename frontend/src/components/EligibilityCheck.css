@@ -7,3 +7,15 @@
 .eligibility__muted { margin: 8px 0 0; color: #555; font-size: 13px; }
 .eligibility__next { margin: 8px 0 0; }
 .eligibility__next .button { margin-left: 6px; }
+.eligibility__judge { margin-top: 10px; padding-top: 8px; border-top: 1px dotted #808080; }
+.eligibility__judge summary { cursor: pointer; font-weight: 700; }
+.eligibility__judge form { display: grid; gap: 8px; margin: 10px 0; max-width: 360px; }
+.eligibility__field { display: grid; gap: 4px; margin: 0; padding: 0; border: 0; }
+.eligibility__field legend { padding: 0; }
+.eligibility__field label { display: block; }
+.eligibility__field input[type='date'], .eligibility__field input[type='number'], .eligibility__field select { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; }
+.eligibility__check { display: flex; align-items: center; gap: 6px; }
+.eligibility__error { margin: 0; color: #a00000; }
+.eligibility__result { margin: 10px 0; padding: 8px 10px; border: 2px inset #fff; background: #fff; }
+.eligibility__result h3 { margin: 0 0 6px; font-size: 16px; }
+.eligibility__result ul { margin: 0; padding-left: 18px; }
