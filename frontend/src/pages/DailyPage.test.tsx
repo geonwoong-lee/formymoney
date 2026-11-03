@@ -203,7 +203,7 @@ describe('DailyPage', () => {
       (region, featured) => featured
         ? respond({ region, items: [] })
         : region === 'domestic'
-        ? respond({ region, items: [headline(1), { ...headline(2), url: 'http://insecure.example/2' }] })
+        ? respond({ region, items: [headline(1), { ...headline(2), url: 'http://publisher.example/2' }, { ...headline(3), url: 'javascript:alert(1)' }] })
         : respond({ error: { code: 'internal_error', message: '실패' } }, 500),
     ))
     renderPage('news')
@@ -212,7 +212,12 @@ describe('DailyPage', () => {
     const link = await within(domestic).findByRole('link', { name: /경제 헤드라인 1/ })
     expect(link).toHaveAttribute('href', 'https://example.co.kr/domestic/1')
     expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'))
-    expect(within(domestic).queryByRole('link', { name: /경제 헤드라인 2/ })).not.toBeInTheDocument()
+    // Some publishers still use http; those are links too. Anything that is not a web address stays plain text.
+    const plain = within(domestic).getByRole('link', { name: /경제 헤드라인 2/ })
+    expect(plain).toHaveAttribute('href', 'http://publisher.example/2')
+    expect(plain).toHaveAttribute('rel', expect.stringContaining('noreferrer'))
+    expect(within(domestic).queryByRole('link', { name: /경제 헤드라인 3/ })).not.toBeInTheDocument()
+    expect(domestic).toHaveTextContent('경제 헤드라인 3')
     expect(domestic).toHaveTextContent('AI 요약 없음')
     expect(domestic).not.toHaveTextContent('AI 번역·요약')
     const international = await screen.findByRole('region', { name: '해외 경제 헤드라인' })

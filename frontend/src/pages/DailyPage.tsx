@@ -33,6 +33,12 @@ function isOfficialLink(url: string) {
   return url.startsWith('https://')
 }
 
+// News links come from the search API as the publisher wrote them, and some publishers still use http. Only web
+// addresses become links; anything else (javascript:, data:) stays plain text.
+function isWebLink(url: string) {
+  return /^https?:\/\//i.test(url)
+}
+
 function BriefingCard({ item }: { item: DailyBriefingItem }) {
   return <article className="daily-card" aria-labelledby={`daily-item-${item.id}`}>
     <header className="daily-card__meta">
@@ -100,7 +106,7 @@ const HEADLINE_REGIONS = [
 
 function HeadlineItem({ item }: { item: NewsHeadline }) {
   return <li>
-    {isOfficialLink(item.url)
+    {isWebLink(item.url)
       ? <a href={item.url} target="_blank" rel="noreferrer">{item.titleKo ?? item.title} ↗</a>
       : <span>{item.titleKo ?? item.title}</span>}
     <span className="daily-muted"> {item.publisher} · {formatPublished(item.publishedAt)}</span>
