@@ -64,7 +64,7 @@ export function BanksPage() {
             <RateExplain bank={bank} />
           </li>)}
         </ol>
-        <p className="source-note">공시 확인일 {[...new Set(result.results.map((bank) => bank.sourceDate))].sort().join(', ')} · 예상금리는 입력한 우대조건 답변 기준의 예상치입니다. 개인별 세금, 은행의 최종 서류 심사와 공시 이후 바뀐 조건은 반영하지 않았습니다. 자세한 기준은 <Link to="/about">계산 기준 및 출처</Link>에서 확인하세요.</p>
+        <p className="source-note">공시 확인일 {[...new Set(result.results.map((bank) => bank.sourceDate))].sort().join(', ')} · 예상금리는 입력한 우대조건 답변 기준의 예상치입니다. 개인별 세금, 은행의 최종 서류 심사와 공시 이후 바뀐 조건은 반영하지 않았습니다. 자세한 기준은 <Link to="/about">계산 기준 및 출처</Link>에서 확인하세요. 은행 아이콘의 상표권은 각 은행에 있고, 이 사이트는 은행과 제휴하지 않았습니다.</p>
         <div className="actions"><Link className="button button--secondary" to="/conditions">조건 수정하기</Link></div>
         <ShareResult result={result} />
       </>}
