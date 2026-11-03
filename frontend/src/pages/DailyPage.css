@@ -743,3 +743,39 @@
 .finance-lesson__steps .daily-teacher p + p { margin-top: 6px; }
 /* The digit font has no bold, so "563조 5,926억 원" in bold looked patchy; mark lesson numbers by colour instead. */
 .finance-lesson__steps .daily-teacher__bubble p b { font-weight: inherit; color: #000080; text-decoration: underline dotted; text-underline-offset: 3px; }
+
+/* Balance sheet / income statement drawn like a printed statement: title band, two sides, ruled lines. */
+.finance-lesson__statements { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin: 12px 0 6px; }
+.statement { margin: 0; border: 2px solid #000; background: #fff; }
+.statement figcaption { display: flex; flex-direction: column; align-items: center; border-bottom: 1px solid #000; }
+.statement figcaption b { width: 100%; padding: 6px; background: #e6e6e6; border-bottom: 1px solid #000; text-align: center; font-size: 18px; }
+.statement figcaption span { width: 100%; padding: 4px; background: #e6e6e6; text-align: center; font-variant-numeric: tabular-nums; }
+/* The middle rule is drawn by the box so it runs full height even when one side is shorter. */
+.statement__sides { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; background: linear-gradient(#000, #000) center / 1px 100% no-repeat; }
+.statement__side { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.statement__side th, .statement__side td { padding: 5px 10px; vertical-align: top; }
+/* Account names such as 당기손익-공정가치측정금융자산 have no spaces; let them wrap rather than widen the table. */
+.statement__side th { text-align: left; font-weight: 400; overflow-wrap: anywhere; }
+.statement__side td { text-align: right; white-space: nowrap; }
+.statement__heading th, .statement__heading td { background: #f4f4f4; border-top: 1px solid #000; }
+.statement__heading th { font-weight: 700; }
+/* Digits have no bold in this font, so totals stand out by colour instead. */
+.statement__heading td { color: #000080; }
+.statement__side tbody:first-child .statement__heading:first-child th,
+.statement__side tbody:first-child .statement__heading:first-child td { border-top: 0; }
+.statement__item { padding-left: 24px !important; }
+.statement__income .statement__heading:first-child th, .statement__income .statement__heading:first-child td { border-top: 1px solid #000; }
+
+@media (max-width: 820px) {
+  /* On a narrow screen the right side goes under the left one so long account names keep their width. */
+  .statement__sides { grid-template-columns: minmax(0, 1fr); background: none; }
+  .statement__sides > table + table { border-top: 1px solid #000; }
+  .statement__side th, .statement__side td { padding: 5px 6px; }
+  .statement__item { padding-left: 14px !important; }
+}
+
+@media (max-width: 380px) {
+  .statement__side { font-size: 14px; }
+  .statement__side th, .statement__side td { padding: 5px 4px; }
+  .statement__item { padding-left: 10px !important; }
+}

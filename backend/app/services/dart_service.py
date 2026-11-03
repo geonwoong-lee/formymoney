@@ -26,6 +26,14 @@ LABELS: dict[str, str] = {
     "net_interest": "순이자손익",
     "operating_income": "영업이익",
     "net_income": "당기순이익",
+    "capital": "자본금",
+    "retained_earnings": "이익잉여금",
+    "fvtpl_assets": "당기손익-공정가치측정금융자산",
+    "fvoci_assets": "기타포괄손익-공정가치측정금융자산",
+    "derivative_assets": "파생상품자산",
+    "derivative_liabilities": "파생상품부채",
+    "net_fee": "순수수료손익",
+    "pretax_income": "법인세차감전 순이익",
 }
 SHOWN = ["assets", "liabilities", "equity", "deposits", "net_interest", "net_income"]
 # Paperwork banks file every time they issue bonds; it would bury results, dividends and major-event reports.
@@ -47,6 +55,40 @@ def with_net_interest(amounts: dict[str, Decimal]) -> dict[str, Decimal]:
     if "net_interest" not in amounts and "interest_income" in amounts and "interest_expense" in amounts:
         return {**amounts, "net_interest": amounts["interest_income"] - amounts["interest_expense"]}
     return amounts
+
+
+def _line(key: str | None, label: str, value: Decimal | None) -> dict[str, str | None]:
+    return {"key": key, "label": label, "amount": str(value) if value is not None else None}
+
+
+def _section(amounts: dict[str, Decimal], total_key: str, parts: list[str], rest_label: str) -> dict[str, object]:
+    """A total with the lines DART lists under it, plus what is left over as one "그 밖의" line."""
+    total = amounts.get(total_key)
+    lines = [_line(key, LABELS[key], amounts[key]) for key in parts if key in amounts]
+    if total is not None:
+        rest = total - sum((amounts[key] for key in parts if key in amounts), Decimal("0"))
+        if rest != 0:  # can be negative for equity (e.g. accumulated other comprehensive loss)
+            lines.append(_line(None, rest_label, rest))
+    return {"label": LABELS[total_key], "total": str(total) if total is not None else None, "lines": lines}
+
+
+def statements(amounts: dict[str, Decimal]) -> dict[str, object]:
+    """The balance sheet as its two sides and a short income statement, from the reported main accounts.
+
+    DART's main accounts for banks have no current/non-current split and no loan line, so the asset side lists
+    the financial assets DART does report and puts the rest (mostly loans and cash) in one remainder line.
+    """
+    income = [_line(key, LABELS[key], amounts[key]) for key in
+              ("interest_income", "interest_expense", "net_interest", "net_fee", "operating_income", "pretax_income", "net_income")
+              if key in amounts]
+    return {
+        "balanceSheet": {
+            "assets": _section(amounts, "assets", ["fvtpl_assets", "fvoci_assets", "derivative_assets"], "그 밖의 자산(대출채권·현금 등)"),
+            "liabilities": _section(amounts, "liabilities", ["deposits", "derivative_liabilities"], "그 밖의 부채(은행이 낸 채권·빌린 돈 등)"),
+            "equity": _section(amounts, "equity", ["capital", "retained_earnings"], "그 밖의 자본(자본잉여금 등)"),
+        },
+        "incomeStatement": income,
+    }
 
 
 class DartService:
@@ -99,6 +141,7 @@ class DartService:
                 "netIncomeToAssets": _percent(current.get("net_income"), assets),
             },
             "balanced": balanced,
+            "statements": statements(current),
             "sourceName": "금융감독원 전자공시시스템(DART) 사업보고서",
             "sourceUrl": f"{VIEWER_URL}{row.receipt_no}",
             "fetchedAt": row.fetched_at.isoformat(),

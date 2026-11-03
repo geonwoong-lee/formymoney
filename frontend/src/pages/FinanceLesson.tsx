@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getBankFinancials, getDartBanks, type BankFinancials } from '../api/client'
-import { FinancialsSource, FinancialsTable } from '../components/BankFinancials'
+import { BalanceSheet, FinancialsSource, FinancialsTable, IncomeStatement } from '../components/BankFinancials'
 import { TeacherNote } from '../components/TeacherNote'
 import { formatChangePercent, formatKrwLarge, peerRangeText } from '../features/krw'
 
@@ -28,10 +28,10 @@ function Lesson({ data }: { data: BankFinancials }) {
 
   return <ol className="finance-lesson__steps">
     <li>
-      <h3>1. 재무제표는 회사의 가계부예요</h3>
+      <h3>1. 위의 두 표가 재무제표예요</h3>
       <TeacherNote>
-        <p>재무제표에서 먼저 볼 표는 두 개예요. <b>재무상태표</b>는 연말 하루에 찍은 사진처럼 가진 것과 갚을 것을 보여 줘요. <b>손익계산서</b>는 1년 동안 번 돈과 쓴 돈을 보여 주는 동영상 같은 표예요.</p>
-        <p>지금부터 {name}의 {data.year}년 {data.statement}를 같이 읽어 볼게요.</p>
+        <p>먼저 볼 표는 두 개예요. <b>재무상태표</b>는 연말 하루에 찍은 사진처럼 가진 것과 갚을 것을 보여 줘요. 왼쪽이 은행이 가진 것(자산), 오른쪽이 그 돈이 어디서 왔는지(부채와 자본)예요. <b>손익계산서</b>는 1년 동안 번 돈과 쓴 돈을 보여 주는 동영상 같은 표예요.</p>
+        <p>지금부터 위에 나온 {name}의 {data.year}년 {data.statement}를 한 줄씩 같이 읽어 볼게요.</p>
       </TeacherNote>
     </li>
     <li>
@@ -129,8 +129,13 @@ export function FinanceLesson() {
     </label>}
     {bankCode && !data && !failed && <p className="daily-muted">숫자를 불러오는 중입니다.</p>}
     {data && <>
+      <div className="finance-lesson__statements">
+        <BalanceSheet data={data} />
+        <IncomeStatement data={data} />
+      </div>
+      <p className="daily-muted">DART가 은행마다 따로 알려 주는 주요 계정만 줄로 적고, 나머지는 "그 밖의"로 묶었어요. 은행 재무제표는 일반 회사처럼 유동·비유동으로 나누지 않아요.</p>
       <Lesson data={data} />
-      <h3>표로 한 번에 보기</h3>
+      <h3>한 해 전과 비교하기</h3>
       <FinancialsTable data={data} />
       <p className="daily-muted">공시 숫자를 그대로 옮기고 나눗셈만 했어요. 은행이 안전한지, 어디에 가입할지 판단하는 자료가 아니에요.</p>
       <FinancialsSource data={data} />

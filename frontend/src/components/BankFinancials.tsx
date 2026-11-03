@@ -1,8 +1,54 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ApiError, getBankFinancials, type BankFinancials } from '../api/client'
+import { ApiError, getBankFinancials, type BankFinancials, type StatementSection } from '../api/client'
 import { formatChangePercent, formatKrwLarge, peerRangeText } from '../features/krw'
 import '../pages/DailyPage.css'
+
+// 당기손익-공정가치측정금융자산 has no spaces; offer breaks at its parts so a phone splits it there.
+function accountName(label: string) {
+  return label.split(/(?<=-)|(?=금융자산$)/).map((part, index) => <span key={index}>{index > 0 && <wbr />}{part}</span>)
+}
+
+function SheetSection({ section, heading }: { section: StatementSection; heading: string }) {
+  return <tbody>
+    <tr className="statement__heading"><th scope="rowgroup">{heading}</th><td>{formatKrwLarge(section.total)}</td></tr>
+    {section.lines.map((line) => <tr key={line.label}>
+      <th scope="row" className="statement__item">{accountName(line.label)}</th><td>{formatKrwLarge(line.amount)}</td>
+    </tr>)}
+  </tbody>
+}
+
+// The balance sheet the way it is printed: what the bank has on the left, where the money came from on the right.
+export function BalanceSheet({ data }: { data: BankFinancials }) {
+  const sheet = data.statements.balanceSheet
+  return <figure className="statement">
+    <figcaption><b>재무상태표</b><span>{data.corpName} · {data.periodEnd} 기준</span></figcaption>
+    <div className="statement__sides">
+      <table className="statement__side" aria-label="자산">
+        <SheetSection section={sheet.assets} heading="자산" />
+      </table>
+      <table className="statement__side" aria-label="부채와 자본">
+        <SheetSection section={sheet.liabilities} heading="부채" />
+        <SheetSection section={sheet.equity} heading="자본" />
+      </table>
+    </div>
+  </figure>
+}
+
+const SUBTOTALS = new Set(['net_interest', 'operating_income', 'net_income'])
+
+export function IncomeStatement({ data }: { data: BankFinancials }) {
+  return <figure className="statement">
+    <figcaption><b>손익계산서</b><span>{data.corpName} · {data.year}년 1년 동안</span></figcaption>
+    <table className="statement__side statement__income" aria-label="손익계산서">
+      <tbody>
+        {data.statements.incomeStatement.map((line) => <tr key={line.label} className={line.key && SUBTOTALS.has(line.key) ? 'statement__heading' : undefined}>
+          <th scope="row">{line.label}</th><td>{formatKrwLarge(line.amount)}</td>
+        </tr>)}
+      </tbody>
+    </table>
+  </figure>
+}
 
 export function FinancialsTable({ data }: { data: BankFinancials }) {
   return <div className="table-scroll" tabIndex={0} aria-label="표, 좁은 화면에서는 옆으로 밀어 볼 수 있습니다">

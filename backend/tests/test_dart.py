@@ -8,7 +8,7 @@ from app.api.v1.endpoints import dart as dart_endpoint
 from app.collectors.dart import BANK_CORPS, FILING_CORPS, DartError, Filing, MainAccounts, parse_filings, parse_main_accounts
 from app.core.config import Settings
 from app.services.daily_jobs import JobResult, collect_dart
-from app.services.dart_service import DartService
+from app.services.dart_service import DartService, statements
 
 
 def _row(fs_div: str, name: str, now: str, before: str) -> dict[str, str]:
@@ -99,3 +99,22 @@ def test_daily_job_skips_without_a_key_and_records_partial_failures(client: Test
     assert result.attempted == len(BANK_CORPS) + len(FILING_CORPS)
     assert result.failures == ["DART:국민은행: DART에 연결하지 못했습니다."]
     assert result.notes == [f"DART 재무 {len(BANK_CORPS) - 1}개 은행, 공시 0건(새로 0건)"]
+
+
+def test_statements_draw_both_sides_of_the_balance_sheet_with_a_remainder_line() -> None:
+    amounts = {key: Decimal(value) for key, value in {
+        "assets": "1000", "fvtpl_assets": "100", "derivative_assets": "20",
+        "liabilities": "920", "deposits": "700", "equity": "80", "capital": "30", "retained_earnings": "60",
+        "interest_income": "50", "interest_expense": "20", "net_interest": "30", "net_income": "9",
+    }.items()}
+    body = statements(amounts)
+    sheet = body["balanceSheet"]
+
+    assert sheet["assets"]["total"] == "1000"
+    assert [(line["label"], line["amount"]) for line in sheet["assets"]["lines"]] == [
+        ("당기손익-공정가치측정금융자산", "100"), ("파생상품자산", "20"), ("그 밖의 자산(대출채권·현금 등)", "880")]
+    assert sheet["liabilities"]["lines"][-1] == {"key": None, "label": "그 밖의 부채(은행이 낸 채권·빌린 돈 등)", "amount": "220"}
+    assert sheet["equity"]["lines"][-1]["amount"] == "-10"  # 30 + 60 is more than the 80 total
+    assert [line["key"] for line in body["incomeStatement"]] == ["interest_income", "interest_expense", "net_interest", "net_income"]
+    assert statements({"assets": Decimal("5")})["balanceSheet"]["assets"]["lines"] == [
+        {"key": None, "label": "그 밖의 자산(대출채권·현금 등)", "amount": "5"}]
