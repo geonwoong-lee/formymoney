@@ -11,6 +11,7 @@ from app.models.daily_briefing import (
 )
 from app.models.investment import InvestmentAsset, InvestmentMonthlyPoint
 from app.models.knowledge import KnowledgeChunk
+from app.models.loan_product import LoanProduct
 from app.models.market import MarketPoint
 from app.models.product_rate import ProductInfo, ProductRateSnapshot
 from app.models.reference_item import ReferenceItem
@@ -31,6 +32,7 @@ __all__ = [
     "InvestmentAsset",
     "InvestmentMonthlyPoint",
     "KnowledgeChunk",
+    "LoanProduct",
     "MarketPoint",
     "NewsDigest",
     "NewsHeadline",
