@@ -50,7 +50,7 @@ MONEY_NOTE_LABELS = {
     "loan": "빌린 돈(대출)",
     "fx": "환율·해외 결제",
 }
-PAGE_PATTERN = re.compile(r"^- (.+?)\((/[a-z]+)\)(?:, [^:]+)?: (.+)$")
+PAGE_PATTERN = re.compile(r"^- (.+?)\((/[a-z-]+)\)(?:, [^:]+)?: (.+)$")
 DAY_PATTERN = re.compile(r"(\d{1,2})\s*월\s*(\d{1,2})\s*일")
 
 

@@ -602,6 +602,45 @@ export function getSavingsProducts(signal?: AbortSignal): Promise<SavingsProduct
   return request<SavingsProductsResponse>('/api/v1/savings/products', { signal })
 }
 
+export interface MyStatusResponse {
+  timeline: {
+    phase: 'before_start' | 'saving' | 'matured' | 'unknown'
+    startMonth: string | null
+    maturityMonth: string | null
+    currentRound: number | null
+    termMonths: number
+    monthsToMaturity: number | null
+  }
+  payments: {
+    paidRounds: number
+    paidAmount: number
+    remainingRounds: number
+    remainingAmount: number
+    skippedRounds: number[]
+    reducedRounds: number[]
+  }
+  cashflow: CashflowCalculationResponse
+  conditions: {
+    applied: ConditionResult[]
+    notApplied: ConditionResult[]
+    needsCheck: ConditionResult[]
+    ifCheckedMaturityAmount: number | null
+    ifCheckedGain: number | null
+  }
+}
+
+export function getMyStatus(payload: {
+  bankCode: string
+  monthlyAmounts: number[]
+  fixedMonthlyAmount: number
+  contributionType: ContributionType
+  conditionAnswers: Record<string, ConditionAnswer>
+  startMonth?: string
+  enrolled: boolean
+}, signal?: AbortSignal): Promise<MyStatusResponse> {
+  return request('/api/v1/savings/my-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
+}
+
 export function calculateSavings(payload: {
   monthlyAmount: number
   contributionType: ContributionType

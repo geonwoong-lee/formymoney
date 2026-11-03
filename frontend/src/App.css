@@ -101,7 +101,8 @@
 }
 
 .pixel-icon--market,
-.pixel-icon--maturity {
+.pixel-icon--maturity,
+.pixel-icon--mySavings {
   background-position: center;
   background-size: 76%;
 }

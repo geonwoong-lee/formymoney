@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.schemas.savings import (
+    MyStatusRequest,
+    MyStatusResponse,
     CalculationRequest,
     CalculationResponse,
     CashflowCalculationRequest,
@@ -10,6 +12,8 @@ from app.schemas.savings import (
     MonthImpactResponse,
     ProductsResponse,
 )
+from app.services.my_savings import my_status
+from app.services.news_digest import korea_today
 from app.services.savings_service import SavingsDataError, SavingsInputError, SavingsService
 
 
@@ -55,6 +59,18 @@ def calculate_month_impact(payload: MonthImpactRequest, request: Request) -> Mon
     try:
         with request.app.state.session_factory() as session:
             return SavingsService(session).calculate_month_impact(payload)
+    except SavingsInputError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
+    except (SavingsDataError, SQLAlchemyError) as error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+
+
+@router.post("/my-status", response_model=MyStatusResponse)
+def my_savings_status(payload: MyStatusRequest, request: Request) -> MyStatusResponse:
+    """Where this person's savings stand this month, from the inputs kept in their browser or saved plan."""
+    try:
+        with request.app.state.session_factory() as session:
+            return my_status(SavingsService(session), payload, korea_today())
     except SavingsInputError as error:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
     except (SavingsDataError, SQLAlchemyError) as error:

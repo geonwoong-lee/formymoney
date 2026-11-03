@@ -1,0 +1,17 @@
+.my-savings__card { margin: 16px 0; padding: 12px 14px; border: 2px solid #808080; background: #f4f4f4; }
+.my-savings__card h2 { margin: 0 0 6px; font-size: 19px; }
+.my-savings__card h3 { margin: 10px 0 4px; font-size: 15px; }
+.my-savings__card .money-breakdown { margin: 12px 0; }
+.my-savings__phase { margin: 8px 0; font-size: 17px; }
+.my-savings__progress { height: 16px; border: 2px inset #fff; background: #fff; }
+.my-savings__progress span { display: block; height: 100%; background: repeating-linear-gradient(90deg, #000080 0 10px, #fff 10px 12px); }
+.my-savings__muted { color: #555; font-size: 13px; }
+.my-savings__warn { color: #a03000; }
+.my-savings__highlight { padding: 8px 10px; border: 1px solid #000080; background: #fffdf0; }
+.my-savings__conditions ul, .my-savings__events { margin: 0; padding-left: 18px; }
+.my-savings__conditions li, .my-savings__events li { margin: 3px 0; }
+.my-savings__source { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
+.my-savings__source select { max-width: 100%; padding: 6px; font: inherit; }
+.my-savings__foot { margin-top: 18px; }
+/* Digits have no bold in this font, so amounts stand out by colour. */
+.my-savings__amount { color: #000080; text-decoration: underline dotted; text-underline-offset: 3px; }

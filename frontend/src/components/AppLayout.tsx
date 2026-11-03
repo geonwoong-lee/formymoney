@@ -4,13 +4,14 @@ import dashboardSprite from '../assets/icons/dashboard-sprite-v2.png'
 import dailyIcon from '../assets/icons/daily-mail.png'
 import marketIcon from '../assets/icons/market-monitor.png'
 import maturityIcon from '../assets/icons/maturity-keys.png'
+import mySavingsIcon from '../assets/icons/my-savings-passbook.png'
 import startLogo from '../assets/icons/start-logo.svg'
 import { PAGE_EVENTS, track } from '../features/analytics'
 import { AnalyticsConsentBar } from './AnalyticsConsent'
 import { Assistant } from './Assistant'
 import { RetroUtilityApp, type UtilityId } from './RetroUtilityApps'
 
-type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'maturity' | 'about' | 'daily' | 'market'
+type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'maturity' | 'about' | 'daily' | 'market' | 'mySavings'
 interface DesktopApp { to: string; label: string; windowTitle: string; icon: IconKind }
 interface UtilityAppDefinition { id: UtilityId; label: string; windowTitle: string }
 interface Rect { x: number; y: number; width: number; height: number }
@@ -19,6 +20,7 @@ const desktopApps: DesktopApp[] = [
   { to: '/', label: 'Very Rich?', windowTitle: 'Very Rich? - 시작', icon: 'home' },
   { to: '/conditions', label: '내 조건', windowTitle: '내 조건 입력', icon: 'conditions' },
   { to: '/banks', label: '은행 비교', windowTitle: '은행 비교 탐색기', icon: 'banks' },
+  { to: '/my-savings', label: '내 적금', windowTitle: '내 적금', icon: 'mySavings' },
   { to: '/cashflow', label: '납입 계획', windowTitle: '월별 납입 계획', icon: 'cashflow' },
   { to: '/alternatives', label: '대안 비교', windowTitle: '같은 돈, 다른 선택', icon: 'alternatives' },
   { to: '/maturity', label: '만기 후 계획', windowTitle: '만기 후 계획', icon: 'maturity' },
@@ -41,7 +43,7 @@ function getCurrentApp(pathname: string) {
   return desktopApps.find((app) => app.to === pathname) ?? desktopApps[0]
 }
 
-const SINGLE_ICONS: Partial<Record<IconKind, string>> = { daily: dailyIcon, market: marketIcon, maturity: maturityIcon }
+const SINGLE_ICONS: Partial<Record<IconKind, string>> = { daily: dailyIcon, market: marketIcon, maturity: maturityIcon, mySavings: mySavingsIcon }
 
 function PixelIcon({ kind, className = '' }: { kind: IconKind; className?: string }) {
   return <span className={`pixel-icon pixel-icon--${kind} ${className}`.trim()} style={{ backgroundImage: `url("${SINGLE_ICONS[kind] ?? dashboardSprite}")` }} aria-hidden="true" />
