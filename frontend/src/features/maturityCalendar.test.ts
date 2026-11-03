@@ -18,6 +18,7 @@ describe('maturity calendar', () => {
     expect(lines).toContain('DTSTART;VALUE=DATE:20290701')
     expect(lines).toContain('DTEND;VALUE=DATE:20290702')
     expect(lines).toContain('DTSTAMP:20261102T080000Z')
+    expect(lines).toContain('TRIGGER:-P90D')
     expect(lines).toContain('TRIGGER:-P30D')
     expect(lines).toContain(String.raw`SUMMARY:KB국민은행 청년미래적금\; 특판\, A 만기 달`)
     expect(ics?.endsWith('END:VCALENDAR\r\n')).toBe(true)
