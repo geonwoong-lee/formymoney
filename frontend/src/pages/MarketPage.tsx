@@ -122,10 +122,12 @@ function RateTrend({ points }: { points: TrendPoint[] }) {
     </div>
     <details className="market-trend__table">
       <summary>표로 보기</summary>
+      <div className="market-trend__table-scroll" tabIndex={0} aria-label="표, 좁은 화면에서는 옆으로 밀어 볼 수 있습니다">
       <table>
         <thead><tr><th scope="col">월</th>{TREND_SERIES.map((series) => <th scope="col" key={series.key}>{series.label}</th>)}</tr></thead>
         <tbody>{points.map((point) => <tr key={point.period}><th scope="row">{formatPeriod(point.period)}</th>{TREND_SERIES.map((series) => <td key={series.key}>{trendValue(point, series.key) === null ? '–' : `${formatNumber(trendValue(point, series.key) as string)}%`}</td>)}</tr>)}</tbody>
       </table>
+      </div>
     </details>
     {points.some((point) => TREND_SERIES.some((series) => trendValue(point, series.key) === null)) && <p className="market-muted">자료가 없는 달은 선을 끊어 표시합니다.</p>}
     <p className="market-muted">지난 기록이며 앞으로의 금리와 물가를 예측하지 않습니다. 예금 평균금리는 은행이 그달 새로 받은 저축성 예금의 가중평균 금리이고, 소비자물가 상승률은 전년 같은 달 대비입니다.</p>

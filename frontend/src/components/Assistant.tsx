@@ -29,7 +29,7 @@ export const ASSISTANT_SEEN_KEY = 'very-rich:assistant-seen:v1'
 
 const HOME_LEFT = 14
 const TASKBAR = 48
-const DOG_WIDTH = 84
+const DOG_WIDTH = 120
 const DOG_HEIGHT = 100
 const BUBBLE_WIDTH = 290
 const DRAG_THRESHOLD = 4

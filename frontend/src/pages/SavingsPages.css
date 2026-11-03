@@ -32,7 +32,7 @@
 .comparison-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 12px; }
 .comparison-summary span { padding: 5px 8px; border: 1px solid #000; background: #ffff80; font-size: 12px; }
 .bank-results { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.bank-results li { display: grid; grid-template-columns: 36px minmax(150px, 1fr) 90px 150px auto; align-items: center; gap: 10px; padding: 12px; border: 2px outset #fff; background: var(--panel); }
+.bank-results li { display: grid; grid-template-columns: 32px minmax(0, 1.4fr) minmax(64px, 0.7fr) minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px; border: 2px outset #fff; background: var(--panel); }
 .bank-results small { display: block; margin-top: 3px; color: #444; }
 .bank-results .difference { margin-top: 5px; font-weight: 700; }
 .bank-results .difference--plus { color: #006000; }
