@@ -51,7 +51,7 @@ export function BanksPage() {
         <ol className="bank-results">
           {result.results.map((bank, index) => <li key={bank.bankCode}>
             <span className="rank">{index + 1}</span>
-            <div><strong><BankBadge bankCode={bank.bankCode} bankName={bank.bankName} />{bank.bankName}</strong><small>{bank.productName}</small></div>
+            <div><strong><BankBadge bankCode={bank.bankCode} bankName={bank.bankName} scale={3} />{bank.bankName}</strong><small>{bank.productName}</small></div>
             <div className="rate"><strong>{bank.expectedRate}%</strong><small>최고 {bank.maximumRate}%</small></div>
             <div className="maturity">
               <strong>{money.format(bank.expectedMaturityAmount)}원</strong>
