@@ -1,3 +1,4 @@
+import { BankBadge } from '../components/BankBadge'
 import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getLoanProducts, type DepositGroup, type LoanProduct, type LoanProductsResponse } from '../api/client'
@@ -38,7 +39,7 @@ function BudgetLines({ product, budget }: { product: LoanProduct; budget: Budget
 
 function Row({ product, budget }: { product: LoanProduct; budget: Budget }) {
   return <li className="deposit-product">
-    <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span> <span className="deposit-product__type">{product.repayType}</span>{product.guarantee && <> <span className="deposit-product__type">{product.guarantee} 보증</span></>}</p>
+    <p className="deposit-product__name"><BankBadge bankName={product.company} /><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span> <span className="deposit-product__type">{product.repayType}</span>{product.guarantee && <> <span className="deposit-product__type">{product.guarantee} 보증</span></>}</p>
     <p>금리 {rateRange(product)}{product.disclosedMonth && <span className="maturity-muted"> · 공시 {product.disclosedMonth.slice(0, 4)}.{product.disclosedMonth.slice(4, 6)}</span>}</p>
     <p>{product.monthlyLabel} <span className="deposit-product__amount">{range(product.monthlyMin, product.monthlyMax)}</span></p>
     <p>총이자 <span className="deposit-product__amount">{range(product.totalInterestMin, product.totalInterestMax)}</span></p>
