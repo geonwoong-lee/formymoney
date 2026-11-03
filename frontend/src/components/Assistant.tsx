@@ -12,13 +12,14 @@ import './Assistant.css'
 
 const INTERNAL_PATH = /^\/[a-z-]+$/
 
-// A cited source opens our own page in place, an https article in a new tab, and anything else is plain text.
+// A cited source opens our own page in place, a web article (https, or the http some publishers still use) in a new tab,
+// and anything else is plain text.
 function SourceLink({ source, onInternal }: { source: AssistantSource; onInternal: (to: string) => void }) {
   const url = source.url ?? ''
   if (INTERNAL_PATH.test(url)) {
     return <button type="button" className="assistant-bubble__source" onClick={() => onInternal(url)}>{source.title}</button>
   }
-  if (url.startsWith('https://')) {
+  if (/^https?:\/\//i.test(url)) {
     return <a href={url} target="_blank" rel="noreferrer">{source.title} ↗</a>
   }
   return <span>{source.title}</span>

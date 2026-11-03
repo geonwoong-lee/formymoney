@@ -1,8 +1,9 @@
 """Knowledge base for 머니독: what it may answer from, embedded once and searched per question.
 
 Only text we wrote or may publish goes in: the site guide, published easy term explanations, the AI news
-digests and money notes we already show, Bank of Korea ECOS market values and upcoming official dates. Article bodies, the Naver
-snippet and Bank of Korea press release text are never stored here.
+digests and money notes we already show, the last few days' headline titles (title, publisher and link, as already listed on
+/daily), Bank of Korea ECOS market values and official dates. Article bodies, the Naver snippet and Bank of Korea press
+release text are never stored here.
 
 Search: pgvector cosine distance on PostgreSQL, the same cosine in Python elsewhere (tests). When the question
 names a day ("오늘", "어제", "11월 2일"), chunks from that day get a boost and are always considered.
@@ -21,7 +22,7 @@ from decimal import Decimal
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
-from app.models.daily_briefing import FinancialTerm, NewsDigest
+from app.models.daily_briefing import FinancialTerm, NewsDigest, NewsHeadline
 from app.models.knowledge import KnowledgeChunk
 from app.services.events import EVENTS
 from app.services.market_service import MarketService
@@ -42,7 +43,11 @@ SOON_WORDS = ("다음", "언제", "예정", "앞으로", "곧")
 # words ("안정형", "금통위") the embedding underweights still count. Particles make whole words unreliable in Korean.
 LEXICAL_WEIGHT = 0.1
 WORD_PATTERN = re.compile(r"[가-힣A-Za-z0-9]+")
-DATED_TYPES = {"digest", "money_note", "event"}
+DATED_TYPES = {"digest", "money_note", "event", "headline"}
+HEADLINE_DAYS = 3  # today and the two days before
+HEADLINE_LIMIT = 300
+# One kind of chunk must not fill every slot: a scheduled date is not the answer to "what was announced".
+TYPE_CAPS = {"event": 2, "money_note": 2, "headline": 3}
 WEEKDAYS = "월화수목금토일"
 MONEY_NOTE_LABELS = {
     "new_savings": "새로 드는 예금·적금",
@@ -51,7 +56,7 @@ MONEY_NOTE_LABELS = {
     "fx": "환율·해외 결제",
 }
 PAGE_PATTERN = re.compile(r"^- (.+?)\((/[a-z-]+)\)(?:, [^:]+)?: (.+)$")
-DAY_PATTERN = re.compile(r"(\d{1,2})\s*월\s*(\d{1,2})\s*일")
+DAY_PATTERN = re.compile(r"(\d{1,2})\s*월\s*(\d{1,2})\s*일|(?<![\d./])(\d{1,2})/(\d{1,2})(?![\d/])")
 
 
 @dataclass(frozen=True)
@@ -170,14 +175,38 @@ def _market_documents(session: Session) -> list[Document]:
     return documents
 
 
+def _headline_documents(session: Session, today: date) -> list[Document]:
+    """Titles of the last few days, with who published them and the link; never the article text."""
+    start = datetime.combine(today - timedelta(days=HEADLINE_DAYS - 1), datetime.min.time(), tzinfo=timezone(timedelta(hours=9)))
+    rows = session.scalars(
+        select(NewsHeadline).where(NewsHeadline.published_at >= start).order_by(NewsHeadline.published_at.desc()).limit(HEADLINE_LIMIT)
+    )
+    documents = []
+    for row in rows:
+        day = row.published_at.astimezone(timezone(timedelta(hours=9))).date()
+        title = " ".join((row.title_ko or row.title).split())
+        documents.append(Document(
+            f"headline:{row.id}", "headline", title[:200], f"{_korean_date(day)} {row.publisher} 보도 제목: {title}", row.url, day,
+        ))
+    return documents
+
+
 def _event_documents(today: date) -> list[Document]:
-    # Only dates still ahead; the daily refresh drops each one after it passes.
+    # Dates from today on; the daily refresh drops each one after it passes.
     documents = []
     for event in EVENTS:
         if event.day < today:
             continue
         when = f"{_korean_date(event.day)}({WEEKDAYS[event.day.weekday()]})"
         note = " 날짜는 잠정이며 직전 회의에서 확정돼요." if event.tentative else ""
+        if event.day == today:
+            # Released today: the schedule line must not read as something still to come, and it carries no result.
+            documents.append(Document(
+                f"event:{event.key}", "event", f"오늘 발표 {event.title}",
+                f"{when} 오늘 발표되는 {event.title}. {event.why} 이 일정 자료에는 발표 결과 숫자가 들어 있지 않아요. 출처: {event.source_name}.",
+                event.source_url, event.day,
+            ))
+            continue
         documents.append(Document(
             f"event:{event.key}", "event", f"다가올 일정 {event.title}",
             f"{when} {event.title}. {event.why}{note} 출처: {event.source_name}.", event.source_url, event.day,
@@ -188,7 +217,7 @@ def _event_documents(today: date) -> list[Document]:
 def build_documents(session: Session, today: date | None = None) -> list[Document]:
     return [
         *_guide_documents(), *_term_documents(session), *_digest_documents(session), *_market_documents(session),
-        *_event_documents(today or korea_today()),
+        *_headline_documents(session, today or korea_today()), *_event_documents(today or korea_today()),
     ]
 
 
@@ -236,7 +265,8 @@ def mentioned_day(question: str, today: date) -> date | None:
         return today - timedelta(days=1)
     if match := DAY_PATTERN.search(question):
         # A day soon ahead is an upcoming date ("11월 26일 금통위"); anything else is the latest past one (news).
-        month, day = int(match.group(1)), int(match.group(2))
+        month = int(match.group(1) or match.group(3))
+        day = int(match.group(2) or match.group(4))
         candidates = []
         # Eight years back always reaches a leap year, so "2월 29일" still finds its latest past day.
         for year in range(today.year - 8, today.year + 2):
@@ -310,4 +340,18 @@ def retrieve(
             if ahead >= 0:
                 score += SOON_BOOST * max(0.0, 1 - ahead / SOON_DAYS)
         ranked.append(Retrieved(item.chunk, score))
-    return sorted(ranked, key=lambda item: item.score, reverse=True)[:limit]
+    ordered = sorted(ranked, key=lambda item: item.score, reverse=True)
+    chosen: list[Retrieved] = []
+    per_type: dict[str, int] = {}
+    for item in ordered:
+        kind = item.chunk.source_type
+        if per_type.get(kind, 0) >= TYPE_CAPS.get(kind, limit):
+            continue
+        per_type[kind] = per_type.get(kind, 0) + 1
+        chosen.append(item)
+        if len(chosen) == limit:
+            return chosen
+    # Not enough other kinds to fill the slots: take the capped ones that were left out.
+    chosen_ids = {item.chunk.id for item in chosen}
+    chosen += [item for item in ordered if item.chunk.id not in chosen_ids][:limit - len(chosen)]
+    return chosen

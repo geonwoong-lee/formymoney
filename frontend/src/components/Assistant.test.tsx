@@ -59,13 +59,14 @@ describe('Assistant', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('lists the sources an AI answer is based on, linking only safe addresses', async () => {
+  it('lists the sources an AI answer is based on, linking only web addresses', async () => {
     const user = userEvent.setup()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({
       answer: '오늘 가계대출 금리가 올랐다는 소식이 있었어요.', links: [], source: 'ai',
       sources: [
         { title: '2026년 11월 2일 오늘 소식과 내 돈(빌린 돈(대출))', url: 'https://a.co.kr/1', publishedOn: '2026-11-02' },
         { title: '시장 지표 원/달러', url: '/market', publishedOn: null },
+        { title: '옛 주소 기사', url: 'http://old-publisher.example/2', publishedOn: '2026-11-03' },
         { title: '위험한 주소', url: 'javascript:alert(1)', publishedOn: null },
       ],
     })))
@@ -76,6 +77,7 @@ describe('Assistant', () => {
     const sources = await screen.findByRole('list', { name: '답변 근거' })
     expect(within(sources).getByRole('link', { name: /오늘 소식과 내 돈/ })).toHaveAttribute('href', 'https://a.co.kr/1')
     expect(sources).toHaveTextContent('2026-11-02')
+    expect(within(sources).getByRole('link', { name: /옛 주소 기사/ })).toHaveAttribute('href', 'http://old-publisher.example/2')
     expect(within(sources).queryByRole('link', { name: /위험한 주소/ })).not.toBeInTheDocument()
     expect(sources).toHaveTextContent('위험한 주소')
     await user.click(within(sources).getByRole('button', { name: '시장 지표 원/달러' }))
