@@ -64,7 +64,11 @@ export function judgeYouthEligibility(input: EligibilityInput, today = new Date(
   const no = (reason: string, householdChecked = false): EligibilityResult => ({ verdict: 'not_eligible', lines: [...lines, reason], householdChecked })
 
   if (age < MIN_AGE || age > MAX_AGE) return no(`나이가 만 ${age}세로 가입 대상(만 ${MIN_AGE}~${MAX_AGE}세)이 아니에요.`)
-  lines.push(`나이: 만 ${age}세 — 가입 대상(만 ${MIN_AGE}~${MAX_AGE}세)이에요.`)
+  const served = Math.min(Math.max(Math.trunc(input.militaryMonths) || 0, 0), MAX_MILITARY_MONTHS)
+  const realAge = ageOn(input.birthDate, today)
+  lines.push(served > 0 && realAge !== null
+    ? `나이: 실제 만 ${realAge}세에서 병역 ${served}개월을 빼 ${age}세로 계산해요 — 가입 대상(만 ${MIN_AGE}~${MAX_AGE}세)이에요.`
+    : `나이: 만 ${age}세 — 가입 대상(만 ${MIN_AGE}~${MAX_AGE}세)이에요.`)
 
   const worker = input.kind === 'worker'
   const incomeLimit = worker ? NO_CONTRIBUTION_SALARY_LIMIT : GENERAL_SALES_LIMIT
@@ -100,6 +104,15 @@ export function judgeYouthEligibility(input: EligibilityInput, today = new Date(
     lines.push(`우대형 조건(${worker ? `중소기업 재직자, 총급여 ${won(PREFERRED_SALARY_LIMIT)} 이하` : `소상공인, 연매출 ${won(PREFERRED_SALES_LIMIT)} 이하`}, 가구 중위소득 ${preferredShare}% 이하)에 맞아요.`)
     return { verdict: 'preferred', lines, householdChecked }
   }
+  // How to reach the preferred type, from what is missing.
+  const missing: string[] = []
+  if (worker) {
+    if (!input.smallCompany) missing.push('중소기업에 재직 중이어야 해요')
+    if (input.amount > PREFERRED_SALARY_LIMIT) missing.push(`총급여가 ${won(PREFERRED_SALARY_LIMIT)} 이하여야 해요`)
+  } else if (input.amount > PREFERRED_SALES_LIMIT) missing.push(`연매출이 ${won(PREFERRED_SALES_LIMIT)} 이하여야 해요`)
+  if (!householdChecked) missing.push('가구소득이 기준 이하인지 은행에서 확인해야 해요')
+  else if (!householdPreferred) missing.push(`가구소득이 중위소득 ${preferredShare}% 이하여야 해요`)
+  if (missing.length) lines.push(`우대형이 되려면: ${missing.join(', ')}.`)
   return { verdict: 'general', lines, householdChecked }
 }
 
