@@ -257,3 +257,29 @@
 .maturity-reminder p {
   margin: 4px 0;
 }
+
+/* 실제 정기예금으로 보면 */
+.deposit-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 10px 0; }
+.deposit-controls label > span { display: block; font-size: 13px; margin-bottom: 4px; }
+.deposit-controls select { max-width: 100%; padding: 6px; font: inherit; }
+.deposit-groups { display: flex; gap: 8px; }
+.deposit-groups .maturity-profile { padding: 6px 14px; white-space: nowrap; }
+.deposit-range { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0 6px; }
+.deposit-range div { padding: 10px; border: 2px inset #fff; background: var(--panel-mid, #f4f4f4); }
+.deposit-range dt { font-size: 13px; }
+.deposit-range dd { display: flex; flex-direction: column; margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+.deposit-range dd span { font-size: 13px; color: #555; }
+.deposit-products { margin: 10px 0; padding: 0; list-style: none; }
+.deposit-product { padding: 10px 4px; border-bottom: 1px dotted #808080; font-variant-numeric: tabular-nums; }
+.deposit-product p { margin: 2px 0; }
+.deposit-product__type { display: inline-block; padding: 0 6px; border: 1px solid #808080; font-size: 12px; }
+.deposit-notes { margin: 10px 0; padding-left: 18px; font-size: 13px; }
+
+/* Digits have no bold in this font, so the amount stands out by colour. */
+.deposit-product__amount { color: #000080; text-decoration: underline dotted; text-underline-offset: 3px; }
+
+@media (max-width: 520px) {
+  .deposit-range { grid-template-columns: minmax(0, 1fr); }
+  .deposit-controls, .deposit-controls label { width: 100%; }
+  .deposit-controls select { width: 100%; }
+}

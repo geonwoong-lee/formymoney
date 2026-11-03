@@ -35,6 +35,14 @@ def deposit_lump_sum(amount: int, months: int, rate_percent: Decimal) -> Deposit
     return DepositResult(rate, interest, tax, amount + interest, amount + interest - tax)
 
 
+def deposit_lump_sum_compound(amount: int, months: int, rate_percent: Decimal) -> DepositResult:
+    """Monthly compounding, the usual basis of a 복리 정기예금: amount × (1 + rate / 12)^months."""
+    rate = max(Decimal("0"), rate_percent)
+    interest = won(Decimal(amount) * ((1 + rate / PERCENT / MONTHS_IN_YEAR) ** months - 1))
+    tax = int((Decimal(interest) * INTEREST_TAX).quantize(Decimal("1"), rounding=ROUND_DOWN))
+    return DepositResult(rate, interest, tax, amount + interest, amount + interest - tax)
+
+
 def monthly_savings_interest(monthly: int, months: int, rate_percent: Decimal) -> int:
     """Same rule as calculators.savings: each deposit earns the rate for the months left (n, n-1, ..., 1)."""
     rate = max(Decimal("0"), rate_percent)

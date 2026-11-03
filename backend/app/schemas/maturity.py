@@ -110,3 +110,39 @@ class RateScenarioResponse(CamelModel):
     months: int
     step: Decimal
     cases: list[RateScenarioCase]
+
+
+class DepositProductsRequest(CamelModel):
+    amount: int = Field(ge=100_000, le=1_000_000_000)
+    months: Literal[12, 24]
+    group: Literal["bank", "savings_bank"] = "bank"
+
+
+class DepositProductRow(CamelModel):
+    company: str
+    product_name: str
+    rate_type: str
+    base_rate: Decimal
+    max_rate: Decimal | None
+    base_after_tax: int
+    max_after_tax: int | None
+
+
+class DepositRatePoint(CamelModel):
+    rate_percent: Decimal
+    after_tax: int
+
+
+class DepositProductsResponse(CamelModel):
+    amount: int
+    months: int
+    group: str
+    day: date | None
+    count: int
+    lowest: DepositRatePoint | None
+    middle: DepositRatePoint | None
+    highest: DepositRatePoint | None
+    products: list[DepositProductRow]
+    notes: list[str]
+    source_name: str
+    source_url: str

@@ -36,9 +36,16 @@ function plan(profile: string, mix: unknown = null) {
   }
 }
 
+const noProducts = {
+  amount: 10_000_000, months: 12, group: '은행', day: null, count: 0, lowest: null, middle: null, highest: null,
+  products: [], notes: [], sourceName: '금융감독원 금융상품 한눈에', sourceUrl: 'https://finlife.fss.or.kr/',
+}
+
 function stubServer(handler: (url: string, body: Record<string, unknown>) => Response) {
   const fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
+    // The "실제 정기예금으로 보면" step has its own tests; here it only needs an empty answer.
+    if (url.includes('/deposit-products')) return Promise.resolve(respond(noProducts))
     return Promise.resolve(handler(url, init?.body ? JSON.parse(String(init.body)) : {}))
   })
   vi.stubGlobal('fetch', fetch)
@@ -46,7 +53,7 @@ function stubServer(handler: (url: string, body: Record<string, unknown>) => Res
 }
 
 const planCalls = (fetch: ReturnType<typeof stubServer>) => fetch.mock.calls
-  .filter(([input]) => String(input).includes('/maturity-plan'))
+  .filter(([input]) => String(input).endsWith('/maturity-plan'))
   .map(([, init]) => JSON.parse(String(init?.body)))
 
 const renderPage = () => render(<MemoryRouter><MaturityPage /></MemoryRouter>)
