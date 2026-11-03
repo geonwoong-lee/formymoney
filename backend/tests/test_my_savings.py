@@ -58,3 +58,20 @@ def test_status_before_the_start_after_maturity_and_without_a_start_month(client
     unknown = _status(client, monkeypatch, startMonth=None).json()
     assert unknown["timeline"]["phase"] == "unknown" and unknown["timeline"]["maturityMonth"] is None
     assert _status(client, monkeypatch, startMonth="2026-13").status_code == 422
+
+
+def test_status_says_what_each_counted_condition_is_worth_if_it_is_never_met(client: TestClient, monkeypatch) -> None:
+    unknown = _status(client, monkeypatch).json()["conditions"]["needsCheck"]
+    answers = {item["code"]: "yes" for item in unknown}
+    body = _status(client, monkeypatch, conditionAnswers=answers).json()
+    conditions = body["conditions"]
+
+    assert [item["code"] for item in conditions["applied"]] == [item["code"] for item in conditions["impacts"]]
+    total = body["cashflow"]["result"]["expectedMaturityAmount"]
+    assert conditions["impacts"] and all(item["loss"] > 0 for item in conditions["impacts"])
+    assert all(item["maturityAmount"] == total - item["loss"] for item in conditions["impacts"])
+    # Dropping one condition is exactly what answering "no" to it gives.
+    one = conditions["impacts"][0]
+    without = _status(client, monkeypatch, conditionAnswers={**answers, one["code"]: "no"}).json()
+    assert without["cashflow"]["result"]["expectedMaturityAmount"] == one["maturityAmount"]
+    assert _status(client, monkeypatch).json()["conditions"]["impacts"] == []  # nothing counted, nothing to lose

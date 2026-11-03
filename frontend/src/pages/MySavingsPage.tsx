@@ -5,6 +5,7 @@ import {
   type ConditionResult, type MyStatusResponse, type SavedPlan, type UpcomingEvent,
 } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
+import { MonthlyConditionCheck } from '../components/MonthlyConditionCheck'
 import { RateAlerts } from '../components/RateAlerts'
 import { answersForApi } from '../features/savingsDraft'
 import { loadAuthSession } from '../storage/authStorage'
@@ -92,6 +93,8 @@ function Status({ status, events }: { status: MyStatusResponse; events: Upcoming
       <ConditionList title="못 채운 조건" items={conditions.notApplied} mark="✕" />
       <p className="my-savings__muted">우대조건은 은행이 정한 기간 동안 계속 채워야 하는 경우가 많아요. 정확한 조건은 은행 상품 설명서에서 확인해 주세요.</p>
     </section>
+
+    {status.timeline.phase === 'saving' && conditions.applied.length > 0 && <MonthlyConditionCheck applied={conditions.applied} impacts={conditions.impacts} />}
 
     <section className="my-savings__card" aria-labelledby="my-savings-events">
       <h2 id="my-savings-events">다가올 일정</h2>

@@ -191,6 +191,13 @@ class MyPayments(CamelModel):
     reduced_rounds: list[int]
 
 
+class ConditionImpact(CamelModel):
+    code: str
+    # The expected maturity amount if this one condition is never met (the bonus rate applies to the whole term).
+    maturity_amount: int
+    loss: int
+
+
 class MyConditions(CamelModel):
     applied: list[ConditionResult]
     not_applied: list[ConditionResult]
@@ -198,6 +205,7 @@ class MyConditions(CamelModel):
     # If every condition answered "모름" turned out to be met: the expected maturity amount and the gain.
     if_checked_maturity_amount: int | None
     if_checked_gain: int | None
+    impacts: list[ConditionImpact] = []
 
 
 class MyStatusResponse(CamelModel):

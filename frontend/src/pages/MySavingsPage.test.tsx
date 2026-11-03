@@ -31,6 +31,7 @@ function status(overrides: Record<string, unknown> = {}) {
     conditions: {
       applied: [condition('salary', '급여 이체', 'applied', 0.5)], notApplied: [condition('card', '카드 실적', 'not_applied')],
       needsCheck: [condition('app', '앱 가입', 'needs_review')], ifCheckedMaturityAmount: 19_900_000, ifCheckedGain: 149_250,
+      impacts: [{ code: 'salary', maturityAmount: 19_500_000, loss: 250_750 }],
     },
     ...overrides,
   }
@@ -97,6 +98,9 @@ describe('MySavingsPage', () => {
     expect(within(conditions).getByText('반영된 조건 1개')).toBeInTheDocument()
     expect(conditions).toHaveTextContent('카드 실적')
     expect(screen.getByRole('region', { name: '다가올 일정' })).toHaveTextContent('D-2 11월 5일 미국 FOMC 금리 결정')
+    // The monthly check lists the counted condition and starts with nothing answered.
+    const monthly = screen.getByRole('region', { name: /우대조건 체크/ })
+    expect(monthly).toHaveTextContent('1개 중 0개 채웠어요, 1개는 아직이에요')
   })
 
   it('explains the other phases', async () => {

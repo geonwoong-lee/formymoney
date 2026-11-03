@@ -632,6 +632,7 @@ export interface MyStatusResponse {
     needsCheck: ConditionResult[]
     ifCheckedMaturityAmount: number | null
     ifCheckedGain: number | null
+    impacts: { code: string; maturityAmount: number; loss: number }[]
   }
 }
 
