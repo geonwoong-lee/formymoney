@@ -1,6 +1,5 @@
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { EligibilityCheck } from '../components/EligibilityCheck'
 import { MoneyInput } from '../components/MoneyInput'
 import { loadDraft } from '../storage/draftStorage'
 import { SavingProducts, type ReserveChoice } from './DepositProducts'
@@ -25,7 +24,6 @@ export function GeneralSavingsPage() {
     <p className="eyebrow">Savings plans</p>
     <h1>일반 적금 비교</h1>
     <p className="lead">청년미래적금 대상이 아니거나 아직 확인 중이어도, 지금 공시된 적금마다 매달 넣은 돈이 만기에 얼마가 되는지 같은 기준으로 볼 수 있어요.</p>
-    <EligibilityCheck compact />
 
     <section className="maturity-step" aria-labelledby={`${id}-inputs`}>
       <h2 id={`${id}-inputs`}>1. 얼마를 얼마나 넣을까요?</h2>

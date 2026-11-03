@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { MoneyInput } from '../components/MoneyInput'
 import { getSavingsProducts, type ConditionAnswer, type SavingsProductsResponse } from '../api/client'
+import { EligibilityCheck } from '../components/EligibilityCheck'
 import { answerKey, commonAnswerKey } from '../features/savingsDraft'
 import { clearDraft, emptyDraft, loadDraft, saveDraft, type VeryRichDraft } from '../storage/draftStorage'
 
@@ -71,6 +72,7 @@ export function ConditionsPage() {
       <p className="eyebrow">Conditions</p>
       <h1>내가 지킬 수 있는 조건만 골라주세요.</h1>
       <p className="lead">모르면 ‘모름’을 선택하세요. 최고금리가 아니라 지금 답변으로 받을 수 있는 예상금리를 계산합니다.</p>
+      <EligibilityCheck />
 
       <div className="retro-form summary-controls">
         <label>현재 가입 상태
