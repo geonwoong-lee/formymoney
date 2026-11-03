@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from datetime import date
 
 from app.calculators.maturity import deposit_lump_sum, deposit_lump_sum_compound, holding_returns, monthly_savings_interest, summarize
-from app.collectors.finlife import ProductRate
+from app.collectors.finlife import ProductInfo, ProductRate
 from app.services.product_rate_service import ProductRateService
 from app.services.market_service import MarketService
 
@@ -169,3 +169,21 @@ def test_deposit_products_work_out_each_disclosed_deposit_for_the_users_amount(c
 def test_deposit_products_say_nothing_is_collected_yet(client: TestClient) -> None:
     body = client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 24}).json()
     assert (body["day"], body["count"], body["products"], body["highest"]) == (None, 0, [], None)
+
+
+def test_deposit_products_carry_the_joining_terms_and_flag_an_amount_over_the_limit(client: TestClient) -> None:
+    info = ProductInfo("deposit", "가은행", "가은행-가 정기예금", "스마트폰", "실명의 개인", "서민 전용",
+                       "급여 이체 시 연 0.2%p", 5_000_000, "최소 100만원", "만기 후 1개월: 약정이율의 50%")
+    rate = _deposit("가은행", "가 정기예금", "3.00", "3.20")
+    with client.app.state.session_factory() as session:
+        ProductRateService(session).save_snapshot(date(2026, 11, 3), [ProductRate(**{**rate.__dict__, "info": info}), _deposit("나은행", "나 정기예금", "2.00", None)])
+
+    products = {item["company"]: item for item in client.post(
+        "/api/v1/maturity-plan/deposit-products", json={"amount": 10_000_000, "months": 12}).json()["products"]}
+    first = products["가은행"]
+    assert (first["joinWay"], first["joinMember"], first["joinLimit"]) == ("스마트폰", "실명의 개인", "서민 전용")
+    assert first["specialConditions"] == "급여 이체 시 연 0.2%p" and first["maturityInterest"].startswith("만기 후")
+    assert (first["maxLimit"], first["overLimit"]) == (5_000_000, True)
+    assert (products["나은행"]["specialConditions"], products["나은행"]["overLimit"]) == ("", False)
+    small = client.post("/api/v1/maturity-plan/deposit-products", json={"amount": 1_000_000, "months": 12}).json()["products"]
+    assert next(item for item in small if item["company"] == "가은행")["overLimit"] is False

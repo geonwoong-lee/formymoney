@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatKrwExact } from '../features/krw'
 import { getDepositProducts, type DepositGroup, type DepositProduct, type DepositProductsResponse } from '../api/client'
 
 const PAGE = 10
@@ -22,12 +23,41 @@ function formatDay(iso: string) {
   return `${year}년 ${month}월 ${day}일`
 }
 
+// "해당사항 없음", "없음" and the like mean there is nothing to show.
+const isEmpty = (text: string) => !text.trim() || /^(해당\s*사항\s*없음|없음|-)$/.test(text.trim())
+
+function Terms({ product }: { product: DepositProduct }) {
+  const rows: [string, string][] = [
+    ['우대 조건', product.specialConditions],
+    ['가입 대상', product.joinMember],
+    ['가입 방법', product.joinWay.split(',').map((way) => way.trim()).filter(Boolean).join(', ')],
+    ['가입 한도', product.maxLimit === null ? '' : `${formatKrwExact(product.maxLimit)}까지`],
+    ['만기 후 이자', product.maturityInterest],
+    ['그 밖의 안내', product.etcNote],
+  ]
+  const shown = rows.filter(([, text]) => !isEmpty(text))
+  if (shown.length === 0) return null
+  return <details className="deposit-terms">
+    <summary>가입 조건 보기</summary>
+    <dl>
+      {shown.map(([label, text]) => <div key={label}><dt>{label}</dt><dd>{text}</dd></div>)}
+    </dl>
+    <p className="maturity-muted">은행이 금융감독원에 공시한 문장 그대로예요. 바뀌었을 수 있으니 가입 전에 은행에서 다시 확인해 주세요.</p>
+  </details>
+}
+
 function ProductRow({ product }: { product: DepositProduct }) {
   const hasBonus = product.maxRate !== null && product.maxAfterTax !== null && Number(product.maxRate) > Number(product.baseRate)
+  const limited = product.joinLimit && product.joinLimit !== '제한 없음'
   return <li className="deposit-product">
     <p className="deposit-product__name"><b>{product.company}</b> {product.productName} <span className="deposit-product__type">{product.rateType}</span></p>
+    {(product.overLimit || limited) && <p className="deposit-product__flags">
+      {product.overLimit && product.maxLimit !== null && <span className="deposit-flag deposit-flag--warn">한도 {formatKrwExact(product.maxLimit)}: 내 금액이 넘어요</span>}
+      {limited && <span className="deposit-flag">{product.joinLimit}</span>}
+    </p>}
     <p>기본금리 {percent(product.baseRate)} → 세후 <span className="deposit-product__amount">{won(product.baseAfterTax)}</span></p>
     {hasBonus && <p className="maturity-muted">우대 조건을 다 채우면 {percent(product.maxRate as string)} → 세후 {won(product.maxAfterTax as number)}</p>}
+    <Terms product={product} />
   </li>
 }
 

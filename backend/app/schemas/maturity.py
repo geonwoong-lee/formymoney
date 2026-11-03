@@ -126,6 +126,15 @@ class DepositProductRow(CamelModel):
     max_rate: Decimal | None
     base_after_tax: int
     max_after_tax: int | None
+    # Joining terms from the disclosure; empty when the product's terms were not collected.
+    join_way: str = ""
+    join_member: str = ""
+    join_limit: str = ""
+    special_conditions: str = ""
+    max_limit: int | None = None
+    over_limit: bool = False
+    etc_note: str = ""
+    maturity_interest: str = ""
 
 
 class DepositRatePoint(CamelModel):

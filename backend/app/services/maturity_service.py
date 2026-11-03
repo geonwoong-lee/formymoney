@@ -22,7 +22,7 @@ from app.calculators.maturity import (
 )
 from app.models.investment import InvestmentAsset
 from app.models.market import MarketPoint
-from app.models.product_rate import ProductRateSnapshot
+from app.models.product_rate import ProductInfo, ProductRateSnapshot
 from app.schemas.maturity import (
     DepositProductRow,
     DepositProductsRequest,
@@ -226,11 +226,27 @@ def deposit_products(session: Session, request: DepositProductsRequest) -> Depos
         ProductRateSnapshot.day == day, ProductRateSnapshot.kind == "deposit", ProductRateSnapshot.group == group,
         ProductRateSnapshot.term_months == request.months, ProductRateSnapshot.base_rate.is_not(None),
     )))
+    infos = {(info.company, info.product_code): info for info in session.scalars(
+        select(ProductInfo).where(ProductInfo.kind == "deposit", ProductInfo.product_code.in_({row.product_code for row in rows}))
+    )} if rows else {}
+
+    def terms(row: ProductRateSnapshot) -> dict[str, object]:
+        info = infos.get((row.company, row.product_code))
+        if info is None:
+            return {}
+        return {
+            "join_way": info.join_way, "join_member": info.join_member, "join_limit": info.join_limit,
+            "special_conditions": info.special_conditions, "max_limit": info.max_limit,
+            "over_limit": info.max_limit is not None and request.amount > info.max_limit,
+            "etc_note": info.etc_note, "maturity_interest": info.maturity_interest,
+        }
+
     products = [DepositProductRow(
         company=_company(row.company), product_name=" ".join(row.product_name.split()), rate_type=row.rate_type or "단리",
         base_rate=row.base_rate, max_rate=row.max_rate,
         base_after_tax=_after_tax(request.amount, request.months, row.base_rate, row.rate_type),
         max_after_tax=_after_tax(request.amount, request.months, row.max_rate, row.rate_type) if row.max_rate is not None else None,
+        **terms(row),
     ) for row in rows]
     products.sort(key=lambda item: (-item.base_after_tax, -(item.max_after_tax or 0), item.company, item.product_name))
 

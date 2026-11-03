@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BankFinancialsSection } from '../components/BankFinancials'
-import { formatKrwLarge } from '../features/krw'
+import { formatKrwExact, formatKrwLarge } from '../features/krw'
 import { FinanceLesson } from './FinanceLesson'
 
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
@@ -67,6 +67,15 @@ describe('formatKrwLarge', () => {
     expect(formatKrwLarge('-125000000000')).toBe('−1,250억 원')
     expect(formatKrwLarge('9500')).toBe('9,500원')
     expect(formatKrwLarge(null)).toBe('–')
+  })
+})
+
+describe('formatKrwExact', () => {
+  it('keeps limits exact in 억 and 만', () => {
+    expect(formatKrwExact(1_000_000_000)).toBe('10억 원')
+    expect(formatKrwExact(150_000_000)).toBe('1억 5,000만 원')
+    expect(formatKrwExact(5_000_000)).toBe('500만 원')
+    expect(formatKrwExact(12_345)).toBe('12,345원')
   })
 })
 

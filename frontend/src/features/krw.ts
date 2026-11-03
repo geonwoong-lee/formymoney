@@ -27,3 +27,12 @@ export function peerRangeText(range: PeerRange | undefined): string {
   if (!range || range.count < 2) return ''
   return `이 사이트에 모은 ${range.count}개 은행 중 가장 낮은 곳 ${range.minBank} ${range.min}%, 가장 높은 곳 ${range.maxBank} ${range.max}%`
 }
+
+// Exact amounts in 억 and 만 for limits: 10억 원, 1억 5,000만 원, 500만 원, 12,345원. Nothing is rounded away.
+export function formatKrwExact(value: number): string {
+  const eok = Math.floor(value / EOK)
+  const man = Math.floor((value % EOK) / 10_000)
+  const rest = value % 10_000
+  if (rest || (!eok && !man)) return `${value.toLocaleString('ko-KR')}원`
+  return [eok ? `${eok.toLocaleString('ko-KR')}억` : '', man ? `${man.toLocaleString('ko-KR')}만` : ''].filter(Boolean).join(' ') + ' 원'
+}

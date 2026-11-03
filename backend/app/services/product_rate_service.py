@@ -12,7 +12,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.collectors.finlife import ProductRate
-from app.models.product_rate import ProductRateSnapshot
+from app.models.product_rate import ProductInfo, ProductRateSnapshot
 
 KEEP_DAYS = 14
 Key = tuple[str, str, str, int, str, str]
@@ -40,9 +40,32 @@ class ProductRateService:
                 reserve_type=rate.reserve_type, base_rate=rate.base_rate, max_rate=rate.max_rate,
                 disclosed_month=rate.disclosed_month,
             ))
+        self._save_infos(day, rates)
         self.session.execute(delete(ProductRateSnapshot).where(ProductRateSnapshot.day < date.fromordinal(day.toordinal() - KEEP_DAYS)))
         self.session.commit()
         return len(seen)
+
+    def _save_infos(self, day: date, rates: list[ProductRate]) -> None:
+        """Keep each product's latest joining terms; a product that stops being disclosed keeps its last terms."""
+        infos = {(info.kind, info.company, info.product_code): info for rate in rates if (info := rate.info) is not None}
+        if not infos:
+            return
+        known = {(row.kind, row.company, row.product_code): row for row in self.session.scalars(
+            select(ProductInfo).where(ProductInfo.product_code.in_({key[2] for key in infos}))
+        )}
+        for key, info in infos.items():
+            row = known.get(key)
+            if row is None:
+                row = ProductInfo(kind=info.kind, company=info.company, product_code=info.product_code)
+                self.session.add(row)
+            row.join_way = info.join_way[:200]
+            row.join_member = info.join_member
+            row.join_limit = info.join_limit
+            row.special_conditions = info.special_conditions
+            row.max_limit = info.max_limit
+            row.etc_note = info.etc_note
+            row.maturity_interest = info.maturity_interest
+            row.updated_on = day
 
     def changes(self) -> dict[str, object]:
         days = list(self.session.scalars(

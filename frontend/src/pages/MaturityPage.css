@@ -275,11 +275,23 @@
 .deposit-product__type { display: inline-block; padding: 0 6px; border: 1px solid #808080; font-size: 12px; }
 .deposit-notes { margin: 10px 0; padding-left: 18px; font-size: 13px; }
 
+.deposit-product__flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.deposit-flag { display: inline-block; padding: 1px 8px; border: 1px solid #808080; background: #f4f4f4; font-size: 13px; }
+.deposit-flag--warn { border-color: #a03000; color: #a03000; background: #fff4ec; }
+.deposit-terms { margin-top: 6px; }
+.deposit-terms summary { cursor: pointer; color: #000080; font-size: 14px; }
+.deposit-terms dl { margin: 8px 0 4px; display: grid; gap: 6px; }
+.deposit-terms dl div { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 8px; }
+.deposit-terms dt { font-weight: 700; font-size: 13px; }
+/* Disclosed text keeps its own line breaks (numbered conditions). */
+.deposit-terms dd { margin: 0; font-size: 13px; white-space: pre-line; overflow-wrap: anywhere; }
+
 /* Digits have no bold in this font, so the amount stands out by colour. */
 .deposit-product__amount { color: #000080; text-decoration: underline dotted; text-underline-offset: 3px; }
 
 @media (max-width: 520px) {
   .deposit-range { grid-template-columns: minmax(0, 1fr); }
+  .deposit-terms dl div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .deposit-controls, .deposit-controls label { width: 100%; }
   .deposit-controls select { width: 100%; }
 }

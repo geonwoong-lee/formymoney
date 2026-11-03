@@ -26,6 +26,26 @@ class FinlifeError(RuntimeError):
     pass
 
 
+# join_deny codes in the disclosure.
+JOIN_LIMITS = {"1": "제한 없음", "2": "서민 전용", "3": "일부 제한"}
+
+
+@dataclass(frozen=True)
+class ProductInfo:
+    """What a product asks of the person joining it, as the bank disclosed it."""
+
+    kind: ProductKind
+    company: str
+    product_code: str
+    join_way: str
+    join_member: str
+    join_limit: str  # 제한 없음 / 서민 전용 / 일부 제한
+    special_conditions: str
+    max_limit: int | None
+    etc_note: str
+    maturity_interest: str
+
+
 @dataclass(frozen=True)
 class ProductRate:
     kind: ProductKind
@@ -39,6 +59,26 @@ class ProductRate:
     base_rate: Decimal | None
     max_rate: Decimal | None
     disclosed_month: str
+    info: ProductInfo | None = None
+
+
+def _text(value: object) -> str:
+    """Disclosure text with stray spaces at line ends removed; line breaks are kept for lists."""
+    return "\n".join(line.rstrip() for line in str(value or "").strip().splitlines()).strip()
+
+
+def _info(base: dict[str, object], kind: ProductKind) -> ProductInfo:
+    try:
+        max_limit = int(str(base.get("max_limit"))) if base.get("max_limit") not in (None, "") else None
+    except ValueError:
+        max_limit = None
+    return ProductInfo(
+        kind=kind, company=str(base.get("kor_co_nm", "")).strip(), product_code=str(base.get("fin_prdt_cd")),
+        join_way=_text(base.get("join_way")), join_member=_text(base.get("join_member")),
+        join_limit=JOIN_LIMITS.get(str(base.get("join_deny") or ""), ""),
+        special_conditions=_text(base.get("spcl_cnd")), max_limit=max_limit if max_limit and max_limit > 0 else None,
+        etc_note=_text(base.get("etc_note")), maturity_interest=_text(base.get("mtrt_int")),
+    )
 
 
 def _decimal(value: object) -> Decimal | None:
@@ -62,6 +102,7 @@ def parse_page(payload: dict[str, object], kind: ProductKind, group: str) -> tup
         str(item.get("fin_prdt_cd")): item
         for item in result.get("baseList") or [] if isinstance(item, dict) and item.get("fin_prdt_cd")
     }
+    infos = {code: _info(base, kind) for code, base in bases.items()}
     rates: list[ProductRate] = []
     for option in result.get("optionList") or []:
         if not isinstance(option, dict):
@@ -79,7 +120,7 @@ def parse_page(payload: dict[str, object], kind: ProductKind, group: str) -> tup
             term_months=term, rate_type=str(option.get("intr_rate_type_nm") or "").strip(),
             reserve_type=str(option.get("rsrv_type_nm") or "").strip(),
             base_rate=_decimal(option.get("intr_rate")), max_rate=_decimal(option.get("intr_rate2")),
-            disclosed_month=str(base.get("dcls_month", "")),
+            disclosed_month=str(base.get("dcls_month", "")), info=infos[str(base.get("fin_prdt_cd"))],
         ))
     try:
         max_page = int(str(result.get("max_page_no") or 1))

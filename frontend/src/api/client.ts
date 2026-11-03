@@ -437,6 +437,14 @@ export interface DepositProduct {
   maxRate: string | null
   baseAfterTax: number
   maxAfterTax: number | null
+  joinWay: string
+  joinMember: string
+  joinLimit: string
+  specialConditions: string
+  maxLimit: number | null
+  overLimit: boolean
+  etcNote: string
+  maturityInterest: string
 }
 
 export interface DepositRatePoint {
