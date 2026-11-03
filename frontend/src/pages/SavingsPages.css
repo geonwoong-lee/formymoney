@@ -153,6 +153,9 @@ html, body, #root { height: 100%; overflow: hidden; }
 .cashflow-before-cancel li { margin: 3px 0; line-height: 1.5; }
 .bank-results .bank-why { grid-column: 1 / -1; padding-top: 6px; border-top: 1px dotted #808080; font-size: 14px; }
 .bank-results .bank-why summary { cursor: pointer; }
-.bank-results .bank-why ul { margin: 6px 0; padding-left: 18px; }
+.bank-results .bank-why ul { margin: 4px 0; padding: 0; list-style: none; }
+/* The rows above are grids; the explanation lines are plain text, one line each. */
+.bank-results .bank-why li { display: block; padding: 0; border: 0; background: none; line-height: 1.5; }
 .bank-results .bank-why p { margin: 4px 0; }
 .bank-why__note { color: #444; }
+.bank-results .rate strong, .bank-results .rate small { white-space: nowrap; }
