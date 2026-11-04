@@ -41,6 +41,9 @@ const utilityApps: UtilityAppDefinition[] = [
   { id: 'minesweeper', label: '지뢰찾기', windowTitle: '지뢰찾기' },
 ]
 
+// Shown apart from the screens: the start page and the page about how everything is calculated (plus 내 폴더, which is a utility).
+const SYSTEM_APPS = ['/', '/about']
+
 function getCurrentApp(pathname: string) {
   if (pathname.startsWith('/banks/')) return { ...desktopApps[2], windowTitle: '은행 상세 정보' }
   if (pathname === '/youth-policies') return { ...desktopApps[4], to: pathname, label: '청년정책 찾기', windowTitle: '청년정책 찾기' }
@@ -222,6 +225,10 @@ export function AppLayout({ children }: PropsWithChildren) {
     setSelection((current) => current && ({ ...current, x: Math.min(current.startX, currentX), y: Math.min(current.startY, currentY), width: Math.abs(currentX - current.startX), height: Math.abs(currentY - current.startY) }))
   }
 
+  const renderShortcut = (app: DesktopApp) => {
+    const isActive = currentApp.to === app.to
+    return <Link className={`desktop-shortcut${isActive ? ' desktop-shortcut--active' : ''}`} key={app.to} to={app.to} onClick={() => { setMinimized(false); focusWindow('main') }} aria-current={isActive ? 'page' : undefined}><PixelIcon kind={app.icon} className="desktop-glyph" /><span className="desktop-shortcut__label">{app.label}</span></Link>
+  }
   const dateLabel = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
   const timeLabel = new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true }).format(now)
   const activeWindow = zOrder.at(-1)
@@ -230,11 +237,13 @@ export function AppLayout({ children }: PropsWithChildren) {
     <div className="retro-desktop">
       <main className="retro-workspace" ref={workspaceRef} onPointerDown={startSelection} onPointerMove={moveSelection} onPointerUp={() => window.setTimeout(() => setSelection(null), 90)} onPointerCancel={() => setSelection(null)}>
         <nav className="desktop-icons" aria-label="바탕화면 바로가기">
-          {desktopApps.map((app) => {
-            const isActive = currentApp.to === app.to
-            return <Link className={`desktop-shortcut${isActive ? ' desktop-shortcut--active' : ''}`} key={app.to} to={app.to} onClick={() => { setMinimized(false); focusWindow('main') }} aria-current={isActive ? 'page' : undefined}><PixelIcon kind={app.icon} className="desktop-glyph" /><span className="desktop-shortcut__label">{app.label}</span></Link>
-          })}
-          {utilityApps.filter((app) => app.id === 'folder').map((app) => <button className="desktop-shortcut desktop-shortcut--button" type="button" key={app.id} onClick={() => openUtility(app.id)}><UtilityGlyph kind={app.id} className="desktop-glyph" /><span className="desktop-shortcut__label">{app.label}</span></button>)}
+          <div className="desktop-icons__group desktop-icons__group--system">
+            {desktopApps.filter((app) => SYSTEM_APPS.includes(app.to)).map(renderShortcut)}
+            {utilityApps.filter((app) => app.id === 'folder').map((app) => <button className="desktop-shortcut desktop-shortcut--button" type="button" key={app.id} onClick={() => openUtility(app.id)}><UtilityGlyph kind={app.id} className="desktop-glyph" /><span className="desktop-shortcut__label">{app.label}</span></button>)}
+          </div>
+          <div className="desktop-icons__group">
+            {desktopApps.filter((app) => !SYSTEM_APPS.includes(app.to)).map(renderShortcut)}
+          </div>
         </nav>
         {selection && <span className="desktop-selection" style={{ left: selection.x, top: selection.y, width: selection.width, height: selection.height }} aria-hidden="true" />}
 
