@@ -67,6 +67,20 @@ def _unit_forms(token: str) -> set[str]:
     return {str(part) for part in parts if part}
 
 
+DOTTED_DATE = re.compile(r"(?<!\d)((?:19|20)\d{2})[.\-/](\d{1,2})(?:[.\-/](\d{1,2}))?(?!\d)")
+
+
+def _date_parts(text: str) -> set[str]:
+    """A date written 2026.10.05 may be read aloud as 2026년 10월 5일: its year, month and day each count."""
+    parts: set[str] = set()
+    for year, month, day in DOTTED_DATE.findall(text):
+        if 1 <= int(month) <= 12:
+            parts |= {year, str(int(month)), month.lstrip("0") or "0"}
+            if day and 1 <= int(day) <= 31:
+                parts |= {str(int(day)), day.lstrip("0") or "0"}
+    return parts
+
+
 def _numbers(text: str) -> set[str]:
     """Numbers as written, without thousands commas or a leading sign: a change of \"+1.9원\" is also \"1.9원 올랐어요\".
 
@@ -74,13 +88,22 @@ def _numbers(text: str) -> set[str]:
     found = {token.replace(",", "").lstrip("+-") for token in NUMBER_PATTERN.findall(text)}
     for token in list(found):
         found |= _unit_forms(token)
-    return found
+    return found | _date_parts(text)
 # "추천할 수는 없어요", "추천하지 않아요", "추천은 아니에요" and "확실하지 않아요" are the refusals we want, not advice; only the
 # negated form is set aside before the forbidden-word check, and never across a sentence end.
-NEGATED_EXPRESSION = re.compile(r"(추천|확실|무조건)[^.!?\n]{0,8}?(않|없|못하|어려|아니|아닙)")
+NEGATED_EXPRESSION = re.compile(r"(추천|확실|무조건)[^.!?\n]{0,20}?(않|없|못하|어려|아니|아닙)")
 # An honest "I don't have that" may go without a source. The model words it many ways (없어, 어렵습니다, 모릅니다...),
 # so any answer that says something is missing or hard to tell passes, as long as it carries no number.
 UNKNOWN_PATTERN = re.compile(r"모르|없|어렵|부족|찾지 못")
+
+
+# "추천이 아니라 그냥 정보로 알려줘", "추천 말고 비교만": the word is there, the request is the opposite.
+NOT_ASKING_RECOMMENDATION = re.compile(r"추천(이|은|을)?\s*(아니라|아니고|말고|하지\s*말고|필요\s*없|없이|빼고)")
+
+
+def asks_for_recommendation(text: str) -> bool:
+    return bool(RECOMMEND_PATTERN.search(NOT_ASKING_RECOMMENDATION.sub("", text)))
+
 
 
 GREETING = re.compile(r"^\s*(안녕|안녕하세요|하이|헬로|hi|hello|ㅎㅇ|반가워|반갑습니다)[\s!.~?]*$", re.IGNORECASE)
@@ -260,7 +283,7 @@ def answer_question(
     text = " ".join(message.split())
     if (chat := small_talk(text)) is not None:
         return chat
-    if RECOMMEND_PATTERN.search(text):
+    if asks_for_recommendation(text):
         return AssistantReply(ADVICE_REPLY, _links(["/banks", "/about"]), "rule")
     feedback: list[str] = []
     for _attempt in range(MAX_ATTEMPTS):

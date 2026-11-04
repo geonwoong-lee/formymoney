@@ -10,19 +10,23 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from decimal import Decimal, InvalidOperation
 
 from sqlalchemy.orm import Session
 
 from app.calculators.maturity import deposit_lump_sum, monthly_savings_after_tax
 from app.collectors.youth_policy import REGIONS
+from app.schemas.assistant_profile import AssistantProfile
 from app.schemas.loans import LoanProductsRequest
 from app.schemas.maturity import DepositProductsRequest, SavingProductsRequest
+from app.schemas.savings import Answer, CalculationRequest, CashflowCalculationRequest, ContributionType
 from app.schemas.youth_policies import YouthPoliciesRequest
 from app.services.loan_service import loan_products
 from app.services.market_service import MarketService
 from app.services.maturity_service import deposit_products, saving_products
-from app.services.savings_service import SavingsDataError, SavingsService
+from app.services.savings_service import SavingsDataError, SavingsInputError, SavingsService
 from app.services.youth_policy_service import youth_policies
 
 MAX_MONTHS = 120
@@ -360,7 +364,8 @@ def product_rate_tool(session: Session, text: str) -> ToolResult | None:
     return ToolResult("예적금 금리 조회", "\n".join(lines), "/general-savings")
 
 
-YOUTH_SAVINGS_TRIGGER = re.compile(r"청년\s*(미래\s*)?적금")
+# "은행별 기본금리" with no product named is the site's own comparison, 청년미래적금 at the 14 banks.
+YOUTH_SAVINGS_TRIGGER = re.compile(r"청년\s*(미래\s*)?적금|은행별\s*(기본\s*)?(금리|이율)|은행\s*(별로|마다)\s*(기본\s*)?(금리|이율)")
 YOUTH_SAVINGS_ASK = re.compile(r"금리|이자|이율|한도|납입|기간|기여금|정부|지원금|얼마|몇|조건|비과세|은행|가입")
 
 
@@ -386,11 +391,87 @@ def youth_savings_tool(session: Session, text: str) -> ToolResult | None:
     return ToolResult("청년미래적금 조회", "\n".join(lines), "/banks")
 
 
-def run_tools(session: Session, message: str, history: list[str]) -> list[ToolResult]:
+# A question about the visitor's own result: it names them (내 적금, 내가...), asks for a figure or a date, and is not a how-to.
+PERSONAL_MARKER = re.compile(r"내\s*(적금|조건|납입|만기|계획|월|돈|금리|예상|정보|은행)|내가|나의|제\s*(적금|납입|조건|계획)|나는|저는|나한테|저한테|지금까지")
+PERSONAL_RESULT = re.compile(r"얼마|언제|몇|계산|만기|예상|남았|받을|받게|모였|모이|금리|이자|며칠")
+PERSONAL_HOWTO = re.compile(r"어디(에|서)|입력해|입력하|알림|방법|어떻게\s*(받|입력|확인|보)")
+
+
+def is_about_me(text: str) -> bool:
+    return bool(PERSONAL_MARKER.search(text) and PERSONAL_RESULT.search(text) and not PERSONAL_HOWTO.search(text))
+CONTRIBUTION_LABELS = {"general": "일반형", "preferred": "우대형"}
+
+
+def _add_months(start: str, months: int) -> tuple[int, int]:
+    year, month = int(start[:4]), int(start[5:7])
+    index = year * 12 + month - 1 + months
+    return index // 12, index % 12 + 1
+
+
+def my_plan_tool(session: Session, profile: AssistantProfile | None, today: date) -> ToolResult:
+    """The visitor's own 청년미래적금 plan worked out with the site's calculators, from what they typed on this device."""
+    empty = ToolResult("내 정보 조회", "저장된 내 정보가 없어요. 내 조건 화면에서 거래 은행과 월 납입액을 입력하면 내 숫자로 계산해 드려요.", "/conditions")
+    if profile is None or not profile.bank_code or not profile.monthly_amount:
+        return empty
+    contribution = ContributionType(profile.contribution_type or "none")
+    try:
+        service = SavingsService(session)
+        data = service.get_products()
+        product = next((item for item in data.products if item.bank_code == profile.bank_code), None)
+        if product is None:
+            return empty
+        policy = data.policy
+        monthly = min(max(profile.monthly_amount, policy.minimum_monthly_amount), policy.maximum_monthly_amount)
+        answers: dict[str, Answer] = {}
+        for condition in product.conditions:
+            raw = profile.conditions.get(f"{product.bank_code}:{condition.code}") or profile.conditions.get(f"common:{condition.code}") or "unknown"
+            answers[condition.code] = Answer(raw)
+        fixed = service.calculate(CalculationRequest(
+            monthly_amount=monthly, contribution_type=contribution, condition_answers={product.bank_code: answers}, bank_codes=[product.bank_code],
+        )).results[0]
+        amounts = [profile.payments.get(str(index + 1), monthly) for index in range(policy.term_months)]
+        valid = all(amount == 0 or policy.minimum_monthly_amount <= amount <= policy.maximum_monthly_amount for amount in amounts)
+        recorded = None
+        if valid and any(amount != monthly for amount in amounts):
+            recorded = service.calculate_cashflow(CashflowCalculationRequest(
+                bank_code=product.bank_code, monthly_amounts=amounts, fixed_monthly_amount=monthly, contribution_type=contribution, condition_answers=answers,
+            ))
+    except (SavingsDataError, SavingsInputError, ValueError):
+        return empty
+
+    kind = CONTRIBUTION_LABELS.get(profile.contribution_type or "", "정부기여금 없음")
+    state = "가입 중" if profile.enrollment_status == "enrolled" else "가입을 고민 중" if profile.enrollment_status == "considering" else "가입 상태 미입력"
+    lines = [
+        f"이 기기에 입력해 둔 내 정보예요(이번 질문에만 쓰고 서버에 저장하지 않아요): {product.bank_name} {product.product_name}, {kind}, 매달 {_won(monthly)}, {state}.",
+        f"내 우대조건 답으로 계산한 예상 금리는 연 {fixed.expected_rate:g}%(기본 {fixed.base_rate:g}% + 우대 {fixed.applied_bonus_rate:g}%p, 이 은행 최고 {fixed.maximum_rate:g}%)예요.",
+        f"계획대로 {policy.term_months}개월 모두 넣으면 낸 돈 {_won(fixed.principal)}, 이자 {_won(fixed.deposit_interest)}, 정부기여금과 그 이자 {_won(fixed.government_contribution + fixed.government_contribution_interest)}이고 예상 만기금액은 {_won(fixed.expected_maturity_amount)}이에요.",
+    ]
+    if profile.start_month:
+        end_year, end_month = _add_months(profile.start_month, policy.term_months)
+        elapsed = (today.year * 12 + today.month) - (int(profile.start_month[:4]) * 12 + int(profile.start_month[5:7]))
+        left = max(0, policy.term_months - max(0, elapsed))
+        lines.append(f"가입 {profile.start_month[:4]}년 {int(profile.start_month[5:7])}월, 만기 {end_year}년 {end_month}월이고 지금은 {max(0, elapsed)}개월이 지나 {left}개월이 남았어요.")
+    if recorded is not None:
+        skipped = sum(1 for amount in amounts if amount == 0)
+        reduced = sum(1 for amount in amounts if 0 < amount < monthly)
+        change = recorded.difference_from_fixed_plan
+        direction = "적어요" if change < 0 else "많아요"
+        lines.append(
+            f"월별 납입 계획에 적은 금액을 반영하면 낸 돈 {_won(recorded.result.principal)}, 예상 만기금액 {_won(recorded.result.expected_maturity_amount)}이에요. "
+            f"계획대로일 때보다 {_won(abs(change))} {direction}(빠뜨린 달 {skipped}개월, 줄인 달 {reduced}개월)."
+        )
+    yes, no = list(answers.values()).count(Answer.yes), list(answers.values()).count(Answer.no)
+    lines.append(f"우대조건은 충족 {yes}개, 미충족 {no}개, 모름 {len(answers) - yes - no}개로 계산했어요. 모름은 금리에 더하지 않아요.")
+    return ToolResult("내 정보 계산", "\n".join(lines), "/conditions")
+
+
+def run_tools(session: Session, message: str, history: list[str], profile: AssistantProfile | None = None, today: date | None = None) -> list[ToolResult]:
     """Results for what the question asks. `history` holds the visitor's earlier questions, oldest first."""
     earlier = [item for item in history if item.strip()][-3:]
     text = " ".join(message.split())
     results: list[ToolResult] = []
+    if is_about_me(text):
+        results.append(my_plan_tool(session, profile, today or datetime.now(ZoneInfo("Asia/Seoul")).date()))
 
     def triggered(trigger: re.Pattern[str]) -> str | None:
         if trigger.search(text):
