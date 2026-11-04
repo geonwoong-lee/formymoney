@@ -5,6 +5,12 @@ from pydantic import Field
 from app.schemas.daily_briefing import CamelModel
 
 
+class WatchedItem(CamelModel):
+    kind: Literal["deposit", "saving"]
+    company: str = Field(min_length=1, max_length=100)
+    product_code: str = Field(min_length=1, max_length=60)
+
+
 class AssistantProfile(CamelModel):
     """What the visitor typed into 내 조건 and 월별 납입 계획, sent with one question so 머니독 can answer about their own plan.
 
@@ -20,3 +26,5 @@ class AssistantProfile(CamelModel):
     conditions: dict[str, Literal["yes", "no", "unknown"]] = Field(default_factory=dict, max_length=80)
     # "1".."36" (the nth month of the plan) -> the amount planned or paid that month
     payments: dict[str, int] = Field(default_factory=dict, max_length=60)
+    # Products the visitor starred; the list only says which ones to look at.
+    watch: list[WatchedItem] = Field(default_factory=list, max_length=30)

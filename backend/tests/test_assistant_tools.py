@@ -346,3 +346,44 @@ def test_bank_by_bank_rates_without_a_product_name_mean_the_sites_youth_savings_
 
     assert [result.title for result in asked] == ["청년미래적금 조회"]
     assert "청년미래적금 조회" not in [result.title for result in deposit]  # naming 예금 keeps it a deposit question
+
+
+def test_starred_products_and_the_visitors_bank_report_what_changed_between_the_last_two_collections(client: TestClient) -> None:
+    from app.services.product_rate_service import ProductRateService
+
+    with client.app.state.session_factory() as session:
+        service = ProductRateService(session)
+        service.save_snapshot(date(2026, 11, 2), [_deposit("우리은행", "우리 정기예금", "3.00", "3.20"), _deposit("하나은행", "하나 정기예금", "2.80", "2.80")])
+        service.save_snapshot(date(2026, 11, 3), [_deposit("우리은행", "우리 정기예금", "3.30", "3.20"), _deposit("하나은행", "하나 정기예금", "2.80", "2.80")])
+        profile = _profile(watch=[{"kind": "deposit", "company": "우리은행", "productCode": "우리은행-우리 정기예금"}, {"kind": "deposit", "company": "하나은행", "productCode": "하나은행-하나 정기예금"}])
+        starred = run_tools(session, "내가 관심 등록한 상품 금리 바뀐 거 있어?", [], profile, date(2026, 11, 4))
+        nothing = run_tools(session, "관심 상품 금리 바뀐 거 있어?", [], _profile(bankCode=None, monthlyAmount=None), date(2026, 11, 4))
+
+    assert [r.title for r in starred] == ["관심 상품 조회"] and starred[0].url == "/my-savings"
+    content = starred[0].content
+    assert "2026-11-02과 2026-11-03로 비교" in content and "관심 등록한 상품 2개 중 금리가 바뀐 것은 1건" in content
+    assert "우리은행 우리 정기예금 12개월 기본금리: 연 3.00%에서 3.30%로 0.30%p 올랐어요" in content
+    assert "하나은행" not in content and "갈아타라는 뜻이 아니에요" in content  # unchanged products are left out
+    assert "관심 등록한 상품이 없어요" in nothing[0].content
+
+
+def test_why_is_my_rate_what_it_is_lists_each_condition_with_my_answer_and_the_bonus_it_added(client: TestClient) -> None:
+    from app.services.savings_service import SavingsService
+
+    with client.app.state.session_factory() as session:
+        product = next(item for item in SavingsService(session).get_products().products if item.bank_code == "kb")
+        first, second = product.conditions[0], product.conditions[1]
+        profile = _profile(conditions={f"kb:{first.code}": "yes", f"kb:{second.code}": "no"})
+        why = run_tools(session, "왜 내 예상 금리가 이거야?", [], profile, date(2026, 11, 4))[0].content
+        plain = run_tools(session, "내 예상 금리가 얼마야?", [], profile, date(2026, 11, 4))[0].content
+
+    assert "조건별로 보면" in why and f"- {first.title}: 내 답 충족, 붙은 우대" in why and f"- {second.title}: 내 답 미충족, 붙은 우대 0%p" in why
+    assert "이 은행 우대 한도" in why
+    assert "조건별로 보면" not in plain  # asked for the figure, not the reasons
+
+
+def test_watch_questions_are_about_the_visitor() -> None:
+    from app.services.assistant_tools import is_about_me
+
+    for question in ("관심 등록한 상품 금리 바뀐 거 있어?", "내 거래 은행 상품 금리 바뀐 거 있어?", "찜한 적금 금리 알려줘"):
+        assert is_about_me(question), question
