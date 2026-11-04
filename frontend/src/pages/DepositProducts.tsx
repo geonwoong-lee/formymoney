@@ -1,6 +1,7 @@
 import { BankBadge } from '../components/BankBadge'
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { bankSearchTerms, companyMatches } from '../features/bankAliases'
 import { formatKrwExact } from '../features/krw'
 import { isWatched, loadWatchlist, MAX_WATCHED, toggleWatched, type WatchedProduct } from '../features/watchlist'
 import { getDepositProducts, getSavingProducts, type RateContext, type DepositGroup, type DepositProduct, type DepositProductsResponse } from '../api/client'
@@ -126,8 +127,12 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
 
   const sorted = body ? [...body.products].sort(SORTS[sort].compare) : []
   // The visitor types part of a name (우리, 국민, KB); the list below the range narrows to those companies.
-  const wanted = bankQuery.trim().toLowerCase()
-  const products = wanted ? sorted.filter((product) => product.company.toLowerCase().includes(wanted)) : sorted
+  const terms = bankSearchTerms(bankQuery)
+  const wanted = terms.length > 0
+  const products = wanted ? sorted.filter((product) => companyMatches(product.company, terms)) : sorted
+  const typed = bankQuery.trim()
+  // KB also finds 국민: say so, so a company that does not contain the typed letters does not look like a mistake.
+  const label = terms.length > 1 ? `‘${typed}’(${terms.filter((term) => term !== typed.toLowerCase()).join('·')} 포함)` : `‘${typed}’`
   const companies = [...new Set(sorted.map((product) => product.company))].sort((a, b) => a.localeCompare(b, 'ko'))
 
   return <section className="maturity-step" aria-labelledby={headingId}>
@@ -162,8 +167,8 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
         <div><dt>가장 많이</dt><dd>{won(body.highest.afterTax)}<span>연 {percent(body.highest.ratePercent)}</span></dd></div>
       </dl>}
       {wanted && <p className="maturity-muted" role="status">{products.length === 0
-        ? `‘${bankQuery.trim()}’이(가) 들어간 금융회사의 ${noun}이 없어요. 다른 이름으로 찾아 보세요.`
-        : `전체 ${body.count.toLocaleString('ko-KR')}개 중 ‘${bankQuery.trim()}’이(가) 들어간 금융회사의 ${noun} ${products.length.toLocaleString('ko-KR')}개를 보여 드려요. 금리 범위는 이름을 지우면 다시 보여요.`}</p>}
+        ? `${label}이(가) 들어간 금융회사의 ${noun}이 없어요. 다른 이름으로 찾아 보세요.`
+        : `전체 ${body.count.toLocaleString('ko-KR')}개 중 ${label}이(가) 들어간 금융회사의 ${noun} ${products.length.toLocaleString('ko-KR')}개를 보여 드려요. 금리 범위는 이름을 지우면 다시 보여요.`}</p>}
       {!wanted && <p className="maturity-muted">{body.group} {noun} {body.count.toLocaleString('ko-KR')}개(단리·복리 따로 셈)를 기본금리로 계산한 범위예요. 같은 돈이라도 어느 상품이냐에 따라 받는 돈이 이만큼 달라져요.
         {typeof body.principal === 'number' && ` 내가 넣는 원금은 ${won(body.principal)}이에요.`}</p>}
       {!wanted && body.context && <RateContextLine context={body.context} middleRate={body.middle.ratePercent} />}
