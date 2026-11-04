@@ -207,10 +207,6 @@
   font-weight: 700;
 }
 
-.maturity-history p {
-  grid-column: 1 / -1;
-}
-
 .maturity-others > summary {
   cursor: pointer;
   font-weight: 700;

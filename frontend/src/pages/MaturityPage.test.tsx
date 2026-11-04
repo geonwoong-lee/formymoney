@@ -85,6 +85,11 @@ describe('MaturityPage', () => {
     expect(cards[1]).toHaveTextContent('원금 손실 가능')
     expect(cards[1]).toHaveTextContent('가장 나빴을 때-10%')
     expect(cards[1]).toHaveTextContent('24번 중 4번')
+    // A <dl> may hold only term/description pairs (screen readers read the list wrongly otherwise): the explaining sentence sits outside it.
+    for (const list of document.querySelectorAll('dl.maturity-history')) {
+      expect([...list.children].every((child) => child.tagName === 'DIV')).toBe(true)
+      expect(list.nextElementSibling?.tagName).toBe('P')
+    }
 
     const others = screen.getByRole('list', { name: '다른 성향의 선택지' })
     expect(within(others).getAllByRole('listitem')).toHaveLength(2)

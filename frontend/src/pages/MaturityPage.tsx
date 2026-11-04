@@ -36,13 +36,15 @@ function RangeBar({ history, low, high }: { history: HoldingOutcome; low: number
 }
 
 function HistoryText({ history, months }: { history: HoldingOutcome; months: number }) {
-  return <dl className="maturity-history">
-    <div><dt>평균</dt><dd>{signedPercent(history.averagePercent)} · {won(history.averageValue)}</dd></div>
-    <div><dt>가장 좋았을 때</dt><dd>{signedPercent(history.bestPercent)} · {won(history.bestValue)}</dd></div>
-    <div><dt>가장 나빴을 때</dt><dd>{signedPercent(history.worstPercent)} · {won(history.worstValue)}</dd></div>
-    <div><dt>손해 본 경우</dt><dd>{history.windows}번 중 {history.lossWindows}번</dd></div>
+  return <>
+    <dl className="maturity-history">
+      <div><dt>평균</dt><dd>{signedPercent(history.averagePercent)} · {won(history.averageValue)}</dd></div>
+      <div><dt>가장 좋았을 때</dt><dd>{signedPercent(history.bestPercent)} · {won(history.bestValue)}</dd></div>
+      <div><dt>가장 나빴을 때</dt><dd>{signedPercent(history.worstPercent)} · {won(history.worstValue)}</dd></div>
+      <div><dt>손해 본 경우</dt><dd>{history.windows}번 중 {history.lossWindows}번</dd></div>
+    </dl>
     <p className="maturity-muted">{monthLabel(history.firstStart)}부터 {monthLabel(history.lastStart)}까지 매달 한 번에 넣고 {months}개월 들고 있었다고 본 과거 결과예요.</p>
-  </dl>
+  </>
 }
 
 function OptionCard({ option, months, low, high }: { option: MaturityOption; months: number; low: number; high: number }) {

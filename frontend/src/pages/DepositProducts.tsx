@@ -1,5 +1,5 @@
 import { BankBadge } from '../components/BankBadge'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { formatKrwExact } from '../features/krw'
 import { isWatched, loadWatchlist, MAX_WATCHED, toggleWatched, type WatchedProduct } from '../features/watchlist'
@@ -104,6 +104,8 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
   const [group, setGroup] = useState<DepositGroup>('bank')
   const [sort, setSort] = useState<SortKey>('base')
   const [shownCount, setShownCount] = useState(PAGE)
+  const [bankQuery, setBankQuery] = useState('')
+  const listId = useId()
   const [loaded, setLoaded] = useState<{ key: string; body: DepositProductsResponse | null } | null>(null)
   const [watchlist, setWatchlist] = useState(() => loadWatchlist())
   const key = `${loadKey}-${group}`
@@ -122,7 +124,11 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, group])
 
-  const products = body ? [...body.products].sort(SORTS[sort].compare) : []
+  const sorted = body ? [...body.products].sort(SORTS[sort].compare) : []
+  // The visitor types part of a name (우리, 국민, KB); the list below the range narrows to those companies.
+  const wanted = bankQuery.trim().toLowerCase()
+  const products = wanted ? sorted.filter((product) => product.company.toLowerCase().includes(wanted)) : sorted
+  const companies = [...new Set(sorted.map((product) => product.company))].sort((a, b) => a.localeCompare(b, 'ko'))
 
   return <section className="maturity-step" aria-labelledby={headingId}>
     <h2 id={headingId}>{heading}</h2>
@@ -130,11 +136,15 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
     <div className="deposit-controls">
       <div className="deposit-groups" role="radiogroup" aria-label="금융회사 종류">
         {GROUPS.map((item) => <label key={item.key} className={`maturity-profile${group === item.key ? ' maturity-profile--active' : ''}`}>
-          <input type="radio" name={`${headingId}-group`} checked={group === item.key} onChange={() => { setGroup(item.key); setShownCount(PAGE) }} />
+          <input type="radio" name={`${headingId}-group`} checked={group === item.key} onChange={() => { setGroup(item.key); setShownCount(PAGE); setBankQuery('') }} />
           <b>{item.label}</b>
         </label>)}
       </div>
       {extraControls}
+      <label><span>은행 이름으로 찾기</span>
+        <input type="search" list={listId} value={bankQuery} placeholder="예: 우리, 국민" maxLength={20} onChange={(event) => { setBankQuery(event.target.value); setShownCount(PAGE) }} />
+        <datalist id={listId}>{companies.map((company) => <option key={company} value={company} />)}</datalist>
+      </label>
       <label><span>보는 순서</span>
         <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
           {Object.entries(SORTS).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}
@@ -146,14 +156,17 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
     {body === null && <p className="maturity-muted">공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.</p>}
     {body && body.count === 0 && <p className="maturity-muted">아직 모은 {months}개월 {noun} 공시 금리가 없어요.</p>}
     {body && body.count > 0 && body.lowest && body.middle && body.highest && <>
-      <dl className="deposit-range" aria-label="기본금리로 받는 돈의 범위">
+      {!wanted && <dl className="deposit-range" aria-label="기본금리로 받는 돈의 범위">
         <div><dt>가장 적게</dt><dd>{won(body.lowest.afterTax)}<span>연 {percent(body.lowest.ratePercent)}</span></dd></div>
         <div><dt>가운데</dt><dd>{won(body.middle.afterTax)}<span>연 {percent(body.middle.ratePercent)}</span></dd></div>
         <div><dt>가장 많이</dt><dd>{won(body.highest.afterTax)}<span>연 {percent(body.highest.ratePercent)}</span></dd></div>
-      </dl>
-      <p className="maturity-muted">{body.group} {noun} {body.count.toLocaleString('ko-KR')}개(단리·복리 따로 셈)를 기본금리로 계산한 범위예요. 같은 돈이라도 어느 상품이냐에 따라 받는 돈이 이만큼 달라져요.
-        {typeof body.principal === 'number' && ` 내가 넣는 원금은 ${won(body.principal)}이에요.`}</p>
-      {body.context && <RateContextLine context={body.context} middleRate={body.middle.ratePercent} />}
+      </dl>}
+      {wanted && <p className="maturity-muted" role="status">{products.length === 0
+        ? `‘${bankQuery.trim()}’이(가) 들어간 금융회사의 ${noun}이 없어요. 다른 이름으로 찾아 보세요.`
+        : `전체 ${body.count.toLocaleString('ko-KR')}개 중 ‘${bankQuery.trim()}’이(가) 들어간 금융회사의 ${noun} ${products.length.toLocaleString('ko-KR')}개를 보여 드려요. 금리 범위는 이름을 지우면 다시 보여요.`}</p>}
+      {!wanted && <p className="maturity-muted">{body.group} {noun} {body.count.toLocaleString('ko-KR')}개(단리·복리 따로 셈)를 기본금리로 계산한 범위예요. 같은 돈이라도 어느 상품이냐에 따라 받는 돈이 이만큼 달라져요.
+        {typeof body.principal === 'number' && ` 내가 넣는 원금은 ${won(body.principal)}이에요.`}</p>}
+      {!wanted && body.context && <RateContextLine context={body.context} middleRate={body.middle.ratePercent} />}
       <ul className="deposit-products" aria-label={`${body.group} ${noun} 목록`}>
         {products.slice(0, shownCount).map((product) => {
           const item: WatchedProduct = { kind, company: product.company, productCode: product.productCode, productName: product.productName }
