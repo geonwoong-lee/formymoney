@@ -15,6 +15,7 @@ export function BanksPage() {
   const [result, setResult] = useState<SavingsCalculationResponse | null>(null)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+  const [currentBankCode] = useState(() => loadDraft().plan.currentBankCode)
 
   useEffect(() => {
     const draft = loadDraft()
@@ -57,7 +58,7 @@ export function BanksPage() {
               <strong>{money.format(bank.expectedMaturityAmount)}원</strong>
               <small>원금 {money.format(bank.principal)}원</small>
               {bank.differenceFromCurrentBank !== null && <small className={`difference ${bank.differenceFromCurrentBank > 0 ? 'difference--plus' : bank.differenceFromCurrentBank < 0 ? 'difference--minus' : ''}`}>
-                {bank.differenceFromCurrentBank === 0 ? '현재 주거래 은행' : `현재 은행보다 ${bank.differenceFromCurrentBank > 0 ? '+' : ''}${money.format(bank.differenceFromCurrentBank)}원`}
+                {bank.differenceFromCurrentBank === 0 ? (bank.bankCode === currentBankCode ? '현재 주거래 은행' : '현재 은행과 같아요') : `현재 은행보다 ${bank.differenceFromCurrentBank > 0 ? '+' : ''}${money.format(bank.differenceFromCurrentBank)}원`}
               </small>}
             </div>
             <Link className="button button--small" to={`/banks/${bank.bankCode}`}>상세</Link>
