@@ -122,6 +122,7 @@ describe('DepositProducts', () => {
     expect(within(list).getByRole('listitem')).toHaveTextContent('우리은행')
     expect(screen.getByRole('status')).toHaveTextContent('전체 15개 중 ‘우리’이(가) 들어간 금융회사의 정기예금 1개를 보여 드려요')
     expect(screen.queryByLabelText('기본금리로 받는 돈의 범위')).not.toBeInTheDocument()  // the range was for everyone, so it steps aside
+    expect(screen.getByRole('status')).toHaveTextContent('금융감독원에 공시된 상품만 담겨 있어서 은행 홈페이지의 전체 상품 수와 다를 수 있어요')  // a bank with one product listed is not a missing one
 
     // KB is how people say 국민: both the disclosed 국민은행 and KB저축 turn up, and the line says why
     await user.clear(search)

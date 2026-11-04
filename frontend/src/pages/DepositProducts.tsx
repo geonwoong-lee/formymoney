@@ -168,7 +168,7 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
       </dl>}
       {wanted && <p className="maturity-muted" role="status">{products.length === 0
         ? `${label}이(가) 들어간 금융회사의 ${noun}이 없어요. 다른 이름으로 찾아 보세요.`
-        : `전체 ${body.count.toLocaleString('ko-KR')}개 중 ${label}이(가) 들어간 금융회사의 ${noun} ${products.length.toLocaleString('ko-KR')}개를 보여 드려요. 금리 범위는 이름을 지우면 다시 보여요.`}</p>}
+        : `전체 ${body.count.toLocaleString('ko-KR')}개 중 ${label}이(가) 들어간 금융회사의 ${noun} ${products.length.toLocaleString('ko-KR')}개를 보여 드려요. 금융감독원에 공시된 상품만 담겨 있어서 은행 홈페이지의 전체 상품 수와 다를 수 있어요. 금리 범위는 이름을 지우면 다시 보여요.`}</p>}
       {!wanted && <p className="maturity-muted">{body.group} {noun} {body.count.toLocaleString('ko-KR')}개(단리·복리 따로 셈)를 기본금리로 계산한 범위예요. 같은 돈이라도 어느 상품이냐에 따라 받는 돈이 이만큼 달라져요.
         {typeof body.principal === 'number' && ` 내가 넣는 원금은 ${won(body.principal)}이에요.`}</p>}
       {!wanted && body.context && <RateContextLine context={body.context} middleRate={body.middle.ratePercent} />}
