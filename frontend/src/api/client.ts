@@ -1,3 +1,4 @@
+import type { AssistantProfile } from '../features/assistantProfile'
 import type { VeryRichDraft } from '../storage/draftStorage'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
@@ -900,11 +901,11 @@ export function calculateComparison(payload: {
   })
 }
 
-export function askAssistant(message: string, history: AssistantTurn[] = [], signal?: AbortSignal): Promise<AssistantChatResponse> {
+export function askAssistant(message: string, history: AssistantTurn[] = [], profile?: AssistantProfile, signal?: AbortSignal): Promise<AssistantChatResponse> {
   return request<AssistantChatResponse>('/api/v1/assistant/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, history, profile }),
     signal,
   })
 }

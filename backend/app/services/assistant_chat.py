@@ -67,6 +67,20 @@ def _unit_forms(token: str) -> set[str]:
     return {str(part) for part in parts if part}
 
 
+DOTTED_DATE = re.compile(r"(?<!\d)((?:19|20)\d{2})[.\-/](\d{1,2})(?:[.\-/](\d{1,2}))?(?!\d)")
+
+
+def _date_parts(text: str) -> set[str]:
+    """A date written 2026.10.05 may be read aloud as 2026년 10월 5일: its year, month and day each count."""
+    parts: set[str] = set()
+    for year, month, day in DOTTED_DATE.findall(text):
+        if 1 <= int(month) <= 12:
+            parts |= {year, str(int(month)), month.lstrip("0") or "0"}
+            if day and 1 <= int(day) <= 31:
+                parts |= {str(int(day)), day.lstrip("0") or "0"}
+    return parts
+
+
 def _numbers(text: str) -> set[str]:
     """Numbers as written, without thousands commas or a leading sign: a change of \"+1.9원\" is also \"1.9원 올랐어요\".
 
@@ -74,7 +88,7 @@ def _numbers(text: str) -> set[str]:
     found = {token.replace(",", "").lstrip("+-") for token in NUMBER_PATTERN.findall(text)}
     for token in list(found):
         found |= _unit_forms(token)
-    return found
+    return found | _date_parts(text)
 # "추천할 수는 없어요", "추천하지 않아요", "추천은 아니에요" and "확실하지 않아요" are the refusals we want, not advice; only the
 # negated form is set aside before the forbidden-word check, and never across a sentence end.
 NEGATED_EXPRESSION = re.compile(r"(추천|확실|무조건)[^.!?\n]{0,8}?(않|없|못하|어려|아니|아닙)")

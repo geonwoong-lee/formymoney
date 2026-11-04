@@ -1,9 +1,10 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Assistant, ASSISTANT_HIDDEN_KEY, ASSISTANT_SEEN_KEY } from './Assistant'
 import { EXAMPLE_QUESTIONS, FALLBACK, findAnswer } from './assistantAnswers'
+import { emptyDraft, saveDraft } from '../storage/draftStorage'
 
 function Where() {
   return <p data-testid="where">{useLocation().pathname}</p>
@@ -169,6 +170,27 @@ describe('Assistant', () => {
       { role: 'user', text: '서울 월세 지원 정책 있어?' },
       { role: 'assistant', text: '서울에는 월세 지원 정책이 있어요.' },
     ])
+  })
+
+  it('sends the visitor’s own plan only with a question about themselves', async () => {
+    const user = userEvent.setup()
+    saveDraft({ ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 300_000, contributionType: 'general' }, conditions: { 'kb:salary_transfer': 'yes' } })
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(aiReply('답이에요.')))
+    vi.stubGlobal('fetch', fetchMock)
+    renderAssistant()
+    await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
+
+    await user.type(screen.getByRole('textbox'), '코스피 얼마야?')
+    await user.click(screen.getByRole('button', { name: '찾기(S)' }))
+    await screen.findByText('답이에요.')
+    await user.clear(screen.getByRole('textbox'))
+    await user.type(screen.getByRole('textbox'), '내 적금 만기금액이 얼마야?')
+    await user.click(screen.getByRole('button', { name: '찾기(S)' }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+
+    const bodyOf = (index: number) => JSON.parse((fetchMock.mock.calls[index] as unknown as [string, RequestInit])[1].body as string)
+    expect(bodyOf(0).profile).toBeUndefined()
+    expect(bodyOf(1).profile).toMatchObject({ bankCode: 'kb', monthlyAmount: 300_000, contributionType: 'general', conditions: { 'kb:salary_transfer': 'yes' } })
   })
 
   it('never recommends a product and says so', async () => {

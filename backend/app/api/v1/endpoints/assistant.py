@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.schemas.assistant_profile import AssistantProfile
 from app.schemas.daily_briefing import CamelModel
 from app.services.assistant_chat import (
     RECOMMEND_PATTERN,
@@ -38,6 +39,7 @@ class HistoryItem(CamelModel):
 class AssistantChatRequest(CamelModel):
     message: str = Field(min_length=1, max_length=200)
     history: list[HistoryItem] = Field(default_factory=list, max_length=6)  # earlier turns of this visit, kept only in the browser
+    profile: AssistantProfile | None = None  # the visitor's own plan from this device, used for this answer only
 
 
 class AssistantLinkResponse(CamelModel):
@@ -109,7 +111,7 @@ def chat_with_assistant(payload: AssistantChatRequest, request: Request) -> Assi
             else:
                 context = build_context(session)
             try:
-                tool_results = run_tools(session, payload.message, earlier_questions)
+                tool_results = run_tools(session, payload.message, earlier_questions, payload.profile, korea_today())
             except SQLAlchemyError as error:
                 logger.warning("assistant tools failed: %s", type(error).__name__)
                 session.rollback()

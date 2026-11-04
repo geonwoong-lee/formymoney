@@ -258,3 +258,82 @@ def test_the_policy_named_in_the_question_gets_the_details_not_just_the_one_due_
     after_heading = detail.content.split("자세히 적어요")[1]
     assert after_heading.index("2026 청년 월세 지원: ") < after_heading.index("서울 청년 월세 특별지원: ")  # named policy first
     assert "복지로에서 온라인 신청" in after_heading
+
+
+def _profile(**extra):
+    from app.schemas.assistant_profile import AssistantProfile
+
+    return AssistantProfile(**{"bankCode": "kb", "monthlyAmount": 300_000, "contributionType": "general", "startMonth": "2026-09", "enrollmentStatus": "enrolled", **extra})
+
+
+def test_my_plan_is_worked_out_with_the_sites_calculators_from_what_the_visitor_typed(client: TestClient) -> None:
+    from app.schemas.savings import Answer, CalculationRequest, ContributionType
+    from app.services.savings_service import SavingsService
+
+    with client.app.state.session_factory() as session:
+        service = SavingsService(session)
+        product = next(item for item in service.get_products().products if item.bank_code == "kb")
+        code = product.conditions[0].code
+        expected = service.calculate(CalculationRequest(
+            monthly_amount=300_000, contribution_type=ContributionType.general, condition_answers={"kb": {code: Answer.yes}}, bank_codes=["kb"],
+        )).results[0]
+        result = run_tools(session, "내 적금 만기금액이 얼마야?", [], _profile(conditions={f"kb:{code}": "yes"}), date(2026, 11, 4))
+
+    content = result[0].content
+    assert result[0].title == "내 정보 계산" and result[0].url == "/conditions"
+    assert f"예상 금리는 연 {expected.expected_rate:g}%" in content
+    assert f"예상 만기금액은 {expected.expected_maturity_amount:,}원" in content
+    assert "매달 300,000원" in content and "일반형" in content and "가입 중" in content
+    assert "가입 2026년 9월, 만기 2029년 9월이고 지금은 2개월이 지나 34개월이 남았어요" in content
+    assert "서버에 저장하지 않아요" in content and "충족 1개" in content
+    assert "월별 납입 계획에 적은 금액" not in content  # no changed month, so no second calculation
+
+
+def test_recorded_payments_that_differ_from_the_plan_change_the_maturity_and_say_by_how_much(client: TestClient) -> None:
+    payments = {str(month): 300_000 for month in range(1, 37)} | {"5": 0, "6": 100_000}
+    with client.app.state.session_factory() as session:
+        plain = run_tools(session, "내 적금 만기금액이 얼마야?", [], _profile(), date(2026, 11, 4))[0].content
+        recorded = run_tools(session, "내 적금 만기금액이 얼마야?", [], _profile(payments=payments), date(2026, 11, 4))[0].content
+
+    assert "빠뜨린 달 1개월, 줄인 달 1개월" in recorded and "적어요" in recorded
+    assert "계획대로일 때보다" in recorded and "계획대로일 때보다" not in plain
+
+
+def test_without_saved_information_it_says_what_to_enter_and_other_questions_never_use_it(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        empty = run_tools(session, "내 적금 만기금액이 얼마야?", [], None, date(2026, 11, 4))
+        other = run_tools(session, "코스피 얼마야?", [], _profile(), date(2026, 11, 4))
+        bad_bank = run_tools(session, "내 적금 만기금액이 얼마야?", [], _profile(bankCode="no-such-bank"), date(2026, 11, 4))
+
+    assert empty[0].title == "내 정보 조회" and "내 조건 화면에서" in empty[0].content
+    assert all(result.title != "내 정보 계산" for result in other)  # a visitor's plan is not read out for unrelated questions
+    assert bad_bank[0].title == "내 정보 조회"
+
+
+def test_chat_endpoint_accepts_the_profile_and_rejects_oversized_or_malformed_ones(client: TestClient) -> None:
+    seen: dict[str, str] = {}
+
+    def ask(settings, context, message, feedback):
+        seen["context"] = context
+        return {"answer": "내 정보 기준으로 계산했어요.", "link_paths": [], "source_ids": ["T1"]}
+
+    client.app.state.assistant_ask = ask
+    client.app.state.knowledge_embed = lambda texts: [[0.0] * 512 for _ in texts]
+    ok = client.post("/api/v1/assistant/chat", json={
+        "message": "내 적금 만기금액이 얼마야?", "profile": {"bankCode": "kb", "monthlyAmount": 300000, "contributionType": "general", "startMonth": "2026-09", "enrollmentStatus": "enrolled"},
+    })
+    assert ok.status_code == 200 and "[T1] 내 정보 계산" in seen["context"]
+    for profile in (
+        {"monthlyAmount": 99_000_000}, {"startMonth": "2026/09"}, {"contributionType": "vip"},
+        {"payments": {str(index): 1 for index in range(100)}}, {"conditions": {"kb:x": "maybe"}},
+    ):
+        assert client.post("/api/v1/assistant/chat", json={"message": "내 적금", "profile": profile}).status_code == 422, profile
+
+
+def test_only_a_question_about_the_visitors_own_result_reads_their_plan() -> None:
+    from app.services.assistant_tools import is_about_me
+
+    for question in ("내 적금 만기금액이 얼마야?", "내 적금 언제 만기야?", "나는 얼마 받을 수 있어?", "내가 지금까지 얼마 넣었어?"):
+        assert is_about_me(question), question
+    for question in ("내 조건은 어디에 입력해?", "내 적금 만기 알림은 어떻게 받아?", "이번 달 납입을 못 했는데 어떻게 계산돼?", "코스피 얼마야?", "청년미래적금 금리가 몇 퍼센트야?"):
+        assert not is_about_me(question), question

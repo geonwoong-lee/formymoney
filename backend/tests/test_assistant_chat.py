@@ -203,3 +203,13 @@ def test_hello_and_thanks_are_answered_without_the_model_or_the_rate_limit(clien
     assert thanks["source"] == "rule" and "기뻐요" in thanks["answer"]
     assert question.status_code == 200 and len(ask.calls) >= 1  # a greeting with a question still goes to the model
     assert all(call["message"] == "안녕하세요 월세 지원 알려줘" for call in ask.calls)  # hello and thanks never did
+
+
+def test_a_date_written_with_dots_may_be_read_as_year_month_day() -> None:
+    context = "[T1] 우리은행 WON플러스예금: 공시 2026.10, 신청 기간 2026.01.05 ~ 2026.12.31, 세후 만기 10,304,560원"
+
+    assert validate_answer("2026년 10월 공시 기준이에요.", "금리", context) == []
+    assert validate_answer("신청은 2026년 1월 5일부터 12월 31일까지예요.", "기간", context) == []
+    assert validate_answer("신청은 2026년 2월 5일부터예요.", "기간", context) == ["참고 자료에 없는 숫자입니다: 2"]  # a month the date does not have
+    assert validate_answer("금리는 연 3.60%예요.", "금리", "금리 3.60%") == []  # a rate is not a date
+    assert validate_answer("금리는 연 2026%예요.", "금리", "공시 2026.10") == []  # known and harmless: the year is in the text
