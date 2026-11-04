@@ -125,6 +125,11 @@ html, body, #root { height: 100%; overflow: hidden; }
 .retro-window__toolbar button:active:not(:disabled) { border-color: #000 #fff #fff #000; }
 .retro-window__toolbar button:disabled { color: #808080; text-shadow: 1px 1px #fff; }
 .retro-window__toolbar span { overflow: hidden; padding: 4px 7px; border: 2px inset #fff; background: #fff; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+/* Once the window has been dragged or restored, its left/top are measured from the workspace, so it has to be positioned from the workspace too; as a relative grid item it would be shifted by its own starting spot again on every restore. grid-area: auto makes the workspace edge its reference box (an absolute child of a grid otherwise uses its grid area, here the right-hand column). */
+.retro-window.main-window--placed { position: absolute; grid-area: auto; }
+/* The top margin that sits the window below the sticky note only belongs to the in-flow position; left on a placed or maximized window it shifts it down again and pushes it past the workspace edge. */
+.retro-workspace .retro-window.main-window.main-window--placed,
+.retro-workspace .retro-window.main-window.retro-window--maximized { margin: 0; }
 .retro-window--maximized { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; resize: none; }
 .retro-window__titlebar { cursor: move; touch-action: none; user-select: none; }
 .retro-window--maximized .retro-window__titlebar { cursor: default; }
