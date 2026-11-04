@@ -11,6 +11,7 @@ import startLogo from '../assets/icons/start-logo.svg'
 import { PAGE_EVENTS, track } from '../features/analytics'
 import { AnalyticsConsentBar } from './AnalyticsConsent'
 import { Assistant } from './Assistant'
+import { StickyNote } from './StickyNote'
 import { RetroUtilityApp, type UtilityId } from './RetroUtilityApps'
 
 type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'maturity' | 'about' | 'daily' | 'market' | 'mySavings' | 'generalSavings' | 'rentLoans'
@@ -245,6 +246,7 @@ export function AppLayout({ children }: PropsWithChildren) {
             {desktopApps.filter((app) => !SYSTEM_APPS.includes(app.to)).map(renderShortcut)}
           </div>
         </nav>
+        <StickyNote />
         {selection && <span className="desktop-selection" style={{ left: selection.x, top: selection.y, width: selection.width, height: selection.height }} aria-hidden="true" />}
 
         {!minimized && <section className={`retro-window main-window${maximized ? ' retro-window--maximized' : ''}${activeWindow === 'main' ? '' : ' retro-window--inactive'}`} aria-label={currentApp.windowTitle} ref={windowRef} onPointerDown={() => focusWindow('main')} style={{ zIndex: 10 + zOrder.indexOf('main'), ...(!maximized && windowRect ? { left: windowRect.x, top: windowRect.y, width: windowRect.width, height: windowRect.height } : {}) }}>

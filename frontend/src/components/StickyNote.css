@@ -1,0 +1,135 @@
+/* A yellow post-it with a Windows title strip, stuck on the empty desktop above the window. */
+.sticky-note,
+.sticky-stub {
+  position: absolute;
+  top: 12px;
+  left: 192px;
+  z-index: 2;
+}
+
+.sticky-note {
+  width: min(780px, calc(100% - 216px));
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-dark) var(--panel-dark) var(--panel-light);
+  background: #ffffa8;
+  box-shadow: 3px 4px 0 rgb(0 0 0 / 28%);
+  color: #000;
+  transform: rotate(-0.6deg);
+  transform-origin: top left;
+}
+
+.sticky-note__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 3px 2px 6px;
+  background: linear-gradient(90deg, var(--selection), #1084d0);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sticky-note__bar button {
+  flex: none;
+  width: 16px;
+  height: 14px;
+  padding: 0;
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-dark) var(--panel-dark) var(--panel-light);
+  background: var(--panel);
+  color: #000;
+  font: 700 11px/9px 'Courier New', monospace;
+  cursor: default;
+}
+
+.sticky-note__bar button:active {
+  border-color: var(--panel-dark) var(--panel-light) var(--panel-light) var(--panel-dark);
+}
+
+/* One row, left to right, with an arrow between steps; it scrolls sideways when the desktop is narrow. */
+.sticky-note__steps {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  margin: 0;
+  padding: 7px 8px;
+  overflow-x: auto;
+  list-style: none;
+  counter-reset: step;
+}
+
+.sticky-note__steps li {
+  position: relative;
+  flex: 1 0 auto;
+  counter-increment: step;
+}
+
+.sticky-note__steps li + li::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: -13px;
+  border: 5px solid transparent;
+  border-left: 8px solid #6a5a00;
+  border-right: 0;
+}
+
+.sticky-note__steps a {
+  display: grid;
+  grid-template-columns: 20px auto;
+  column-gap: 6px;
+  align-items: center;
+  height: 100%;
+  padding: 2px 4px;
+  border: 1px dashed transparent;
+  color: #000;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sticky-note__steps a::before {
+  content: counter(step);
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #000;
+  background: #fff;
+  font: 700 12px/1 'Courier New', monospace;
+}
+
+.sticky-note__steps b { font-size: 13px; line-height: 1.2; }
+.sticky-note__steps small { color: #4a4300; font-size: 11px; line-height: 1.25; }
+
+.sticky-note__steps a:hover,
+.sticky-note__steps a:focus-visible {
+  border-color: #000;
+  background: #fff6;
+}
+
+.sticky-note__steps a[aria-current='page'] b { padding: 0 3px; background: var(--selection); color: #fff; }
+
+.sticky-stub {
+  width: 50px;
+  height: 34px;
+  padding: 0;
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-dark) var(--panel-dark) var(--panel-light);
+  background: #ffffa8;
+  box-shadow: 2px 3px 0 rgb(0 0 0 / 28%);
+  color: #000;
+  font: inherit;
+  font-size: 12px;
+  cursor: default;
+  transform: rotate(-3deg);
+}
+
+.sticky-stub:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
+
+/* Phones keep the icon row and the window; the note would only push the screen down. */
+@media (max-width: 720px) {
+  .sticky-note,
+  .sticky-stub { display: none; }
+}
