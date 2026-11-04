@@ -17,8 +17,12 @@ from sqlalchemy.orm import Session
 from app.calculators.maturity import deposit_lump_sum, monthly_savings_after_tax
 from app.collectors.youth_policy import REGIONS
 from app.schemas.loans import LoanProductsRequest
+from app.schemas.maturity import DepositProductsRequest, SavingProductsRequest
 from app.schemas.youth_policies import YouthPoliciesRequest
 from app.services.loan_service import loan_products
+from app.services.market_service import MarketService
+from app.services.maturity_service import deposit_products, saving_products
+from app.services.savings_service import SavingsDataError, SavingsService
 from app.services.youth_policy_service import youth_policies
 
 MAX_MONTHS = 120
@@ -32,8 +36,13 @@ class ToolResult:
     url: str | None = None
 
 
-YOUTH_TRIGGER = re.compile(r"지원|수당|바우처|보조금|장학|청년\s*정책")
-LOAN_TRIGGER = re.compile(r"전세\s*(자금)?\s*대출|전세자금")
+# "혜택·제도·도와주는" alone are too common ("예금자보호제도"), so they count only next to a youth word or a life topic.
+YOUTH_CONTEXT = "청년|취준|취업|구직|창업|대학생|학자금|신혼|사회초년|월세|주거|집 구|자격증|면접|교통비|육아|결혼"
+YOUTH_TRIGGER = re.compile(
+    r"지원|수당|바우처|보조금|장학|청년\s*정책|^(?=.*(?:혜택|제도|도와주|도움|받을 수 있는))(?=.*(?:" + YOUTH_CONTEXT + r")).*$"
+)
+LOAN_TRIGGER = re.compile(r"전세\s*(자금)?\s*대출|전세자금|전월세\s*(자금\s*)?대출|보증금\s*대출|전세.{0,10}(빌리|빌려|이자|이율|금리)|전세\s*\d")
+TOPIC_ALIASES = {"취준": "취업", "집 구": "주거", "신혼": "결혼", "대학생": "교육", "사회초년": "일자리"}
 SAVINGS_TRIGGER = re.compile(r"적금|예금")
 CALC_WORDS = re.compile(r"이자|만기|얼마|받을|받아|모이|모여|계산|불어|늘어")
 
@@ -55,7 +64,15 @@ RATE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:%|퍼센트|프로)")
 AGE = re.compile(r"(\d{2})\s*(?:세|살)")
 
 
+SPOKEN_CHEON = re.compile(r"(억)\s*(\d+)\s*천(?!\s*만)")
+
+
+def _spoken_to_written(match: re.Match[str]) -> str:
+    return f"{match.group(1)} {match.group(2)}천만"
+
+
 def _amounts(text: str) -> list[int]:
+    text = SPOKEN_CHEON.sub(_spoken_to_written, text)  # "1억5천" is spoken for 1억 5천만
     found: list[int] = []
     for match in MONEY.finditer(text):
         if match.group(1):
@@ -103,6 +120,10 @@ def _last_topic(text: str) -> str:
         index = text.rfind(word)
         if index > best:
             best, topic = index, word
+    if not topic:  # everyday words people use instead of the policy's own term
+        for word, mapped in TOPIC_ALIASES.items():
+            if word in text:
+                return mapped
     return topic
 
 
@@ -125,10 +146,28 @@ def youth_policy_tool(session: Session, text: str) -> ToolResult:
         support = (policy.support.split("\n")[0])[:70]
         parts = [policy.institution, policy.apply_label, policy.age_label, policy.region_label]
         lines.append(f"{index}. {policy.name}: " + " / ".join(part for part in parts if part) + (f" / 지원 {support}" if support else ""))
+    if DETAIL_WORDS.search(text) and response.policies:
+        # The policy the question names comes first: more of the question's own words in its name, then the list's order.
+        pool = youth_policies(session, YouthPoliciesRequest(keyword=topic, region=region, age=age, open_only=True, limit=50)).policies if topic else response.policies
+        words = [word for word in re.findall(r"[가-힣A-Za-z0-9]{2,}", text) if word not in DETAIL_STOP]
+        chosen = sorted(pool, key=lambda item: -sum(word in item.name for word in words))[:2]
+        lines.append("신청 방법·자격을 물으셔서 질문과 가장 잘 맞는 정책 두 개를 자세히 적어요(공고 글을 줄여 옮겼어요):")
+        for policy in chosen:
+            fields = [
+                ("신청 방법", policy.apply_method), ("선정 방법", policy.selection), ("소득 조건", policy.income_note),
+                ("추가 자격", policy.extra_conditions), ("신청 링크", policy.apply_url),
+            ]
+            shown = [f"{label} {' '.join(value.split())[:140]}" for label, value in fields if value.strip()]
+            lines.append(f"- {policy.name}: " + (" / ".join(shown) if shown else "공고에 신청 방법이 따로 적혀 있지 않아요"))
     if not topic and not region and age is None:
         lines.append("분야(월세·취업·창업 등), 지역, 나이를 알려 주면 더 좁혀 볼 수 있어요.")
     lines.append("나이 외의 소득·거주 조건은 정책마다 달라서 판정하지 않았어요. 신청 전에 공고에서 확인해야 해요.")
     return ToolResult("청년정책 조회", "\n".join(lines), "/youth-policies")
+
+
+DETAIL_WORDS = re.compile(r"신청\s*방법|어떻게\s*신청|어디서\s*신청|자격|대상|조건|서류|언제까지|링크|선정|심사")
+# Words that say what is being asked, not which policy.
+DETAIL_STOP = {"신청", "방법", "알려줘", "알려", "자격", "어떻게", "정책", "청년", "청년정책", "중에", "있어", "있나요", "어디서", "대상", "조건", "언제까지", "서류", "링크", "선정", "심사", "지원", "알려주세요", "궁금해"}
 
 
 def rent_loan_tool(session: Session, text: str) -> ToolResult:
@@ -192,6 +231,161 @@ def savings_calc_tool(text: str, earlier: list[str]) -> ToolResult | None:
     return ToolResult("이자 계산", "\n".join(lines), "/maturity")
 
 
+MARKET_WORDS: list[tuple[tuple[str, ...], tuple[str, ...]]] = [
+    (("기준금리", "한국은행 금리"), ("base_rate",)),
+    (("국고채",), ("ktb_3y",)),
+    (("예금 평균", "예금금리 평균", "예금 금리 평균", "평균 예금"), ("deposit_rate",)),
+    (("코스피",), ("kospi",)),
+    (("코스닥",), ("kosdaq",)),
+    (("나스닥",), ("us_nasdaq",)),
+    (("s&p", "에스앤피"), ("us_sp500",)),
+    (("다우",), ("us_dow",)),
+    (("미국 증시", "뉴욕증시", "미국 주식", "미국 주가"), ("us_nasdaq", "us_sp500", "us_dow")),
+    (("환율", "원달러", "원/달러", "달러", "엔화", "유로", "위안"), ("usd_krw", "eur_krw", "jpy_krw", "cny_krw")),
+    (("물가상승률", "소비자물가", "인플레", "물가 얼마"), ("cpi_yoy",)),
+]
+FX_WORDS = {"usd_krw": ("달러", "원달러", "원/달러"), "eur_krw": ("유로",), "jpy_krw": ("엔",), "cny_krw": ("위안",)}
+
+
+def _number(value: Decimal) -> str:
+    text = f"{value:,.2f}"
+    return text.rstrip("0").rstrip(".") if "." in text else text
+
+
+def _day_label(period: str) -> str:
+    if len(period) == 8:
+        return f"{period[:4]}년 {int(period[4:6])}월 {int(period[6:])}일"
+    return f"{period[:4]}년 {int(period[4:6])}월"
+
+
+def market_tool(session: Session, text: str) -> ToolResult | None:
+    """The latest collected value of the market figure the question names, so it never depends on the search finding it."""
+    lowered = text.lower()
+    wanted: list[str] = []
+    for words, codes in MARKET_WORDS:
+        if any(word in lowered for word in words):
+            if codes[0] == "usd_krw":  # a named currency narrows 환율 to that currency
+                named = [code for code in codes if any(word in text for word in FX_WORDS[code])]
+                codes = tuple(named) if named else codes
+            wanted += [code for code in codes if code not in wanted]
+    if not wanted:
+        return None
+    snapshot = MarketService(session).snapshot()
+    items = {item.code: item for group in snapshot.groups for item in group.items}
+    lines: list[str] = []
+    for code in wanted:
+        item = items.get(code)
+        if item is None:
+            continue
+        unit = "" if "=" in item.unit else item.unit
+        line = f"{item.name}: {_day_label(item.period)} 기준 {_number(item.value)}{unit}"
+        if item.change is not None and item.previous_period:
+            move = "%p" if item.unit == "%" else unit
+            if item.change:
+                direction = "올랐어요" if item.change > 0 else "내렸어요"
+                line += f", 바로 전 값({_day_label(item.previous_period)})보다 {_number(abs(item.change))}{move} {direction}"
+            else:
+                line += ", 바로 전 값과 같아요"
+        lines.append(line)
+    if not lines:
+        return ToolResult("시장 지표 조회", "물어본 지표는 아직 수집되지 않았어요.", "/market")
+    lines.append("전 거래일(또는 전 영업일) 기준 값이라 실시간 시세가 아니에요.")
+    return ToolResult("시장 지표 조회", "\n".join(lines), "/market")
+
+
+PRODUCT_RATE_TRIGGER = re.compile(
+    r"(정기예금|예금|적금).{0,18}(금리|이율|이자율)|(금리|이율|이자율).{0,18}(정기예금|예금|적금)"
+    r"|(예금|적금).{0,10}이자.{0,12}(많|높|비교|어디|좋)|이자.{0,8}(많이|높은).{0,10}(예금|적금)"
+)
+BANK_WORD = re.compile(r"([가-힣A-Za-z]{1,8})은행")
+GENERIC_BANKS = {"시중", "저축", "인터넷", "지방", "특수", "국책"}
+# People say "신한 적금" without 은행. The value is the text the disclosure uses for the company.
+BANK_ALIASES = {
+    "신한": "신한", "국민": "국민", "kb": "국민", "우리": "우리", "하나": "하나", "농협": "농협", "nh": "농협", "카카오": "카카오", "토스": "토스",
+    "케이뱅크": "케이뱅크", "수협": "수협", "부산": "부산", "광주": "광주", "전북": "전북", "제주": "제주", "대구": "대구", "경남": "경남",
+    "산업": "산업", "ibk": "중소기업", "기업은행": "중소기업", "sc제일": "제일", "아이엠": "아이엠", "im뱅크": "아이엠",
+}
+
+
+def _banks_named(text: str) -> list[str]:
+    lowered = text.lower()
+    named = [word for word in BANK_WORD.findall(text) if word not in GENERIC_BANKS]
+    named += [value for alias, value in BANK_ALIASES.items() if alias in lowered]
+    return list(dict.fromkeys(named))
+
+
+def product_rate_tool(session: Session, text: str) -> ToolResult | None:
+    """Disclosed deposit or savings rates, for the bank named in the question or the first few in the site's order."""
+    if _rate(text) is not None:  # "연 4% 적금이면?" is a calculation, handled elsewhere
+        return None
+    saving = "적금" in text
+    group = "savings_bank" if "저축은행" in text else "bank"
+    months = _months(text)
+    amounts = [amount for amount in _amounts(text) if amount >= 10_000]
+    assumptions: list[str] = []
+    if saving:
+        options = (6, 12, 24, 36)
+        chosen = min(options, key=lambda option: abs(option - months)) if months else 12
+        monthly = min(max(amounts[-1], 10_000), 5_000_000) if amounts else 300_000
+        response = saving_products(session, SavingProductsRequest(monthly_amount=monthly, months=chosen, group=group, reserve="all"))
+        kind = f"적금(매달 {_won(monthly)}, {chosen}개월)"
+        if not amounts:
+            assumptions.append("매달 넣는 돈은 30만원으로 가정")
+    else:
+        chosen = 24 if months and months > 18 else 12
+        amount = min(max(amounts[-1], 100_000), 1_000_000_000) if amounts else 10_000_000
+        response = deposit_products(session, DepositProductsRequest(amount=amount, months=chosen, group=group))
+        kind = f"정기예금({_won(amount)}, {chosen}개월)"
+        if not amounts:
+            assumptions.append("맡기는 돈은 1,000만원으로 가정")
+    if months and months != chosen:
+        assumptions.append(f"{months}개월은 공시 자료가 없어 가까운 {chosen}개월로 조회")
+    if response.count == 0:
+        return ToolResult("예적금 금리 조회", "공시된 예·적금 금리가 아직 수집되지 않았어요.", "/general-savings")
+    banks = _banks_named(text)
+    picked = [item for item in response.products if any(bank in item.company for bank in banks)] if banks else []
+    if banks and not picked:
+        names = ", ".join(banks)
+        return ToolResult("예적금 금리 조회", f"{kind} 공시에서 {names}의 상품을 찾지 못했어요. 금융감독원 공시에 없거나 이름이 달라서일 수 있어요.", "/general-savings")
+    shown = picked[:4] if picked else response.products[:3]
+    group_name = "저축은행" if group == "savings_bank" else "은행"
+    who = "질문에 나온 은행의 상품" if picked else "세후 만기금액이 큰 순서로 줄 세운 상위 3개(추천이 아니라 순서일 뿐)"
+    lines = [f"금융감독원에 공시된 {group_name} {kind} 상품 {response.count}개 중 {who}:"]
+    for index, item in enumerate(shown, 1):
+        top = f", 우대 포함 최고 연 {item.max_rate}%" if item.max_rate is not None and item.max_rate != item.base_rate else ""
+        lines.append(f"{index}. {item.company} {item.product_name}: 기본 연 {item.base_rate}%{top}, 세후 만기 {_won(item.base_after_tax)}(공시 {item.disclosed_month[:4]}.{item.disclosed_month[4:6]})")
+    if assumptions:
+        lines.append("가정: " + ", ".join(assumptions) + ".")
+    lines.append("우대금리 조건을 못 채우면 최고 금리를 못 받아요. 가입 조건과 한도는 상품마다 달라서 화면에서 확인해야 해요.")
+    return ToolResult("예적금 금리 조회", "\n".join(lines), "/general-savings")
+
+
+YOUTH_SAVINGS_TRIGGER = re.compile(r"청년\s*(미래\s*)?적금")
+YOUTH_SAVINGS_ASK = re.compile(r"금리|이자|이율|한도|납입|기간|기여금|정부|지원금|얼마|몇|조건|비과세|은행|가입")
+
+
+def youth_savings_tool(session: Session, text: str) -> ToolResult | None:
+    """청년미래적금's terms and each bank's base and highest rate, from the site's own official-product data."""
+    if not (YOUTH_SAVINGS_TRIGGER.search(text) and YOUTH_SAVINGS_ASK.search(text)):
+        return None
+    try:
+        data = SavingsService(session).get_products()
+    except SavingsDataError:
+        return None
+    policy, products = data.policy, data.products
+    bases = [product.base_rate for product in products]
+    highest = max(product.maximum_rate for product in products)
+    lines = [
+        f"{policy.name}: 가입 기간 {policy.term_months}개월, 한 달 납입 {_won(policy.minimum_monthly_amount)}~{_won(policy.maximum_monthly_amount)}, 연 납입 한도 {_won(policy.annual_limit)}.",
+        f"정부기여금은 일반형 {policy.general_contribution_rate:g}%, 우대형 {policy.preferred_contribution_rate:g}%이고 이자는 {'비과세' if policy.tax_exempt else '과세'}예요(확인일 {policy.source_date}).",
+        f"은행 {len(products)}곳의 기본금리는 연 {min(bases):g}%~{max(bases):g}%이고, 우대조건을 모두 채운 최고금리는 은행마다 달라 가장 높은 곳이 연 {highest:g}%예요.",
+    ]
+    for product in products[:4]:
+        lines.append(f"- {product.bank_name} {product.product_name}: 기본 연 {product.base_rate:g}%, 최고 연 {product.maximum_rate:g}%")
+    lines.append("내가 실제로 받는 금리는 우대조건을 얼마나 채우느냐에 따라 달라요. 은행 비교 화면에서 내 조건으로 계산할 수 있어요.")
+    return ToolResult("청년미래적금 조회", "\n".join(lines), "/banks")
+
+
 def run_tools(session: Session, message: str, history: list[str]) -> list[ToolResult]:
     """Results for what the question asks. `history` holds the visitor's earlier questions, oldest first."""
     earlier = [item for item in history if item.strip()][-3:]
@@ -208,10 +402,21 @@ def run_tools(session: Session, message: str, history: list[str]) -> list[ToolRe
 
     if (combined := triggered(LOAN_TRIGGER)) is not None:
         results.append(rent_loan_tool(session, combined))
+    elif (found := youth_savings_tool(session, text)) is not None:
+        results.append(found)
     elif (combined := triggered(YOUTH_TRIGGER)) is not None:
         results.append(youth_policy_tool(session, combined))
+    if (found := market_tool(session, text)) is not None:
+        results.append(found)
+    # A question about a product's disclosed rate is a lookup, not a calculation, unless the visitor gives a rate to calculate with.
+    looks_up_rates = False
+    if not any(result.title == "청년미래적금 조회" for result in results) and (combined := triggered(PRODUCT_RATE_TRIGGER)) is not None:
+        found = product_rate_tool(session, combined)
+        if found is not None:
+            results.append(found)
+            looks_up_rates = True
     savings_context = SAVINGS_TRIGGER.search(text) or (earlier and len(text) <= FOLLOW_UP_LENGTH and SAVINGS_TRIGGER.search(earlier[-1]))
-    if savings_context and (CALC_WORDS.search(text) or _amounts(text) or _rate(text) or _months(text)):
+    if savings_context and not looks_up_rates and (CALC_WORDS.search(text) or _rate(text)):
         calculated = savings_calc_tool(text, earlier)
         if calculated is not None:
             results.append(calculated)

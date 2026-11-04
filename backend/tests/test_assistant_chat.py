@@ -170,3 +170,36 @@ def test_saying_a_list_is_not_a_recommendation_is_allowed_but_recommending_is_no
     assert validate_answer("추천 순위가 아니라 조회 결과예요.", "전세대출", "") == []
     assert validate_answer("이 상품을 추천해요.", "전세대출", "") == ["사용할 수 없는 표현입니다: 추천"]
 
+
+
+def test_a_source_id_written_with_brackets_or_lowercase_still_counts() -> None:
+    from app.core.config import Settings
+    from app.services.assistant_chat import AnswerSource, answer_question
+
+    sources = {"T1": AnswerSource("전세자금대출 조회", "/rent-loans", None, "전세자금대출 조회 공시 금리는 연 4.00%부터 연 6.93%까지예요.")}
+    for written in ("[T1]", "t1", " T1 "):
+        reply = answer_question(
+            Settings(_env_file=None), "전세대출 금리 알려줘", "[T1] " + sources["T1"].content, lambda *_: {"answer": "공시 금리는 연 4.00%부터 6.93%까지예요.", "link_paths": [], "source_ids": [written]}, sources,
+        )
+        assert reply.source == "ai" and [item.title for item in reply.sources] == ["전세자금대출 조회"], written
+
+
+def test_a_plain_explanation_of_a_term_needs_no_source_but_a_claim_about_today_does() -> None:
+    explanation = "단리는 원금에만 이자가 붙고, 복리는 이자에도 이자가 붙는 방식이에요."
+    assert validate_citations(explanation, "단리랑 복리 차이가 뭐야?", []) == []
+    assert validate_citations("코스피가 크게 올랐어요.", "코스피 어때?", [])  # not a definition question
+    assert validate_citations("이자는 3.5%예요.", "단리가 뭐야?", [])  # a figure still needs a source
+
+
+def test_hello_and_thanks_are_answered_without_the_model_or_the_rate_limit(client: TestClient) -> None:
+    ask = _ask()
+    client.app.state.assistant_ask = ask
+
+    hello = client.post(URL, json={"message": "안녕!"}).json()
+    thanks = client.post(URL, json={"message": "고마워요"}).json()
+    question = client.post(URL, json={"message": "안녕하세요 월세 지원 알려줘"})
+
+    assert hello["source"] == "rule" and "머니독" in hello["answer"] and len(hello["suggestions"]) == 3
+    assert thanks["source"] == "rule" and "기뻐요" in thanks["answer"]
+    assert question.status_code == 200 and len(ask.calls) >= 1  # a greeting with a question still goes to the model
+    assert all(call["message"] == "안녕하세요 월세 지원 알려줘" for call in ask.calls)  # hello and thanks never did

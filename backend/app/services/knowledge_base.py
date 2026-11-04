@@ -28,6 +28,7 @@ from app.services.events import EVENTS
 from app.services.market_service import MarketService
 from app.services.news_digest import korea_today
 from app.services.openai_client import EMBEDDING_MODEL
+from app.services.glossary_facts import GLOSSARY
 from app.services.site_guide import GUIDE
 
 Embed = Callable[[list[str]], list[list[float]]]
@@ -215,9 +216,14 @@ def _event_documents(today: date) -> list[Document]:
     return documents
 
 
+def _glossary_documents() -> list[Document]:
+    """The 쉬운 용어 풀이 meanings, so "이자소득세는 얼마나 떼?" is answered from the same words the site uses."""
+    return [Document(f"glossary:{slug}", "glossary", f"용어 {name}", meaning, "/terms") for slug, name, meaning in GLOSSARY]
+
+
 def build_documents(session: Session, today: date | None = None) -> list[Document]:
     return [
-        *_guide_documents(), *_term_documents(session), *_digest_documents(session), *_market_documents(session),
+        *_guide_documents(), *_glossary_documents(), *_term_documents(session), *_digest_documents(session), *_market_documents(session),
         *_headline_documents(session, today or korea_today()), *_event_documents(today or korea_today()),
     ]
 

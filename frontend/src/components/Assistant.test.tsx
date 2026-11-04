@@ -140,9 +140,9 @@ describe('Assistant', () => {
     })))
     renderAssistant()
     await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
-    await user.click(within(screen.getByLabelText('질문 예시')).getByRole('button', { name: '적금 만기되면 목돈은 어디에 둬?' }))
+    await user.click(within(screen.getByLabelText('질문 예시')).getByRole('button', { name: '서울 월세 지원 정책 있어?' }))
 
-    expect(await screen.findByText(findAnswer('적금 만기되면 목돈은 어디에 둬?').text)).toBeInTheDocument()
+    expect(await screen.findByText(findAnswer('서울 월세 지원 정책 있어?').text)).toBeInTheDocument()
     expect(screen.getByText('질문과 딱 맞는 답은 찾지 못했어요. 비슷한 주제의 안내예요.')).toBeInTheDocument()  // it is not passed off as the answer
     expect(screen.queryByText(/답하기 어려워요/)).not.toBeInTheDocument()
   })
