@@ -170,7 +170,8 @@ def _market_documents(session: Session) -> list[Document]:
                 # Plain wording so "요즘 물가 얼마나 올랐어?" finds the figure, not only the release dates.
                 direction = "올랐" if item.value >= 0 else "내렸"
                 body += f" 요즘 물가는 1년 전 같은 달보다 {_number(abs(item.value))}% {direction}다는 뜻이에요."
-            body += f" {group.title} 지표, 한국은행 경제통계시스템(ECOS) 공식 통계. {group.note}"
+            origin = "미국 연방준비은행(FRED) 통계" if group.key == "us_stock" else "한국은행 경제통계시스템(ECOS) 공식 통계"
+            body += f" {group.title} 지표, {origin}. {group.note}"
             documents.append(Document(f"market:{item.code}", "market", f"시장 지표 {name}", body, "/market"))
     return documents
 

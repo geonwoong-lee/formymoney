@@ -18,7 +18,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.collectors.dart import BANK_CORPS, FILING_CORPS, DartError, fetch_filings, fetch_main_accounts
-from app.collectors.ecos import SERIES, EcosError, fetch_series
+from app.collectors.ecos import SERIES, EcosError, Series, fetch_series
+from app.collectors.fred import fetch_fred
 from app.collectors.finlife import GROUPS as FINLIFE_GROUPS, FinlifeError, ProductRate, fetch_products
 from app.collectors.finlife_loan import LoanRate, fetch_loans
 from app.collectors.youth_policy import YouthPolicy, YouthPolicyError, fetch_youth_policies
@@ -141,7 +142,12 @@ def refresh_knowledge(settings: Settings, session: Session, result: JobResult) -
 FetchSeries = Callable[..., list]
 
 
-def run_market_job(settings: Settings, session: Session, fetch: FetchSeries = fetch_series) -> JobResult:
+def fetch_any_series(api_key: str, series: Series, today) -> list:
+    """ECOS for most series; the US index closes come from FRED."""
+    return fetch_fred(series.stat_code, today) if series.source == "fred" else fetch_series(api_key, series, today)
+
+
+def run_market_job(settings: Settings, session: Session, fetch: FetchSeries = fetch_any_series) -> JobResult:
     result = JobResult("market")
     if not settings.ecos_api_key:
         result.attempted = 1
@@ -154,7 +160,7 @@ def run_market_job(settings: Settings, session: Session, fetch: FetchSeries = fe
         try:
             points = fetch(settings.ecos_api_key, series, today)
         except EcosError as error:
-            result.fail(f"ECOS:{series.code}", error)
+            result.fail(f"{series.source.upper()}:{series.code}", error)
             continue
         result.collected += len(points)
         result.saved += service.save(series.code, points)

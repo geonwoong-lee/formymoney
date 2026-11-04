@@ -49,6 +49,7 @@ export function AboutPage() {
       <h1>계산 기준과 출처</h1>
       <p className="lead">결과를 어떻게 계산했는지, 어떤 자료를 사용했고 무엇을 반영하지 않았는지 공개합니다. 낯선 말은 <Link to="/terms">쉬운 용어 풀이</Link>에서 찾아볼 수 있어요.</p>
       <p className="about-credit">은행 아이콘: <a href={LOGO_SOURCE_URL} target="_blank" rel="noreferrer">{LOGO_SOURCE_NAME} ↗</a>. 아이콘의 상표권은 각 은행에 있고, 이 사이트는 개인 포트폴리오로 은행과 제휴하거나 은행의 보증을 받은 것이 아닙니다. 아이콘이 없는 곳은 도트 은행 건물로 보여 줍니다.</p>
+      <p className="about-credit">미국 증시 지수(나스닥 종합, S&amp;P 500, 다우존스): <a href="https://fred.stlouisfed.org/" target="_blank" rel="noreferrer">미국 세인트루이스 연방준비은행 FRED ↗</a>가 제공하는 미국 거래일 종가이고 하루쯤 늦게 올라와요. 지수의 권리는 각 지수 산출 기관에 있어요. 청년정책은 <a href="https://www.youthcenter.go.kr/" target="_blank" rel="noreferrer">온통청년 ↗</a>의 공개 Open API를 사용해요.</p>
 
       <div className="about-warning" role="note">
         <strong>의사결정 참고 자료입니다.</strong>
