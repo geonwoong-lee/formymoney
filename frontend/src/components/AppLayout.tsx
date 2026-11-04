@@ -7,6 +7,7 @@ import maturityIcon from '../assets/icons/maturity-keys.png'
 import generalSavingsIcon from '../assets/icons/general-savings-search.png'
 import mySavingsIcon from '../assets/icons/my-savings-notebook.png'
 import rentLoansIcon from '../assets/icons/rent-loan-folder.png'
+import youthPoliciesIcon from '../assets/icons/youth-policy-people.png'
 import startLogo from '../assets/icons/start-logo.svg'
 import { PAGE_EVENTS, track } from '../features/analytics'
 import { AnalyticsConsentBar } from './AnalyticsConsent'
@@ -14,7 +15,7 @@ import { Assistant } from './Assistant'
 import { StickyNote } from './StickyNote'
 import { RetroUtilityApp, type UtilityId } from './RetroUtilityApps'
 
-type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'maturity' | 'about' | 'daily' | 'market' | 'mySavings' | 'generalSavings' | 'rentLoans'
+type IconKind = 'home' | 'conditions' | 'banks' | 'cashflow' | 'alternatives' | 'maturity' | 'about' | 'daily' | 'market' | 'mySavings' | 'generalSavings' | 'rentLoans' | 'youthPolicies'
 interface DesktopApp { to: string; label: string; windowTitle: string; icon: IconKind }
 interface UtilityAppDefinition { id: UtilityId; label: string; windowTitle: string }
 interface Rect { x: number; y: number; width: number; height: number }
@@ -26,6 +27,7 @@ const desktopApps: DesktopApp[] = [
   { to: '/my-savings', label: '내 적금', windowTitle: '내 적금', icon: 'mySavings' },
   { to: '/general-savings', label: '적금 찾기', windowTitle: '일반 적금 비교', icon: 'generalSavings' },
   { to: '/rent-loans', label: '전세대출', windowTitle: '전세자금대출 비교', icon: 'rentLoans' },
+  { to: '/youth-policies', label: '청년정책', windowTitle: '청년정책 찾기', icon: 'youthPolicies' },
   { to: '/cashflow', label: '납입 계획', windowTitle: '월별 납입 계획', icon: 'cashflow' },
   { to: '/alternatives', label: '대안 비교', windowTitle: '같은 돈, 다른 선택', icon: 'alternatives' },
   { to: '/maturity', label: '만기 후 계획', windowTitle: '만기 후 계획', icon: 'maturity' },
@@ -47,12 +49,11 @@ const SYSTEM_APPS = ['/', '/about']
 
 function getCurrentApp(pathname: string) {
   if (pathname.startsWith('/banks/')) return { ...desktopApps[2], windowTitle: '은행 상세 정보' }
-  if (pathname === '/youth-policies') return { ...desktopApps[4], to: pathname, label: '청년정책 찾기', windowTitle: '청년정책 찾기' }
   if (pathname === '/share') return { ...desktopApps[2], windowTitle: '공유받은 은행 비교' }
   return desktopApps.find((app) => app.to === pathname) ?? desktopApps[0]
 }
 
-const SINGLE_ICONS: Partial<Record<IconKind, string>> = { daily: dailyIcon, market: marketIcon, maturity: maturityIcon, mySavings: mySavingsIcon, generalSavings: generalSavingsIcon, rentLoans: rentLoansIcon }
+const SINGLE_ICONS: Partial<Record<IconKind, string>> = { daily: dailyIcon, market: marketIcon, maturity: maturityIcon, mySavings: mySavingsIcon, generalSavings: generalSavingsIcon, rentLoans: rentLoansIcon, youthPolicies: youthPoliciesIcon }
 
 function PixelIcon({ kind, className = '' }: { kind: IconKind; className?: string }) {
   return <span className={`pixel-icon pixel-icon--${kind} ${className}`.trim()} style={{ backgroundImage: `url("${SINGLE_ICONS[kind] ?? dashboardSprite}")` }} aria-hidden="true" />
