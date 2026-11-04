@@ -3,12 +3,12 @@
 .sticky-stub {
   position: absolute;
   top: 12px;
-  left: 192px;
+  left: calc(14px + var(--desk-side, 258px) + 26px);
   z-index: 2;
 }
 
 .sticky-note {
-  width: min(780px, calc(100% - 216px));
+  width: min(780px, calc(100% - var(--desk-side, 258px) - 64px));
   border: 2px solid;
   border-color: var(--panel-light) var(--panel-dark) var(--panel-dark) var(--panel-light);
   background: #ffffa8;

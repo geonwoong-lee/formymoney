@@ -11,7 +11,8 @@
 .retro-workspace {
   position: relative;
   display: grid;
-  grid-template-columns: 172px minmax(0, 1fr);
+  --desk-side: 258px;
+  grid-template-columns: var(--desk-side) minmax(0, 1fr);
   gap: 26px;
   min-height: calc(100vh - 40px);
   padding: 18px 24px 36px 14px;
@@ -29,15 +30,29 @@
 
 .desktop-icons__group {
   display: grid;
-  grid-template-columns: repeat(2, 78px);
+  grid-template-columns: repeat(3, 78px);
   grid-auto-rows: 72px;
   gap: 8px 6px;
 }
 
-/* The start page, the calculation notes and the folder sit apart from the screens, like system icons. */
-.desktop-icons__group--system {
-  padding-bottom: 12px;
-  border-bottom: 1px dotted rgb(255 255 255 / 55%);
+/* Groups of the same kind of screen are set apart by a dotted line, like folders of a desktop. */
+.desktop-icons__group + .desktop-icons__group {
+  padding-top: 12px;
+  border-top: 1px dotted rgb(255 255 255 / 55%);
+}
+
+/* The window starts under the post-it (or its stub) instead of floating up over it on short screens. */
+@media (min-width: 721px) {
+  .retro-workspace:has(.sticky-note) .main-window { align-self: start; margin-top: 82px; min-height: min(660px, calc(100vh - 176px)); }
+  .retro-workspace:has(.sticky-stub) .main-window { align-self: start; margin-top: 40px; min-height: min(660px, calc(100vh - 134px)); }
+}
+
+/* Short screens: tighter icons so the last group stays clear of the dog that sits at the bottom left. */
+@media (min-width: 721px) and (max-height: 760px) {
+  .desktop-icons { gap: 6px; }
+  .desktop-icons__group { grid-auto-rows: 64px; gap: 4px 6px; }
+  .desktop-icons__group + .desktop-icons__group { padding-top: 6px; }
+  .desktop-icons .desktop-glyph { width: 40px; height: 40px; }
 }
 
 .desktop-shortcut {
@@ -644,9 +659,9 @@
     display: contents;
   }
 
-  .desktop-icons__group--system {
-    padding-bottom: 0;
-    border-bottom: 0;
+  .desktop-icons__group + .desktop-icons__group {
+    padding-top: 0;
+    border-top: 0;
   }
 
   .desktop-shortcut {

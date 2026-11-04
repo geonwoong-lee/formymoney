@@ -25,15 +25,15 @@ const desktopApps: DesktopApp[] = [
   { to: '/conditions', label: '내 조건', windowTitle: '내 조건 입력', icon: 'conditions' },
   { to: '/banks', label: '은행 비교', windowTitle: '은행 비교 탐색기', icon: 'banks' },
   { to: '/my-savings', label: '내 적금', windowTitle: '내 적금', icon: 'mySavings' },
-  { to: '/general-savings', label: '적금 찾기', windowTitle: '일반 적금 비교', icon: 'generalSavings' },
-  { to: '/rent-loans', label: '전세대출', windowTitle: '전세자금대출 비교', icon: 'rentLoans' },
-  { to: '/youth-policies', label: '청년정책', windowTitle: '청년정책 찾기', icon: 'youthPolicies' },
   { to: '/cashflow', label: '납입 계획', windowTitle: '월별 납입 계획', icon: 'cashflow' },
-  { to: '/alternatives', label: '대안 비교', windowTitle: '같은 돈, 다른 선택', icon: 'alternatives' },
   { to: '/maturity', label: '만기 후 계획', windowTitle: '만기 후 계획', icon: 'maturity' },
-  { to: '/about', label: '계산 기준', windowTitle: '계산 기준 및 출처', icon: 'about' },
+  { to: '/alternatives', label: '대안 비교', windowTitle: '같은 돈, 다른 선택', icon: 'alternatives' },
+  { to: '/general-savings', label: '적금 찾기', windowTitle: '일반 적금 비교', icon: 'generalSavings' },
+  { to: '/youth-policies', label: '청년정책', windowTitle: '청년정책 찾기', icon: 'youthPolicies' },
+  { to: '/rent-loans', label: '전세대출', windowTitle: '전세자금대출 비교', icon: 'rentLoans' },
   { to: '/daily', label: '오늘의 머니', windowTitle: '오늘의 머니', icon: 'daily' },
   { to: '/market', label: '시장 지표', windowTitle: '시장 지표', icon: 'market' },
+  { to: '/about', label: '계산 기준', windowTitle: '계산 기준 및 출처', icon: 'about' },
 ]
 
 const utilityApps: UtilityAppDefinition[] = [
@@ -44,8 +44,13 @@ const utilityApps: UtilityAppDefinition[] = [
   { id: 'minesweeper', label: '지뢰찾기', windowTitle: '지뢰찾기' },
 ]
 
-// Shown apart from the screens: the start page and the page about how everything is calculated (plus 내 폴더, which is a utility).
-const SYSTEM_APPS = ['/', '/about']
+// Desktop icons grouped by what they are for. Each group sits apart from the next, separated by a dotted line.
+const DESKTOP_GROUPS: { label: string; paths: string[] }[] = [
+  { label: '내 적금 관리', paths: ['/conditions', '/banks', '/my-savings', '/cashflow', '/maturity'] },
+  { label: '상품 탐색', paths: ['/alternatives', '/general-savings'] },
+  { label: '부가 서비스', paths: ['/youth-policies', '/rent-loans'] },
+  { label: '오늘의 시장', paths: ['/daily', '/market'] },
+]
 
 function getCurrentApp(pathname: string) {
   if (pathname.startsWith('/banks/')) return { ...desktopApps[2], windowTitle: '은행 상세 정보' }
@@ -239,13 +244,14 @@ export function AppLayout({ children }: PropsWithChildren) {
     <div className="retro-desktop">
       <main className="retro-workspace" ref={workspaceRef} onPointerDown={startSelection} onPointerMove={moveSelection} onPointerUp={() => window.setTimeout(() => setSelection(null), 90)} onPointerCancel={() => setSelection(null)}>
         <nav className="desktop-icons" aria-label="바탕화면 바로가기">
-          <div className="desktop-icons__group desktop-icons__group--system">
-            {desktopApps.filter((app) => SYSTEM_APPS.includes(app.to)).map(renderShortcut)}
+          <div className="desktop-icons__group" role="group" aria-label="시스템">
+            {desktopApps.filter((app) => app.to === '/').map(renderShortcut)}
             {utilityApps.filter((app) => app.id === 'folder').map((app) => <button className="desktop-shortcut desktop-shortcut--button" type="button" key={app.id} onClick={() => openUtility(app.id)}><UtilityGlyph kind={app.id} className="desktop-glyph" /><span className="desktop-shortcut__label">{app.label}</span></button>)}
+            {desktopApps.filter((app) => app.to === '/about').map(renderShortcut)}
           </div>
-          <div className="desktop-icons__group">
-            {desktopApps.filter((app) => !SYSTEM_APPS.includes(app.to)).map(renderShortcut)}
-          </div>
+          {DESKTOP_GROUPS.map((group) => <div className="desktop-icons__group" role="group" aria-label={group.label} key={group.label}>
+            {group.paths.map((path) => desktopApps.find((app) => app.to === path)).filter((app): app is DesktopApp => app !== undefined).map(renderShortcut)}
+          </div>)}
         </nav>
         <StickyNote />
         {selection && <span className="desktop-selection" style={{ left: selection.x, top: selection.y, width: selection.width, height: selection.height }} aria-hidden="true" />}
