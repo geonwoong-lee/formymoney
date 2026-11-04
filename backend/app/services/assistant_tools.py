@@ -25,6 +25,7 @@ from app.schemas.savings import Answer, CalculationRequest, CashflowCalculationR
 from app.schemas.youth_policies import YouthPoliciesRequest
 from app.services.loan_service import loan_products
 from app.services.market_service import MarketService
+from app.services.product_rate_service import ProductRateService
 from app.services.maturity_service import deposit_products, saving_products
 from app.services.savings_service import SavingsDataError, SavingsInputError, SavingsService
 from app.services.youth_policy_service import youth_policies
@@ -397,8 +398,22 @@ PERSONAL_RESULT = re.compile(r"얼마|언제|몇|계산|만기|예상|남았|받
 PERSONAL_HOWTO = re.compile(r"어디(에|서)|입력해|입력하|알림|방법|어떻게\s*(받|입력|확인|보)")
 
 
+# Starred products and the visitor's own bank are personal too: "관심 등록한 상품 금리 바뀐 거 있어?"
+WATCH_ASK = re.compile(
+    r"관심\s*(등록|상품|있는|목록)|찜|즐겨\s*찾|별표|지켜보|내가\s*(골라|담|등록)"
+    r"|내\s*(거래\s*)?은행.{0,12}(금리|상품).{0,12}(바뀌|바뀐|변|올|내)"
+)
+# "왜 내 예상 금리가 5%야?": the visitor wants the conditions behind the figure.
+REASON_ASK = re.compile(r"왜|이유|어떻게 나온|어째서|근거|뭐가 (붙|더해|반영)|어떤 조건|우대\s*(금리|조건)")
+ANSWER_LABELS = {Answer.yes: "충족", Answer.no: "미충족", Answer.unknown: "모름"}
+
+
 def is_about_me(text: str) -> bool:
+    if WATCH_ASK.search(text):
+        return True
     return bool(PERSONAL_MARKER.search(text) and PERSONAL_RESULT.search(text) and not PERSONAL_HOWTO.search(text))
+
+
 CONTRIBUTION_LABELS = {"general": "일반형", "preferred": "우대형"}
 
 
@@ -408,7 +423,7 @@ def _add_months(start: str, months: int) -> tuple[int, int]:
     return index // 12, index % 12 + 1
 
 
-def my_plan_tool(session: Session, profile: AssistantProfile | None, today: date) -> ToolResult:
+def my_plan_tool(session: Session, profile: AssistantProfile | None, today: date, explain: bool = False) -> ToolResult:
     """The visitor's own 청년미래적금 plan worked out with the site's calculators, from what they typed on this device."""
     empty = ToolResult("내 정보 조회", "저장된 내 정보가 없어요. 내 조건 화면에서 거래 은행과 월 납입액을 입력하면 내 숫자로 계산해 드려요.", "/conditions")
     if profile is None or not profile.bank_code or not profile.monthly_amount:
@@ -462,7 +477,42 @@ def my_plan_tool(session: Session, profile: AssistantProfile | None, today: date
         )
     yes, no = list(answers.values()).count(Answer.yes), list(answers.values()).count(Answer.no)
     lines.append(f"우대조건은 충족 {yes}개, 미충족 {no}개, 모름 {len(answers) - yes - no}개로 계산했어요. 모름은 금리에 더하지 않아요.")
+    if explain:
+        cap = fixed.maximum_rate - fixed.base_rate
+        lines.append(f"예상 금리 연 {fixed.expected_rate:g}%는 기본금리 {fixed.base_rate:g}%에 우대조건에서 붙은 {fixed.applied_bonus_rate:g}%p를 더한 값이에요(이 은행 우대 한도 {cap:g}%p). 조건별로 보면:")
+        for condition in fixed.conditions:
+            lines.append(
+                f"- {condition.title}: 내 답 {ANSWER_LABELS[condition.answer]}, 붙은 우대 {condition.applied_bonus_rate:g}%p"
+                f"(조건을 채우면 최대 {condition.bonus_rate:g}%p). {condition.reason}"
+            )
     return ToolResult("내 정보 계산", "\n".join(lines), "/conditions")
+
+
+def my_watch_tool(session: Session, profile: AssistantProfile | None) -> ToolResult:
+    """Rate moves since the previous collection day for the products the visitor starred and for their own bank."""
+    watched = [(item.kind, item.company, item.product_code) for item in (profile.watch if profile else [])]
+    bank_code = profile.bank_code if profile else None
+    if not watched and not bank_code:
+        return ToolResult("관심 상품 조회", "관심 등록한 상품이 없어요. 적금 찾기나 예금 목록에서 상품의 별표를 누르면 금리가 바뀔 때 알려 드려요.", "/general-savings")
+    alerts = ProductRateService(session).alerts(bank_code, watched)
+    if not alerts["latestDay"] or not alerts["previousDay"]:
+        return ToolResult("관심 상품 조회", "금리 공시를 두 번 이상 수집해야 바뀐 것을 비교할 수 있어요. 아직 비교할 이전 자료가 없어요.", "/general-savings")
+
+    def describe(change: dict) -> str:
+        move = "올랐어요" if Decimal(change["changePoint"]) > 0 else "내렸어요"
+        term = f" {change['termMonths']}개월" if change.get("termMonths") else ""
+        return f"- {change['company']} {change['productName']}{term} {change['fieldLabel']}: 연 {change['before']}%에서 {change['after']}%로 {abs(Decimal(change['changePoint']))}%p {move}"
+
+    lines = [f"금융감독원 공시 금리를 {alerts['previousDay']}과 {alerts['latestDay']}로 비교했어요."]
+    own = alerts["watched"]
+    lines.append(f"관심 등록한 상품 {len(watched)}개 중 금리가 바뀐 것은 {len(own)}건이에요." if watched else "관심 등록한 상품은 없어요.")
+    lines += [describe(change) for change in own[:5]]
+    bank = alerts["bank"]
+    if bank:
+        lines.append(f"내 거래 은행({bank['company']})의 공시 상품 중 금리가 바뀐 것은 {len(bank['changes'])}건이에요.")
+        lines += [describe(change) for change in bank["changes"][:3]]
+    lines.append("금리가 바뀐 것을 알려 드릴 뿐 갈아타라는 뜻이 아니에요. 우대 조건과 가입 한도는 상품 상세에서 확인해야 해요.")
+    return ToolResult("관심 상품 조회", "\n".join(lines), "/my-savings")
 
 
 def run_tools(session: Session, message: str, history: list[str], profile: AssistantProfile | None = None, today: date | None = None) -> list[ToolResult]:
@@ -470,8 +520,10 @@ def run_tools(session: Session, message: str, history: list[str], profile: Assis
     earlier = [item for item in history if item.strip()][-3:]
     text = " ".join(message.split())
     results: list[ToolResult] = []
-    if is_about_me(text):
-        results.append(my_plan_tool(session, profile, today or datetime.now(ZoneInfo("Asia/Seoul")).date()))
+    if WATCH_ASK.search(text):
+        results.append(my_watch_tool(session, profile))
+    elif is_about_me(text):
+        results.append(my_plan_tool(session, profile, today or datetime.now(ZoneInfo("Asia/Seoul")).date(), bool(REASON_ASK.search(text))))
 
     def triggered(trigger: re.Pattern[str]) -> str | None:
         if trigger.search(text):

@@ -132,7 +132,7 @@ def test_a_refusal_that_says_it_cannot_recommend_is_not_rejected(client: TestCli
     assert (body["source"], len(ask.calls)) == ("ai", 1)
 
     client.app.state.assistant_ask = _ask(answer="이 예금을 추천드려요.")
-    assert client.post(URL, json={"message": "적금 만기되면 목돈은 어디에 둬?"}).json()["source"] == "unavailable"
+    assert client.post(URL, json={"message": "만기가 지나면 목돈은 어디에 두나요?"}).json()["source"] == "unavailable"
 
 
 @pytest.mark.parametrize("answer", [
@@ -237,3 +237,59 @@ def test_list_items_are_one_style_one_per_line_and_markdown_marks_are_dropped() 
 
     assert plain_text(written) == "서울에는 이런 정책이 있어요.\n- 서울 청년 월세 지원: 월 20만원\n- 청년 취업 수당\n- 학자금 이자 지원"
     assert plain_text("가격은 3*4예요.") == "가격은 3*4예요."  # a star inside a sentence is left alone
+
+
+def test_a_plain_question_asked_again_is_answered_from_memory_but_personal_ones_never_are(client: TestClient) -> None:
+    ask = _ask(answer="월별 납입 계획에서 빠뜨린 달을 반영해 다시 계산해요.")
+    client.app.state.assistant_ask = ask
+    question = {"message": "이번 달 납입을 빠뜨리면 어떻게 돼?"}
+
+    first = client.post(URL, json=question).json()
+    again = client.post(URL, json={"message": "  이번  달 납입을 빠뜨리면 어떻게 돼?  "}).json()  # same words, other spacing
+    assert first == again and len(ask.calls) == 1
+
+    client.post(URL, json={**question, "history": [{"role": "user", "text": "안녕"}, {"role": "assistant", "text": "안녕하세요"}]})
+    client.post(URL, json={**question, "profile": {"bankCode": "kb", "monthlyAmount": 300000}})
+    assert len(ask.calls) == 3  # a conversation or a visitor's plan is never served from, or saved to, the shared memory
+
+
+def test_only_answers_the_model_wrote_are_remembered_and_they_expire() -> None:
+    from app.services.answer_cache import AnswerCache, cache_key
+    from app.services.assistant_chat import AssistantReply
+
+    now = [0.0]
+    cache = AnswerCache(ttl_seconds=60, max_entries=2, clock=lambda: now[0])
+    reply = AssistantReply("답", [], "ai")
+    cache.put(cache_key("가"), reply)
+    assert cache.get(cache_key(" 가 ")) is reply
+    now[0] = 61
+    assert cache.get(cache_key("가")) is None  # expired: rates and news move during the day
+    now[0] = 0
+    for name in ("나", "다", "라"):
+        cache.put(cache_key(name), reply)
+    assert cache.get(cache_key("나")) is None and cache.get(cache_key("라")) is reply  # the oldest is dropped when full
+
+
+def test_unavailable_answers_are_not_remembered_so_a_retry_can_succeed(client: TestClient) -> None:
+    client.app.state.assistant_ask = _ask(answer="이 예금을 추천드려요.")
+    assert client.post(URL, json={"message": "예금이 뭐야?"}).json()["source"] == "unavailable"
+
+    ask = _ask(answer="예금은 목돈을 한 번에 맡기고 이자를 받는 상품이에요.")
+    client.app.state.assistant_ask = ask
+    retry = client.post(URL, json={"message": "예금이 뭐야?"}).json()
+
+    assert retry["source"] == "ai" and len(ask.calls) == 1  # the earlier failure was not served again
+
+
+def test_a_calculation_is_answered_without_searching_the_knowledge_base(client: TestClient, monkeypatch) -> None:
+    from app.api.v1.endpoints import assistant as endpoint
+
+    searched: list[str] = []
+    monkeypatch.setattr(endpoint, "retrieve", lambda session, query, embed, today: searched.append(query) or [])
+    client.app.state.assistant_ask = lambda settings, context, message, feedback: {"answer": "만기에 받는 돈은 7,500,000원이에요.", "link_paths": [], "source_ids": ["T1"]}
+
+    calc = client.post(URL, json={"message": "월 30만원 24개월 연 4% 적금이면 얼마 받아?"}).json()
+    assert calc["source"] == "ai" and searched == []  # the calculator's result was enough: no embedding, no search
+
+    client.post(URL, json={"message": "코스피 얼마야?"})
+    assert searched == ["코스피 얼마야?"]  # a question that needs the searched reference text still searches

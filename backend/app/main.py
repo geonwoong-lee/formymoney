@@ -18,6 +18,7 @@ from app.db.session import (
     verify_database_connection,
 )
 from app.services.auth_gateway import AuthGateway, SupabaseAuthGateway
+from app.services.answer_cache import AnswerCache
 from app.services.rate_limiter import SlidingWindowLimiter
 
 
@@ -71,6 +72,7 @@ def create_app(
     )
     app.state.n8n_ingest_secret = n8n_ingest_secret or settings.n8n_ingest_secret
     app.state.assistant_limiter = SlidingWindowLimiter([(60, 5), (86_400, 60)])
+    app.state.assistant_cache = AnswerCache()
     app.state.analytics_limiter = SlidingWindowLimiter([(60, 60), (86_400, 2_000)])
 
     app.add_middleware(

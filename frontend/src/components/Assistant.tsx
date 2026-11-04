@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type PointerEvent as React
 import { useNavigate } from 'react-router-dom'
 import { ApiError, askAssistant, type AssistantTurn } from '../api/client'
 import { buildAssistantProfile, isAboutMe } from '../features/assistantProfile'
+import { loadWatchlist } from '../features/watchlist'
 import { loadDraft } from '../storage/draftStorage'
 import dogGlassesImage from '../assets/icons/moneydog-glasses.png'
 import dogImage from '../assets/icons/moneydog.png'
@@ -152,7 +153,7 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
     setAnswer(null)
     try {
       // The visitor's own plan goes along only when the question is about them.
-      const reply = await askAssistant(question, turns.current, isAboutMe(question) ? buildAssistantProfile(loadDraft()) : undefined)
+      const reply = await askAssistant(question, turns.current, isAboutMe(question) ? buildAssistantProfile(loadDraft(), loadWatchlist()) : undefined)
       if (current !== requestId.current) return
       // When the AI answer did not pass the server's checks, the built-in answer for the topic beats "can't answer".
       if (reply.source === 'unavailable' && fallback !== FALLBACK) setAnswer({ ...fallback, notice: SIMILAR_NOTICE })
