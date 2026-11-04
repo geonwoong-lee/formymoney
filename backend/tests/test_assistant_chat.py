@@ -228,3 +228,12 @@ def test_a_refusal_may_put_the_negation_a_few_words_after_the_word() -> None:
     wording = "Very Rich?는 상품을 추천하거나 미래 수익을 보장하지 않으니, 가입 전에 조건을 직접 확인해 주세요."
     assert validate_answer(wording, "이 상품 괜찮아?", "") == []
     assert validate_answer("이 상품을 추천해요. 지금 가입하면 좋아요.", "이 상품 괜찮아?", "") == ["사용할 수 없는 표현입니다: 추천"]
+
+
+def test_list_items_are_one_style_one_per_line_and_markdown_marks_are_dropped() -> None:
+    from app.services.assistant_chat import plain_text
+
+    written = "서울에는 이런 정책이 있어요.\n* **서울 청년 월세 지원**: 월 20만원\n• 청년 취업 수당\n- 학자금 이자 지원"
+
+    assert plain_text(written) == "서울에는 이런 정책이 있어요.\n- 서울 청년 월세 지원: 월 20만원\n- 청년 취업 수당\n- 학자금 이자 지원"
+    assert plain_text("가격은 3*4예요.") == "가격은 3*4예요."  # a star inside a sentence is left alone

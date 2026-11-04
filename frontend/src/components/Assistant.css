@@ -145,6 +145,7 @@
 
 .assistant-bubble__answer p {
   margin: 0 0 8px;
+  white-space: pre-line;  /* a list in an answer is one item per line */
 }
 
 .assistant-bubble__links {
