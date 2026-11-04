@@ -123,7 +123,7 @@ describe('Assistant', () => {
     expect(within(examples).getAllByRole('button')).toHaveLength(5)
     await user.click(within(examples).getByRole('button', { name: '다음 금통위 언제야?' }))
 
-    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toEqual({ message: '다음 금통위 언제야?' })
+    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toEqual({ message: '다음 금통위 언제야?', history: [] })
     expect(screen.getByRole('textbox')).toHaveValue('다음 금통위 언제야?')
     expect(await screen.findByText(/11월 26일/)).toBeInTheDocument()
     expect(screen.queryByLabelText('질문 예시')).not.toBeInTheDocument()
@@ -145,6 +145,30 @@ describe('Assistant', () => {
     expect(await screen.findByText(findAnswer('적금 만기되면 목돈은 어디에 둬?').text)).toBeInTheDocument()
     expect(screen.getByText('질문과 딱 맞는 답은 찾지 못했어요. 비슷한 주제의 안내예요.')).toBeInTheDocument()  // it is not passed off as the answer
     expect(screen.queryByText(/답하기 어려워요/)).not.toBeInTheDocument()
+  })
+
+  it('sends the earlier turns with a follow-up and offers questions to ask next', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(json({ answer: '서울에는 월세 지원 정책이 있어요.', links: [{ to: '/youth-policies', label: '청년정책 찾기' }], source: 'ai', suggestions: ['경기도는 어때?'] }))
+      .mockResolvedValueOnce(json({ answer: '경기도에도 있어요.', links: [], source: 'ai' }))
+    vi.stubGlobal('fetch', fetchMock)
+    renderAssistant()
+    await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
+    await user.type(screen.getByRole('textbox'), '서울 월세 지원 정책 있어?')
+    await user.click(screen.getByRole('button', { name: '찾기(S)' }))
+    await screen.findByText('서울에는 월세 지원 정책이 있어요.')
+
+    const first = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(first).toEqual({ message: '서울 월세 지원 정책 있어?', history: [] })
+
+    await user.click(within(screen.getByLabelText('이어서 물어보기')).getByRole('button', { name: '경기도는 어때?' }))
+    await screen.findByText('경기도에도 있어요.')
+    const second = JSON.parse((fetchMock.mock.calls[1] as unknown as [string, RequestInit])[1].body as string)
+    expect(second.history).toEqual([
+      { role: 'user', text: '서울 월세 지원 정책 있어?' },
+      { role: 'assistant', text: '서울에는 월세 지원 정책이 있어요.' },
+    ])
   })
 
   it('never recommends a product and says so', async () => {

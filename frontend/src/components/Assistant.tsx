@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ApiError, askAssistant } from '../api/client'
+import { ApiError, askAssistant, type AssistantTurn } from '../api/client'
 import dogGlassesImage from '../assets/icons/moneydog-glasses.png'
 import dogImage from '../assets/icons/moneydog.png'
 import dogReadImage from '../assets/icons/moneydog-read.png'
@@ -12,6 +12,7 @@ import './Assistant.css'
 
 const INTERNAL_PATH = /^\/[a-z-]+$/
 
+const MAX_TURNS = 6
 const SIMILAR_NOTICE = '질문과 딱 맞는 답은 찾지 못했어요. 비슷한 주제의 안내예요.'
 
 // A cited source opens our own page in place, a web article (https, or the http some publishers still use) in a new tab,
@@ -79,6 +80,8 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
   const [thinking, setThinking] = useState(false)
   const [pose, setPose] = useState(0)
   const requestId = useRef(0)
+  // The last few turns of this visit, sent along so a follow-up ("그럼 서울은?") makes sense. Kept in memory only.
+  const turns = useRef<AssistantTurn[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const drag = useRef<{ pointerId: number; startX: number; startY: number; baseX: number; baseY: number; moved: boolean } | null>(null)
   const justDragged = useRef(false)
@@ -141,15 +144,17 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
       setHappy(true)
       return
     }
+    const remember = (reply: string) => { turns.current = [...turns.current, { role: 'user' as const, text: question }, { role: 'assistant' as const, text: reply }].slice(-MAX_TURNS) }
     const current = ++requestId.current
     setThinking(true)
     setAnswer(null)
     try {
-      const reply = await askAssistant(question)
+      const reply = await askAssistant(question, turns.current)
       if (current !== requestId.current) return
       // When the AI answer did not pass the server's checks, the built-in answer for the topic beats "can't answer".
       if (reply.source === 'unavailable' && fallback !== FALLBACK) setAnswer({ ...fallback, notice: SIMILAR_NOTICE })
-      else setAnswer({ text: reply.answer, links: reply.links, ai: reply.source === 'ai', sources: reply.sources ?? [] })
+      else setAnswer({ text: reply.answer, links: reply.links, ai: reply.source === 'ai', sources: reply.sources ?? [], suggestions: reply.suggestions ?? [] })
+      if (reply.source === 'ai') remember(reply.answer)
     } catch (cause) {
       if (current !== requestId.current) return
       const busy = cause instanceof ApiError && cause.status === 429
@@ -241,6 +246,10 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
         <div className="assistant-bubble__links">
           {answer.links.map((link) => <button type="button" key={link.to} onClick={() => go(link.to)}>{link.label}</button>)}
         </div>
+        {answer.suggestions && answer.suggestions.length > 0 && <div className="assistant-bubble__examples" aria-label="이어서 물어보기">
+          <span>이어서 물어보세요</span>
+          {answer.suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => { setQuery(suggestion); void search(undefined, suggestion) }}>{suggestion}</button>)}
+        </div>}
       </div>}
       <span className="assistant-bubble__tail" aria-hidden="true" />
     </div>}

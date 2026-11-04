@@ -656,6 +656,13 @@ export interface AssistantChatResponse {
   source: 'ai' | 'rule' | 'unavailable'
   // What the AI answer was based on: site pages, terms, daily news digests or market values.
   sources?: { title: string; url: string | null; publishedOn: string | null }[]
+  // Questions worth asking next, chosen by the screen the answer points to.
+  suggestions?: string[]
+}
+
+export interface AssistantTurn {
+  role: 'user' | 'assistant'
+  text: string
 }
 
 export class ApiError extends Error {
@@ -893,11 +900,11 @@ export function calculateComparison(payload: {
   })
 }
 
-export function askAssistant(message: string, signal?: AbortSignal): Promise<AssistantChatResponse> {
+export function askAssistant(message: string, history: AssistantTurn[] = [], signal?: AbortSignal): Promise<AssistantChatResponse> {
   return request<AssistantChatResponse>('/api/v1/assistant/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, history }),
     signal,
   })
 }

@@ -11,6 +11,8 @@ export interface AssistantAnswer {
   notice?: string
   /** Knowledge chunks the AI answer cites. */
   sources?: AssistantSource[]
+  /** Follow-up questions offered under the answer. */
+  suggestions?: string[]
 }
 
 export interface AssistantSource {
