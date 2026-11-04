@@ -165,7 +165,7 @@ def test_product_rate_tool_lists_disclosed_rates_in_the_sites_order_or_for_a_nam
     assert top[0].content.index("국민은행") < top[0].content.index("하나은행")  # the site's order: more after-tax money first
     assert "가정: 맡기는 돈은 1,000만원으로 가정" in top[0].content
     assert "우리은행 우리 정기예금: 기본 연 3.00%, 우대 포함 최고 연 3.20%" in woori[0].content and "하나은행" not in woori[0].content
-    assert "신한은행의 상품을 찾지 못했어요" in missing[0].content
+    assert "신한의 상품을 찾지 못했어요" in missing[0].content
     assert [r.title for r in calculation] == ["이자 계산"]  # a stated rate means a calculation, not a rate lookup
 
 
@@ -205,3 +205,56 @@ def test_the_screen_a_cited_lookup_came_from_is_always_offered() -> None:
     )
 
     assert [path for path, _label in reply.links] == ["/banks", "/youth-policies"]
+
+
+def test_everyday_phrasings_reach_the_same_tools(client: TestClient) -> None:
+    from app.services.market_service import MarketService
+    from app.services.product_rate_service import ProductRateService
+
+    with client.app.state.session_factory() as session:
+        save_youth_policies(session, date(2026, 11, 4), [_policy("P1", "서울 청년 월세 지원"), _policy("P2", "청년 학자금 이자 지원", plcyKywdNm="학자금", lclsfNm="교육")])
+        save_loans(session, date(2026, 11, 4), [_loan("우리은행", "4.00", "4.70")])
+        ProductRateService(session).save_snapshot(date(2026, 11, 3), [_deposit("신한은행", "신한 정기예금", "3.10", "3.30")])
+        MarketService(session).save("usd_krw", [("20261103", Decimal("1341"))])
+
+        def titles(question: str) -> list[str]:
+            return [result.title for result in run_tools(session, question, [])]
+
+        for question in (
+            "월세 보조금 받을 수 있는 거 있나요", "집 구할 때 도와주는 제도 알려주세요", "서울 사는 취준생인데 받을 수 있는 혜택이 뭐가 있어",
+            "신혼부부 지원금 있어?", "대학생 학자금 도와주는 거 찾아줘",
+        ):
+            assert titles(question) == ["청년정책 조회"], question
+        for question in ("전세 3억 빌리면 이자가 얼마나 나와요?", "전월세 대출 어디가 싸?", "집 보증금 대출 이율 알려줘"):
+            assert titles(question) == ["전세자금대출 조회"], question
+        for question in ("예금 이자 많이 주는 곳 알려줘", "신한 정기예금 금리", "예금 금리 비교해줘"):
+            assert titles(question) == ["예적금 금리 조회"], question
+        assert titles("지금 달러 얼마예요") == ["시장 지표 조회"]
+        assert titles("청년 적금 정부 지원금 얼마 줘?") == ["청년미래적금 조회"]
+        assert titles("예금자보호제도가 뭐야?") == []  # "제도" alone is not a youth-policy question
+        assert titles("신한 정기예금 금리")  # an alias without 은행 finds the bank
+        shinhan = run_tools(session, "신한 정기예금 금리", [])[0].content
+        assert "신한은행 신한 정기예금" in shinhan
+
+
+def test_asking_how_to_apply_adds_the_application_details_of_the_top_policies(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        save_youth_policies(session, date(2026, 11, 4), [_policy("P1", "서울 청년 월세 지원", plcyAplyMthdCn="복지로에서 온라인 신청", srngMthdCn="소득 순으로 선정", aplyUrlAddr="https://apply.example.kr/1")])
+        detail = run_tools(session, "청년 월세 지원 신청 방법 알려줘", [])[0]
+        plain = run_tools(session, "청년 월세 지원 있어?", [])[0]
+
+    assert "신청 방법 복지로에서 온라인 신청" in detail.content and "선정 방법 소득 순으로 선정" in detail.content and "https://apply.example.kr/1" in detail.content
+    assert "신청 방법" not in plain.content  # a plain search stays a short list
+
+
+def test_the_policy_named_in_the_question_gets_the_details_not_just_the_one_due_first(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        save_youth_policies(session, date(2026, 11, 4), [
+            _policy("P1", "서울 청년 월세 특별지원", plcyAplyMthdCn="구청 방문 신청", aplyYmd="20261105 ~ 20261110"),  # due first
+            _policy("P2", "2026 청년 월세 지원", plcyAplyMthdCn="복지로에서 온라인 신청", srngMthdCn="소득 순으로 선정", aplyYmd="20261101 ~ 20261230"),
+        ])
+        detail = run_tools(session, "2026 청년 월세 지원 자격이 어떻게 돼?", [])[0]
+
+    after_heading = detail.content.split("자세히 적어요")[1]
+    assert after_heading.index("2026 청년 월세 지원: ") < after_heading.index("서울 청년 월세 특별지원: ")  # named policy first
+    assert "복지로에서 온라인 신청" in after_heading
