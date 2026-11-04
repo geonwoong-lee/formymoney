@@ -364,7 +364,8 @@ def product_rate_tool(session: Session, text: str) -> ToolResult | None:
     return ToolResult("예적금 금리 조회", "\n".join(lines), "/general-savings")
 
 
-YOUTH_SAVINGS_TRIGGER = re.compile(r"청년\s*(미래\s*)?적금")
+# "은행별 기본금리" with no product named is the site's own comparison, 청년미래적금 at the 14 banks.
+YOUTH_SAVINGS_TRIGGER = re.compile(r"청년\s*(미래\s*)?적금|은행별\s*(기본\s*)?(금리|이율)|은행\s*(별로|마다)\s*(기본\s*)?(금리|이율)")
 YOUTH_SAVINGS_ASK = re.compile(r"금리|이자|이율|한도|납입|기간|기여금|정부|지원금|얼마|몇|조건|비과세|은행|가입")
 
 

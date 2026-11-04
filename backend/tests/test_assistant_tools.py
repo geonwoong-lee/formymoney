@@ -337,3 +337,12 @@ def test_only_a_question_about_the_visitors_own_result_reads_their_plan() -> Non
         assert is_about_me(question), question
     for question in ("내 조건은 어디에 입력해?", "내 적금 만기 알림은 어떻게 받아?", "이번 달 납입을 못 했는데 어떻게 계산돼?", "코스피 얼마야?", "청년미래적금 금리가 몇 퍼센트야?"):
         assert not is_about_me(question), question
+
+
+def test_bank_by_bank_rates_without_a_product_name_mean_the_sites_youth_savings_comparison(client: TestClient) -> None:
+    with client.app.state.session_factory() as session:
+        asked = run_tools(session, "은행별 기본금리가 어떻게 돼?", [])
+        deposit = run_tools(session, "은행마다 정기예금 금리가 달라?", [])
+
+    assert [result.title for result in asked] == ["청년미래적금 조회"]
+    assert "청년미래적금 조회" not in [result.title for result in deposit]  # naming 예금 keeps it a deposit question

@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.schemas.assistant_profile import AssistantProfile
 from app.schemas.daily_briefing import CamelModel
 from app.services.assistant_chat import (
-    RECOMMEND_PATTERN,
+    asks_for_recommendation,
     small_talk,
     AnswerSource,
     AssistantReply,
@@ -80,7 +80,7 @@ def chat_with_assistant(payload: AssistantChatRequest, request: Request) -> Assi
     settings = request.app.state.settings
     ask = getattr(request.app.state, "assistant_ask", _call)
     # Recommendation questions are answered by a fixed rule and never reach the model or the rate limit.
-    if small_talk(payload.message) is not None or RECOMMEND_PATTERN.search(" ".join(payload.message.split())):
+    if small_talk(payload.message) is not None or asks_for_recommendation(" ".join(payload.message.split())):
         return _response(answer_question(settings, payload.message, "", ask))
     if not settings.openai_api_key and not hasattr(request.app.state, "assistant_ask"):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="도우미 답변 기능이 설정되지 않았습니다.")

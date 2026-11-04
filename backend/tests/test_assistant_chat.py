@@ -213,3 +213,18 @@ def test_a_date_written_with_dots_may_be_read_as_year_month_day() -> None:
     assert validate_answer("신청은 2026년 2월 5일부터예요.", "기간", context) == ["참고 자료에 없는 숫자입니다: 2"]  # a month the date does not have
     assert validate_answer("금리는 연 3.60%예요.", "금리", "금리 3.60%") == []  # a rate is not a date
     assert validate_answer("금리는 연 2026%예요.", "금리", "공시 2026.10") == []  # known and harmless: the year is in the text
+
+
+def test_asking_for_information_instead_of_a_recommendation_is_not_a_request_for_one() -> None:
+    from app.services.assistant_chat import asks_for_recommendation
+
+    for question in ("추천이 아니라 그냥 정보로 알려줘, 은행별 기본금리가 어떻게 돼?", "추천 말고 비교만 보여줘", "추천은 필요 없고 금리만 알려줘"):
+        assert not asks_for_recommendation(question), question
+    for question in ("어떤 적금을 추천해?", "추천해줘", "가장 좋은 은행이 어디야?", "추천 말고도 하나 추천해줘"):
+        assert asks_for_recommendation(question), question
+
+
+def test_a_refusal_may_put_the_negation_a_few_words_after_the_word() -> None:
+    wording = "Very Rich?는 상품을 추천하거나 미래 수익을 보장하지 않으니, 가입 전에 조건을 직접 확인해 주세요."
+    assert validate_answer(wording, "이 상품 괜찮아?", "") == []
+    assert validate_answer("이 상품을 추천해요. 지금 가입하면 좋아요.", "이 상품 괜찮아?", "") == ["사용할 수 없는 표현입니다: 추천"]
