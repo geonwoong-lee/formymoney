@@ -143,7 +143,7 @@ export function MaturityPage() {
       .then((products) => calculateSavings({
         monthlyAmount: draft.plan.monthlyAmount ?? 0,
         contributionType: draft.plan.contributionType ?? 'general',
-        conditionAnswers: answersForApi(draft, products.products),
+        conditionAnswers: { [bankCode]: answersForApi(draft, products.products)[bankCode] ?? {} },  // only the bank being calculated
         bankCodes: [bankCode],
         currentBankCode: bankCode,
       }))

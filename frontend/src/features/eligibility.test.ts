@@ -114,3 +114,11 @@ describe('judge wording', () => {
     expect(served?.lines.at(-1)).toBe('우대형이 되려면: 중소기업에 재직 중이어야 해요.')
   })
 })
+
+import { objectMark } from './eligibility'
+
+describe('objectMark', () => {
+  it('picks 을 or 를 by the last syllable', () => {
+    expect(['총급여', '종합소득', '연매출'].map((word) => `${word}${objectMark(word)}`)).toEqual(['총급여를', '종합소득을', '연매출을'])
+  })
+})

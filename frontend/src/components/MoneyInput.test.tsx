@@ -30,4 +30,40 @@ describe('MoneyInput', () => {
     expect(seen.at(-1)).toBeNull()
     expect(input).toHaveAttribute('inputmode', 'numeric')
   })
+
+  it('reads a Korean amount as typed and shows it as #,##0 once the box is left', async () => {
+    const user = userEvent.setup()
+    const seen: (number | null)[] = []
+    render(<Harness seen={seen} />)
+    const input = screen.getByRole('textbox', { name: '금액' })
+
+    await user.type(input, '30만원')
+    expect(input).toHaveValue('30만원')  // left alone while the visitor is still writing
+    expect(seen.at(-1)).toBe(300_000)
+    await user.tab()
+    expect(input).toHaveValue('300,000')
+
+    await user.clear(input)
+    await user.type(input, '1.5억')
+    expect(seen.at(-1)).toBe(150_000_000)
+    await user.tab()
+    expect(input).toHaveValue('150,000,000')
+  })
+
+  it('takes full-width digits and goes back to plain formatting when the unit is deleted', async () => {
+    const user = userEvent.setup()
+    const seen: (number | null)[] = []
+    render(<Harness seen={seen} />)
+    const input = screen.getByRole('textbox', { name: '금액' })
+
+    await user.type(input, '３００００')
+    expect(input).toHaveValue('30,000')
+
+    await user.clear(input)
+    await user.type(input, '30만')
+    await user.keyboard('{Backspace}')
+    expect(input).toHaveValue('30')
+    expect(seen.at(-1)).toBe(30)
+  })
 })
+

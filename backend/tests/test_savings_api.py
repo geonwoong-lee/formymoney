@@ -236,3 +236,19 @@ def test_month_impact_rejects_invalid_requests(client: TestClient) -> None:
     assert _month_impact(client, reducedAmount=999).status_code == 422
     assert _month_impact(client, reducedAmount=250_001).status_code == 422
     assert _month_impact(client, monthlyAmounts=[500_000] * 35).status_code == 422
+
+
+def test_answers_for_banks_that_are_not_being_calculated_are_ignored_but_unknown_ones_are_rejected(client: TestClient) -> None:
+    products = client.get("/api/v1/savings/products").json()["products"]
+    answers = {item["bankCode"]: {condition["code"]: "yes" for condition in item["conditions"]} for item in products}
+
+    only_one = client.post("/api/v1/savings/calculate", json={
+        "monthlyAmount": 300000, "contributionType": "general", "conditionAnswers": answers, "bankCodes": ["kb"], "currentBankCode": "kb",
+    })
+    assert only_one.status_code == 200 and [item["bankCode"] for item in only_one.json()["results"]] == ["kb"]
+    assert only_one.json()["results"][0]["appliedBonusRate"] > 0  # kb's own answers were used
+
+    unknown = client.post("/api/v1/savings/calculate", json={
+        "monthlyAmount": 300000, "contributionType": "general", "conditionAnswers": {"no-such-bank": {}}, "bankCodes": ["kb"],
+    })
+    assert unknown.status_code in (400, 422) and "지원하지 않는 은행" in str(unknown.json())

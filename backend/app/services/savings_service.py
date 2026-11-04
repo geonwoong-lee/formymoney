@@ -62,7 +62,8 @@ class SavingsService:
             raise SavingsInputError("현재 거래 은행은 비교 대상 은행에 포함되어야 합니다.")
 
         selected_products = [product for product in products if product.bank_code in selected_codes]
-        self._validate_answer_codes(request, selected_products)
+        # Answers for a bank that is not being calculated are ignored, but an unknown bank or condition is still an input error.
+        self._validate_answer_codes(request, products)
         contribution_rate = self._contribution_rate(request.contribution_type, policy)
         results = [
             self._calculate_product(product, request, policy.term_months, contribution_rate)

@@ -1,31 +1,40 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { Route, Routes } from 'react-router-dom'
 import './App.css'
 import './pages/SavingsPages.css'
 import { AppLayout } from './components/AppLayout'
-import { AboutPage } from './pages/AboutPage'
-import { AlternativesPage } from './pages/AlternativesPage'
-import { BankDetailPage } from './pages/BankDetailPage'
-import { BanksPage } from './pages/BanksPage'
-import { CashflowPage } from './pages/CashflowPage'
-import { ConditionsPage } from './pages/ConditionsPage'
-import { DailyPage } from './pages/DailyPage'
-import { MarketPage } from './pages/MarketPage'
-import { MaturityPage } from './pages/MaturityPage'
-import { GeneralSavingsPage } from './pages/GeneralSavingsPage'
-import { AdminPage } from './pages/AdminPage'
-import { ProductDetailPage } from './pages/ProductDetailPage'
-import { RentLoansPage } from './pages/RentLoansPage'
-import { YouthPoliciesPage } from './pages/YouthPoliciesPage'
-import { TermsPage } from './pages/TermsPage'
-import { MySavingsPage } from './pages/MySavingsPage'
-import { SharePage } from './pages/SharePage'
 import { HomePage } from './pages/HomePage'
-import { AuthPage } from './pages/AuthPage'
-import { MyPage } from './pages/MyPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+
+// Every screen except the home one is fetched when it is first opened, so the first visit does not download all of them.
+function page<T extends Record<string, React.ComponentType>>(load: () => Promise<T>, name: keyof T) {
+  return lazy(async () => ({ default: (await load())[name] }))
+}
+
+const AboutPage = page(() => import('./pages/AboutPage'), 'AboutPage')
+const AlternativesPage = page(() => import('./pages/AlternativesPage'), 'AlternativesPage')
+const BankDetailPage = page(() => import('./pages/BankDetailPage'), 'BankDetailPage')
+const BanksPage = page(() => import('./pages/BanksPage'), 'BanksPage')
+const CashflowPage = page(() => import('./pages/CashflowPage'), 'CashflowPage')
+const ConditionsPage = page(() => import('./pages/ConditionsPage'), 'ConditionsPage')
+const DailyPage = page(() => import('./pages/DailyPage'), 'DailyPage')
+const MarketPage = page(() => import('./pages/MarketPage'), 'MarketPage')
+const MaturityPage = page(() => import('./pages/MaturityPage'), 'MaturityPage')
+const GeneralSavingsPage = page(() => import('./pages/GeneralSavingsPage'), 'GeneralSavingsPage')
+const AdminPage = page(() => import('./pages/AdminPage'), 'AdminPage')
+const ProductDetailPage = page(() => import('./pages/ProductDetailPage'), 'ProductDetailPage')
+const RentLoansPage = page(() => import('./pages/RentLoansPage'), 'RentLoansPage')
+const YouthPoliciesPage = page(() => import('./pages/YouthPoliciesPage'), 'YouthPoliciesPage')
+const TermsPage = page(() => import('./pages/TermsPage'), 'TermsPage')
+const MySavingsPage = page(() => import('./pages/MySavingsPage'), 'MySavingsPage')
+const SharePage = page(() => import('./pages/SharePage'), 'SharePage')
+const AuthPage = page(() => import('./pages/AuthPage'), 'AuthPage')
+const MyPage = page(() => import('./pages/MyPage'), 'MyPage')
 
 function App() {
   return (
     <AppLayout>
+      <Suspense fallback={<p className="page page--loading" role="status">화면을 불러오는 중이에요…</p>}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthPage />} />
@@ -47,8 +56,9 @@ function App() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/product" element={<ProductDetailPage />} />
         <Route path="/terms" element={<TermsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
     </AppLayout>
   )
 }

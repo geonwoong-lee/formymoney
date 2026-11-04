@@ -236,14 +236,33 @@ describe('Assistant', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
-  it('greets only on the first visit when asked to', () => {
+  it('shows a small tag, not an opened bubble, on the first visit only', async () => {
+    const user = userEvent.setup()
     const first = renderAssistant(true)
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()  // nothing is covered by an opened bubble
+    expect(screen.getByRole('status')).toHaveTextContent('궁금한 건 저한테 물어보세요')
     expect(window.localStorage.getItem(ASSISTANT_SEEN_KEY)).toBe('1')
+
+    await user.click(screen.getByRole('button', { name: '도우미에게 물어보기' }))
+    expect(screen.queryByText('궁금한 건 저한테 물어보세요!')).not.toBeInTheDocument()  // opening the dog ends the tag
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
     first.unmount()
 
     renderAssistant(true)
+    expect(screen.queryByText('궁금한 건 저한테 물어보세요!')).not.toBeInTheDocument()  // a returning visitor sees no tag
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('lets the tag go away by itself', () => {
+    vi.useFakeTimers()
+    try {
+      renderAssistant(true)
+      expect(screen.getByText('궁금한 건 저한테 물어보세요!')).toBeInTheDocument()
+      act(() => { vi.advanceTimersByTime(11_000) })
+      expect(screen.queryByText('궁금한 건 저한테 물어보세요!')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('closes the bubble with Escape', async () => {
