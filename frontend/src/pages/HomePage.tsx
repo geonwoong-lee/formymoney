@@ -1,31 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getHealth, type HealthResponse } from '../api/client'
 import { RateAlerts } from '../components/RateAlerts'
 import { isSignedIn } from '../storage/authStorage'
 
-type HealthState =
-  | { kind: 'loading' }
-  | { kind: 'ready'; data: HealthResponse }
-  | { kind: 'error'; message: string }
-
 export function HomePage() {
-  const [health, setHealth] = useState<HealthState>({ kind: 'loading' })
   const [signedIn] = useState(() => isSignedIn())
-
-  useEffect(() => {
-    const controller = new AbortController()
-
-    getHealth(controller.signal)
-      .then((data) => setHealth({ kind: 'ready', data }))
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-        const message = error instanceof Error ? error.message : '상태를 확인하지 못했습니다.'
-        setHealth({ kind: 'error', message })
-      })
-
-    return () => controller.abort()
-  }, [])
 
   return (
     <section className="page">
@@ -54,24 +33,6 @@ export function HomePage() {
         {signedIn
           ? <Link className="button button--secondary" to="/me">내 정보 보기</Link>
           : <Link className="button button--secondary" to="/auth">로그인 · 회원가입</Link>}
-      </div>
-      <div className="status-card" aria-live="polite">
-        <p className="status-card__label">개발 연결 상태</p>
-        {health.kind === 'loading' && (
-          <p className="status-card__value">
-            <span className="status-dot" /> 백엔드와 Supabase를 확인하는 중입니다.
-          </p>
-        )}
-        {health.kind === 'ready' && (
-          <p className="status-card__value">
-            <span className="status-dot status-dot--ok" /> FastAPI와 Supabase 연결 완료 · {health.data.referenceKey}
-          </p>
-        )}
-        {health.kind === 'error' && (
-          <p className="status-card__value">
-            <span className="status-dot status-dot--error" /> {health.message}
-          </p>
-        )}
       </div>
     </section>
   )

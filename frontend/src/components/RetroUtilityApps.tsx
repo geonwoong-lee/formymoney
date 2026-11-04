@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { emptyBoard, FINAL_LEVEL, isCleared, levelConfig, openCell, placeMines } from '../features/minesweeper'
 import './RetroUtilityApps.css'
 
 export type UtilityId = 'folder' | 'notepad' | 'paint' | 'calculator' | 'minesweeper'
@@ -133,18 +134,10 @@ function CalculatorApp() {
   )
 }
 
-interface MineCell { mine: boolean; revealed: boolean; flagged: boolean; nearby: number }
-const mineIndexes = new Set([4, 11, 18, 25, 31, 46, 57, 63, 76, 79])
-function makeBoard(): MineCell[] {
-  return Array.from({ length: 81 }, (_, index) => {
-    const row = Math.floor(index / 9); const col = index % 9; let nearby = 0
-    for (let y = Math.max(0, row - 1); y <= Math.min(8, row + 1); y += 1) for (let x = Math.max(0, col - 1); x <= Math.min(8, col + 1); x += 1) if (mineIndexes.has(y * 9 + x)) nearby += 1
-    return { mine: mineIndexes.has(index), revealed: false, flagged: false, nearby }
-  })
-}
-
 function MinesweeperApp() {
-  const [board, setBoard] = useState(makeBoard)
+  const [level, setLevel] = useState(1)
+  const { size, mines } = levelConfig(level)
+  const [board, setBoard] = useState(() => emptyBoard(size))
   const [status, setStatus] = useState<'ready' | 'playing' | 'won' | 'lost'>('ready')
   const [seconds, setSeconds] = useState(0)
   useEffect(() => {
@@ -152,29 +145,32 @@ function MinesweeperApp() {
     const timer = window.setInterval(() => setSeconds((value) => Math.min(999, value + 1)), 1000)
     return () => window.clearInterval(timer)
   }, [status])
-  function reset() { setBoard(makeBoard()); setStatus('ready'); setSeconds(0) }
+  function start(nextLevel: number) {
+    setLevel(nextLevel); setBoard(emptyBoard(levelConfig(nextLevel).size)); setStatus('ready'); setSeconds(0)
+  }
+  function reset() { start(level) }
+  function nextLevel() { start(Math.min(FINAL_LEVEL, level + 1)) }
   function reveal(index: number) {
     if (status === 'lost' || status === 'won' || board[index].flagged) return
-    const next = board.map((cell) => ({ ...cell })); const queue = [index]; const seen = new Set<number>()
-    while (queue.length) {
-      const current = queue.pop() as number
-      if (seen.has(current)) continue; seen.add(current); next[current].revealed = true
-      if (next[current].mine) { next.forEach((cell) => { if (cell.mine) cell.revealed = true }); setBoard(next); setStatus('lost'); return }
-      if (next[current].nearby === 0) {
-        const row = Math.floor(current / 9); const col = current % 9
-        for (let y = Math.max(0, row - 1); y <= Math.min(8, row + 1); y += 1) for (let x = Math.max(0, col - 1); x <= Math.min(8, col + 1); x += 1) { const neighbor = y * 9 + x; if (!next[neighbor].flagged) queue.push(neighbor) }
-      }
-    }
-    setBoard(next); setStatus(next.every((cell) => cell.mine || cell.revealed) ? 'won' : 'playing')
+    const ready = status === 'ready' ? placeMines(board, size, mines, index) : board
+    const { board: next, hitMine } = openCell(ready, size, index)
+    setBoard(next)
+    setStatus(hitMine ? 'lost' : isCleared(next) ? 'won' : 'playing')
   }
   function flag(index: number) { if (status === 'lost' || status === 'won' || board[index].revealed) return; setStatus((value) => value === 'ready' ? 'playing' : value); setBoard((current) => current.map((cell, cellIndex) => cellIndex === index ? { ...cell, flagged: !cell.flagged } : cell)) }
   const flags = board.filter((cell) => cell.flagged).length
+  const last = level >= FINAL_LEVEL
   return (
     <div className="minesweeper-app utility-app">
       <div className="utility-menubar"><button type="button" onClick={reset}>게임</button><span>도움말</span></div>
-      <div className="mine-counter"><span>{String(Math.max(0, 10 - flags)).padStart(3, '0')}</span><button type="button" aria-label="새 게임" onClick={reset}>{status === 'lost' ? '☹' : status === 'won' ? '😎' : '☺'}</button><span>{String(seconds).padStart(3, '0')}</span></div>
-      <div className="mine-board" role="grid" aria-label="9 곱하기 9 지뢰찾기 판">{board.map((cell, index) => <button type="button" role="gridcell" key={index} className={cell.revealed ? 'is-revealed' : ''} aria-label={`${Math.floor(index / 9) + 1}행 ${index % 9 + 1}열${cell.flagged ? ', 깃발' : ''}`} onClick={() => reveal(index)} onContextMenu={(event) => { event.preventDefault(); flag(index) }}>{cell.revealed ? cell.mine ? '✹' : cell.nearby || '' : cell.flagged ? '⚑' : ''}</button>)}</div>
-      <div className="utility-statusbar">왼쪽 클릭: 열기 · 오른쪽 클릭: 깃발</div>
+      <div className="mine-counter"><span>{String(Math.max(0, mines - flags)).padStart(3, '0')}</span><button type="button" aria-label={status === 'won' && !last ? '다음 레벨' : '새 게임'} onClick={status === 'won' && !last ? nextLevel : reset}>{status === 'lost' ? '☹' : status === 'won' ? '😎' : '☺'}</button><span>{String(seconds).padStart(3, '0')}</span></div>
+      <div className={`mine-board${size > 12 ? ' mine-board--dense' : ''}`} role="grid" aria-label={`${size} 곱하기 ${size} 지뢰찾기 판`} style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>{board.map((cell, index) => <button type="button" role="gridcell" key={index} className={cell.revealed ? 'is-revealed' : ''} aria-label={`${Math.floor(index / size) + 1}행 ${index % size + 1}열${cell.flagged ? ', 깃발' : ''}`} onClick={() => reveal(index)} onContextMenu={(event) => { event.preventDefault(); flag(index) }}>{cell.revealed ? cell.mine ? '✹' : cell.nearby || '' : cell.flagged ? '⚑' : ''}</button>)}</div>
+      {status === 'won' && <div className="mine-banner" role="status">
+        <span>{last ? `레벨 ${level} 클리어! 마지막 레벨까지 다 풀었어요.` : `레벨 ${level} 클리어!`}</span>
+        {!last && <button type="button" onClick={nextLevel}>다음 레벨 ({levelConfig(level + 1).size}×{levelConfig(level + 1).size}, 지뢰 {levelConfig(level + 1).mines}개)</button>}
+      </div>}
+      {status === 'lost' && <div className="mine-banner mine-banner--lost" role="status"><span>지뢰를 밟았어요. 같은 레벨을 다시 해 보세요.</span></div>}
+      <div className="utility-statusbar">레벨 {level} · 지뢰 {mines}개 · 왼쪽 클릭: 열기 · 오른쪽 클릭: 깃발</div>
     </div>
   )
 }

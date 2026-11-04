@@ -40,13 +40,14 @@
 .calculator-actions button, .calculator-grid button { min-height: 40px; border: 2px outset #fff; background: var(--panel); color: #000080; font-weight: 700; }
 .calculator-actions button:active, .calculator-grid button:active { border-style: inset; }
 
-.minesweeper-app { grid-template-rows: auto auto minmax(0, 1fr) auto !important; padding: 0 8px 8px; }
+.minesweeper-app { grid-template-rows: auto auto minmax(0, 1fr) auto auto !important; padding: 0 8px 8px; }
 .minesweeper-app .utility-menubar { margin: 0 -8px 8px; }
 .mine-counter { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; padding: 7px; border: 3px inset #fff; }
 .mine-counter span { padding: 3px; background: #200; color: #f00; font: 25px "Courier New", monospace; text-align: center; text-shadow: 0 0 2px #f00; }
 .mine-counter button { width: 42px; height: 42px; padding: 0; border: 3px outset #fff; background: var(--panel); font-size: 23px; }
 .mine-board { display: grid; grid-template-columns: repeat(9, 1fr); align-self: center; width: min(100%, 340px); aspect-ratio: 1; margin: 10px auto; border: 4px inset #fff; }
 .mine-board button { min-width: 0; min-height: 0; padding: 0; border: 3px outset #fff; background: var(--panel); color: #000080; font: 700 clamp(11px, 2.1vw, 19px) Arial, sans-serif; }
+.mine-board--dense button { border-width: 2px; font-size: clamp(9px, 1.5vw, 13px); }
 .mine-board button.is-revealed { border: 1px solid #808080; background: #c0c0c0; }
 
 @media (max-width: 720px) {
@@ -54,3 +55,7 @@
   .folder-app__content { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
   .mine-board { max-height: calc(100vh - 330px); }
 }
+
+.mine-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin: 0 0 6px; padding: 6px 8px; border: 2px inset #fff; background: #ffffe1; color: #000; font-size: 12px; font-weight: 700; }
+.mine-banner button { padding: 3px 8px; border: 2px outset #fff; background: var(--panel); font: inherit; }
+.mine-banner--lost { background: #ffe1e1; }
