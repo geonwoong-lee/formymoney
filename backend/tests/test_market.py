@@ -96,7 +96,7 @@ def test_market_endpoint_is_empty_before_collection(client: TestClient) -> None:
 
 
 def test_every_series_has_a_known_group_and_cycle() -> None:
-    assert all(series.group in {"fx", "kr_stock", "rate", "world_stock", "trend", "price_index"} for series in SERIES_BY_CODE.values())
+    assert all(series.group in {"fx", "kr_stock", "us_stock", "rate", "world_stock", "trend", "price_index"} for series in SERIES_BY_CODE.values())
     assert all(series.cycle in {"D", "M"} for series in SERIES_BY_CODE.values())
 
 

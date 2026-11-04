@@ -29,13 +29,14 @@ class EcosError(RuntimeError):
 @dataclass(frozen=True)
 class Series:
     code: str
-    group: str  # fx | kr_stock | rate | world_stock | trend | price_index
+    group: str  # fx | kr_stock | us_stock | rate | world_stock | trend | price_index
     name: str
     stat_code: str
     cycle: str  # D (daily) or M (monthly)
     item_code: str
     unit: str
     lookback_months: int = MONTHLY_LOOKBACK_MONTHS
+    source: str = "ecos"  # "fred" series are fetched from FRED and `stat_code` holds the FRED series id
 
 
 SERIES: list[Series] = [
@@ -45,6 +46,10 @@ SERIES: list[Series] = [
     Series("cny_krw", "fx", "원/위안", "731Y001", "D", "0000053", "원"),
     Series("kospi", "kr_stock", "코스피", "802Y001", "D", "0001000", "pt"),
     Series("kosdaq", "kr_stock", "코스닥", "802Y001", "D", "0089000", "pt"),
+    # US daily closes. ECOS only has monthly 2015=100 indices for other countries, so these come from FRED.
+    Series("us_nasdaq", "us_stock", "나스닥 종합지수", "NASDAQCOM", "D", "", "pt", source="fred"),
+    Series("us_sp500", "us_stock", "S&P 500", "SP500", "D", "", "pt", source="fred"),
+    Series("us_dow", "us_stock", "다우존스 산업평균", "DJIA", "D", "", "pt", source="fred"),
     Series("base_rate", "rate", "한국은행 기준금리", "722Y001", "D", "0101000", "%"),
     Series("ktb_3y", "rate", "국고채 3년", "817Y002", "D", "010200000", "%"),
     Series("deposit_rate", "rate", "은행 예금 평균금리(신규)", "121Y002", "M", "BEABAA2", "%"),

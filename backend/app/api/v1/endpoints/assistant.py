@@ -1,6 +1,8 @@
 import logging
 from datetime import date
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,10 +13,13 @@ from app.services.assistant_chat import (
     AnswerSource,
     AssistantReply,
     _call,
+    add_history,
+    add_tool_results,
     answer_question,
     build_context,
     build_rag_context,
 )
+from app.services.assistant_tools import FOLLOW_UP_LENGTH, run_tools
 from app.services.knowledge_base import retrieve
 from app.services.news_digest import korea_today
 from app.services.openai_client import OpenAIError, embed_texts
@@ -24,8 +29,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+class HistoryItem(CamelModel):
+    role: Literal["user", "assistant"]
+    text: str = Field(max_length=300)
+
+
 class AssistantChatRequest(CamelModel):
     message: str = Field(min_length=1, max_length=200)
+    history: list[HistoryItem] = Field(default_factory=list, max_length=6)  # earlier turns of this visit, kept only in the browser
 
 
 class AssistantLinkResponse(CamelModel):
@@ -44,6 +55,7 @@ class AssistantChatResponse(CamelModel):
     links: list[AssistantLinkResponse]
     source: str
     sources: list[AssistantSourceResponse] = []
+    suggestions: list[str] = []
 
 
 def _client_key(request: Request) -> str:
@@ -56,6 +68,7 @@ def _response(reply: AssistantReply) -> AssistantChatResponse:
         links=[AssistantLinkResponse(to=path, label=label) for path, label in reply.links],
         source=reply.source,
         sources=[AssistantSourceResponse(title=item.title, url=item.url, published_on=item.published_on) for item in reply.sources],
+        suggestions=reply.suggestions,
     )
 
 
@@ -75,10 +88,16 @@ def chat_with_assistant(payload: AssistantChatRequest, request: Request) -> Assi
         )
     embed = getattr(request.app.state, "knowledge_embed", None) or (lambda texts: embed_texts(settings, texts))
     sources: dict[str, AnswerSource] = {}
+    turns = [(item.role, item.text) for item in payload.history]
+    earlier_questions = [text for role, text in turns if role == "user"]
+    # A short follow-up ("그럼 서울은?") is searched together with the question before it.
+    query = payload.message
+    if earlier_questions and len(" ".join(query.split())) <= FOLLOW_UP_LENGTH:
+        query = f"{earlier_questions[-1]} {payload.message}"
     try:
         with request.app.state.session_factory() as session:
             try:
-                retrieved = retrieve(session, payload.message, embed, korea_today())
+                retrieved = retrieve(session, query, embed, korea_today())
             except (OpenAIError, SQLAlchemyError, ValueError) as error:
                 # Search is an improvement, not a requirement: fall back to the fixed guide and terms.
                 logger.warning("knowledge search failed, using the fixed guide: %s", type(error).__name__)
@@ -88,6 +107,14 @@ def chat_with_assistant(payload: AssistantChatRequest, request: Request) -> Assi
                 context, sources = build_rag_context(retrieved)
             else:
                 context = build_context(session)
+            try:
+                tool_results = run_tools(session, payload.message, earlier_questions)
+            except SQLAlchemyError as error:
+                logger.warning("assistant tools failed: %s", type(error).__name__)
+                session.rollback()
+                tool_results = []
+            context, sources = add_tool_results(context, sources, tool_results)
+            context = add_history(context, turns)
     except SQLAlchemyError as error:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="도우미 답변을 준비하지 못했습니다.") from error
     try:

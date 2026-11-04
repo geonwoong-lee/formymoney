@@ -153,3 +153,20 @@ def test_an_answer_with_a_number_or_no_refusal_still_needs_a_source() -> None:
     used = [AnswerSource("미국 주가지수", None, None, "미국 주가지수 226.1")]
     assert validate_citations("미국 주가지수는 226.1이에요.", "미국 증시", used) == []
 
+
+
+def test_a_won_amount_may_be_read_in_man_units_but_not_rounded_or_changed() -> None:
+    context = "[T1] 이자 계산 세후로 받는 돈은 7,453,800원이에요. 세후 이자는 253,800원이에요."
+
+    assert validate_answer("세후로 745만 3,800원을 받아요.", "얼마 받아?", context) == []
+    assert validate_answer("세후 이자는 25만 3,800원이에요.", "얼마 받아?", context) == []
+    assert validate_answer("세후로 약 746만 원을 받아요.", "얼마 받아?", context) == ["참고 자료에 없는 숫자입니다: 746"]  # rounded up: a new number
+    assert validate_answer("세후로 745만 4,000원을 받아요.", "얼마 받아?", context) == ["참고 자료에 없는 숫자입니다: 4,000"]
+
+
+def test_saying_a_list_is_not_a_recommendation_is_allowed_but_recommending_is_not() -> None:
+    assert validate_answer("총이자가 적은 순서로 줄 세웠을 뿐 추천은 아니에요.", "전세대출", "") == []
+    assert validate_answer("이 상품은 추천이 아닙니다.", "전세대출", "") == []
+    assert validate_answer("추천 순위가 아니라 조회 결과예요.", "전세대출", "") == []
+    assert validate_answer("이 상품을 추천해요.", "전세대출", "") == ["사용할 수 없는 표현입니다: 추천"]
+
