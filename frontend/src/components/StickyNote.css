@@ -51,7 +51,7 @@
 .sticky-note__steps {
   display: flex;
   align-items: stretch;
-  gap: 18px;
+  gap: 16px;
   margin: 0;
   padding: 7px 8px;
   overflow-x: auto;

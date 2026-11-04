@@ -1,5 +1,29 @@
+/* Retro pixel font: Galmuri (SIL OFL 1.1, Lee Minseo), Korean glyphs included. License text: assets/fonts/OFL.txt */
+@font-face {
+  font-family: "Galmuri11";
+  src: url("./assets/fonts/Galmuri11.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galmuri11";
+  src: url("./assets/fonts/Galmuri11-Bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galmuri14";
+  src: url("./assets/fonts/Galmuri14.woff2") format("woff2");
+  font-weight: 400 900;
+  font-display: swap;
+}
+
 :root {
-  font-family: "MS Sans Serif", Tahoma, "Noto Sans KR", sans-serif;
+  --font-retro: "Galmuri11", "MS Sans Serif", Tahoma, "Noto Sans KR", sans-serif;
+  --font-retro-title: "Galmuri14", "Galmuri11", "Courier New", monospace;
+  font-family: var(--font-retro);
   color: #000;
   background: #008080;
   font-synthesis: none;
@@ -43,7 +67,7 @@ button,
 input,
 select,
 textarea {
-  font-family: "MS Sans Serif", Tahoma, "Noto Sans KR", sans-serif;
+  font-family: var(--font-retro);
   font-size: inherit;
 }
 
