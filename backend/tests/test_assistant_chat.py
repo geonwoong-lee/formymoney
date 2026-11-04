@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.models.daily_briefing import FinancialTerm
-from app.services.assistant_chat import build_context, validate_answer
+from app.services.assistant_chat import AnswerSource, build_context, validate_answer, validate_citations
 from app.services.rate_limiter import SlidingWindowLimiter
 
 URL = "/api/v1/assistant/chat"
@@ -60,7 +60,7 @@ def test_answer_with_an_unsupported_number_is_retried_then_replaced(client: Test
 
     body = client.post(URL, json={"message": "금리가 몇 퍼센트예요?"}).json()
 
-    assert len(ask.calls) == 2 and "7.77" in ask.calls[1]["feedback"][0]
+    assert len(ask.calls) == 3 and "7.77" in ask.calls[1]["feedback"][0] and "7.77" in ask.calls[2]["feedback"][0]
     assert body["source"] == "unavailable"
     assert "7.77" not in body["answer"]
 
@@ -133,3 +133,23 @@ def test_a_refusal_that_says_it_cannot_recommend_is_not_rejected(client: TestCli
 
     client.app.state.assistant_ask = _ask(answer="이 예금을 추천드려요.")
     assert client.post(URL, json={"message": "적금 만기되면 목돈은 어디에 둬?"}).json()["source"] == "unavailable"
+
+
+@pytest.mark.parametrize("answer", [
+    "오늘 나스닥 주가의 수치는 참고 자료에 없어 알려드리기 어렵습니다. 나스닥 공식 홈페이지에서 확인해 주세요.",
+    "그 내용은 이 자료에는 없어요. 한국은행에서 확인해 주세요.",
+    "정확한 값은 알 수 없어요.",
+    "참고 자료에는 서울시 월세 지원 정책의 내용이 없어 정확히 안내하기 어렵습니다. 서울시 공식 누리집에서 확인해 주세요.",
+    "테슬라의 현재 주가는 참고 자료에 없어 모릅니다.",
+])
+def test_an_honest_i_dont_have_that_needs_no_source(answer: str) -> None:
+    assert validate_citations(answer, "오늘 나스닥 주가 알려줘", []) == []
+
+
+def test_an_answer_with_a_number_or_no_refusal_still_needs_a_source() -> None:
+    assert validate_citations("나스닥은 오늘 18,000을 넘었어요.", "나스닥?", [])
+    assert validate_citations("자료에 없지만 지수는 18000이에요.", "나스닥?", [])  # a number rides along, so it needs a source
+    assert validate_citations("나스닥은 미국 기술주 시장이에요.", "나스닥?", [])  # a plain claim is not a refusal
+    used = [AnswerSource("미국 주가지수", None, None, "미국 주가지수 226.1")]
+    assert validate_citations("미국 주가지수는 226.1이에요.", "미국 증시", used) == []
+
