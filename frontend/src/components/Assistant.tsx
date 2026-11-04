@@ -12,6 +12,8 @@ import './Assistant.css'
 
 const INTERNAL_PATH = /^\/[a-z-]+$/
 
+const SIMILAR_NOTICE = '질문과 딱 맞는 답은 찾지 못했어요. 비슷한 주제의 안내예요.'
+
 // A cited source opens our own page in place, a web article (https, or the http some publishers still use) in a new tab,
 // and anything else is plain text.
 function SourceLink({ source, onInternal }: { source: AssistantSource; onInternal: (to: string) => void }) {
@@ -146,7 +148,7 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
       const reply = await askAssistant(question)
       if (current !== requestId.current) return
       // When the AI answer did not pass the server's checks, the built-in answer for the topic beats "can't answer".
-      if (reply.source === 'unavailable' && fallback !== FALLBACK) setAnswer(fallback)
+      if (reply.source === 'unavailable' && fallback !== FALLBACK) setAnswer({ ...fallback, notice: SIMILAR_NOTICE })
       else setAnswer({ text: reply.answer, links: reply.links, ai: reply.source === 'ai', sources: reply.sources ?? [] })
     } catch (cause) {
       if (current !== requestId.current) return

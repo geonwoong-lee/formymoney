@@ -214,6 +214,7 @@ def test_rag_answers_must_cite_and_take_numbers_from_the_cited_chunks() -> None:
     answers = iter([
         {"answer": "원/달러 환율은 2026년 11월 2일 기준 1337.2원이에요.", "link_paths": [], "source_ids": ["K1"]},
         {"answer": "원/달러 환율은 2026년 10월 30일 기준 1337.2원이에요.", "link_paths": [], "source_ids": []},
+        {"answer": "원/달러 환율은 2026년 11월 2일 기준 1337.2원이에요.", "link_paths": [], "source_ids": ["K1"]},
         {"answer": "원/달러 환율은 2026년 10월 30일 기준 1337.2원이에요.", "link_paths": [], "source_ids": ["K1"]},
     ])
     feedbacks: list[list[str]] = []
@@ -223,7 +224,7 @@ def test_rag_answers_must_cite_and_take_numbers_from_the_cited_chunks() -> None:
         return next(answers)
 
     first = answer_question(Settings(_env_file=None), "환율 얼마야?", context, ask, sources)
-    assert first.source == "unavailable"  # wrong date from the other chunk, then no citation: both rejected
+    assert first.source == "unavailable"  # wrong date from the other chunk, no citation, wrong date again: all three rejected
     assert feedbacks[1] == ["인용한 참고 자료에 없는 숫자입니다: 11", "인용한 참고 자료에 없는 숫자입니다: 2"]
 
     second = answer_question(Settings(_env_file=None), "환율 얼마야?", context, ask, sources)

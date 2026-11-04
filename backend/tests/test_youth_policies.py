@@ -50,6 +50,18 @@ def test_parse_treats_zero_ages_unlimited_flag_and_missing_period_as_unknown() -
     assert parse_policy(_item(no="", name="x")) is None
 
 
+def test_a_local_government_that_ticked_every_region_is_local_but_a_ministry_stays_nationwide() -> None:
+    hwasun = parse_policy(_item("H1", "화순군 만원임대주택 지원", sprvsnInstCdNm="전남광주통합특별시 화순군 인구청년정책과"))
+    ministry = parse_policy(_item("M1", "청년 월세 한시 특별지원", sprvsnInstCdNm="국토교통부"))
+    unclear = parse_policy(_item("U1", "청년 정착 지원", sprvsnInstCdNm="서산시"))
+    small = parse_policy(_item("S1", "경기·인천 공동사업", sprvsnInstCdNm="경기도 청년정책과", zipCd="41110,28110,11110"))
+
+    assert hwasun and (hwasun.regions, hwasun.nationwide) == ("12", False)
+    assert ministry and ministry.nationwide  # a central ministry's policy is open everywhere
+    assert unclear and unclear.nationwide  # a city name without its province cannot be placed, so the listed regions stand
+    assert small and small.regions == "41,28,11" and not small.nationwide  # a few listed regions are kept as they are
+
+
 def test_parse_page_rejects_error_payloads() -> None:
     policies, total = parse_page(_page(_item(), {"plcyNo": "", "plcyNm": ""}, total=3865))
     assert (len(policies), total) == (1, 3865)
@@ -94,6 +106,17 @@ def test_search_filters_by_keyword_age_region_and_open_applications(client: Test
     assert search(keyword="100%_")["count"] == 0  # wildcard characters are plain text
     first = search(limit=1, offset=1)
     assert first["count"] == 3 and [p["policyNo"] for p in first["policies"]] == ["P2"]
+
+
+def test_seoul_search_leaves_out_a_policy_of_another_regions_local_government(client: TestClient) -> None:
+    _save(client, _item("H1", "화순군 만원임대주택 지원", sprvsnInstCdNm="전남광주통합특별시 화순군 인구청년정책과"), _item("M1", "청년 월세 특별지원", sprvsnInstCdNm="국토교통부"))
+
+    seoul = client.post(URL, json={"region": "11"}).json()
+    jeonnam = client.post(URL, json={"region": "12"}).json()
+
+    assert [p["policyNo"] for p in seoul["policies"]] == ["M1"]
+    assert sorted(p["policyNo"] for p in jeonnam["policies"]) == ["H1", "M1"]
+    assert {p["policyNo"]: p["regionLabel"] for p in jeonnam["policies"]} == {"H1": "광주·전남", "M1": "전국"}
 
 
 def test_search_rows_label_age_region_period_and_expose_filter_options(client: TestClient) -> None:

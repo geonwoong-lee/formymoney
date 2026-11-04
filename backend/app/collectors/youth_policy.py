@@ -27,6 +27,14 @@ REGIONS = {
     "41": "경기", "43": "충북", "44": "충남", "47": "경북", "48": "경남", "50": "제주", "51": "강원", "52": "전북",
 }
 NATIONWIDE_FROM = 15  # a policy that lists this many regions or more is open everywhere
+# Some local governments register their policy with every region ticked. When the managing body starts with a 시도 name
+# and the policy lists this many regions, the body wins: 전남광주통합특별시 화순군's policy is not open to 서울.
+MISREGISTERED_FROM = 8
+INSTITUTION_REGIONS = [
+    ("서울", "11"), ("부산", "26"), ("대구", "27"), ("인천", "28"), ("광주", "12"), ("대전", "30"), ("울산", "31"), ("세종", "36"),
+    ("경기", "41"), ("강원", "51"), ("충청북도", "43"), ("충북", "43"), ("충청남도", "44"), ("충남", "44"), ("전북", "52"),
+    ("전라북도", "52"), ("전남", "12"), ("전라남도", "12"), ("경상북도", "47"), ("경북", "47"), ("경상남도", "48"), ("경남", "48"), ("제주", "50"),
+]
 
 
 class YouthPolicyError(RuntimeError):
@@ -93,6 +101,11 @@ def _categories(value: object) -> str:
     return ",".join(dict.fromkeys(part.strip() for part in str(value or "").split(",") if part.strip()))
 
 
+def _own_region(institution: str) -> str:
+    """The 시도 prefix a managing body's name starts with, "" for ministries and anything unclear."""
+    return next((code for name, code in INSTITUTION_REGIONS if institution.startswith(name)), "")
+
+
 def parse_policy(item: dict[str, object]) -> YouthPolicy | None:
     policy_no, name = _text(item.get("plcyNo")), _text(item.get("plcyNm"))
     if not policy_no or not name:
@@ -101,6 +114,10 @@ def parse_policy(item: dict[str, object]) -> YouthPolicy | None:
     low, high = _int(item.get("sprtTrgtMinAge")), _int(item.get("sprtTrgtMaxAge"))
     period = str(item.get("aplyYmd") or "").split("~")
     prefixes = list(dict.fromkeys(code.strip()[:2] for code in str(item.get("zipCd") or "").split(",") if len(code.strip()) >= 2))
+    institution = _text(item.get("sprvsnInstCdNm"))[:200]
+    own = _own_region(institution)
+    if own and len([code for code in prefixes if code in REGIONS]) >= MISREGISTERED_FROM:
+        prefixes = [own]
     return YouthPolicy(
         policy_no=policy_no[:30], name=name[:200], keywords=_text(item.get("plcyKywdNm"))[:300],
         summary=_multiline(item.get("plcyExplnCn")), support=_multiline(item.get("plcySprtCn")),
@@ -109,7 +126,7 @@ def parse_policy(item: dict[str, object]) -> YouthPolicy | None:
         income_note=_multiline(item.get("earnEtcCn")), extra_conditions=_multiline(item.get("addAplyQlfcCndCn")),
         apply_start=_day(period[0]) if len(period) == 2 else None, apply_end=_day(period[1]) if len(period) == 2 else None,
         apply_method=_multiline(item.get("plcyAplyMthdCn")), selection=_multiline(item.get("srngMthdCn")),
-        institution=_text(item.get("sprvsnInstCdNm"))[:200], apply_url=_web_link(item.get("aplyUrlAddr")),
+        institution=institution, apply_url=_web_link(item.get("aplyUrlAddr")),
         ref_url=_web_link(item.get("refUrlAddr1")), regions=",".join(prefixes)[:80],
         nationwide=len([code for code in prefixes if code in REGIONS]) >= NATIONWIDE_FROM,
         modified_on=_day(item.get("lastMdfcnDt")),
