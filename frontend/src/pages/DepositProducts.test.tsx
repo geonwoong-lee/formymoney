@@ -107,4 +107,49 @@ describe('DepositProducts', () => {
     render(<MemoryRouter><DepositProducts amount={10_000_000} months={12} headingId="x" /></MemoryRouter>)
     expect(await screen.findByText('공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.')).toBeInTheDocument()
   })
+
+  it('narrows the list to the companies whose name has what I typed, and brings the full range back when I clear it', async () => {
+    const user = userEvent.setup()
+    const everyone = [product('우리은행', '3.00', 10_253_800), product('국민은행', '3.40', 10_287_000), product('KB저축', '3.10', 10_262_000), ...Array.from({ length: 12 }, (_, index) => product(`다른은행${index}`, '2.50', 10_200_000 - index))]
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(respond(response('은행', everyone)))))
+    render(<MemoryRouter><DepositProducts amount={10_000_000} months={12} headingId="x" /></MemoryRouter>)
+    await screen.findByLabelText('기본금리로 받는 돈의 범위')
+
+    const search = screen.getByLabelText('은행 이름으로 찾기')
+    await user.type(search, '국민')
+    const list = screen.getByRole('list', { name: '은행 정기예금 목록' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(1)
+    expect(within(list).getByRole('listitem')).toHaveTextContent('국민은행')
+    expect(screen.getByRole('status')).toHaveTextContent('전체 15개 중 ‘국민’이(가) 들어간 금융회사의 정기예금 1개를 보여 드려요')
+    expect(screen.queryByLabelText('기본금리로 받는 돈의 범위')).not.toBeInTheDocument()  // the range was for everyone, so it steps aside
+
+    await user.clear(search)
+    await user.type(search, 'kb')  // case does not matter
+    expect(within(screen.getByRole('list', { name: '은행 정기예금 목록' })).getByRole('listitem')).toHaveTextContent('KB저축')
+
+    await user.clear(search)
+    await user.type(search, '없는이름')
+    expect(screen.getByRole('status')).toHaveTextContent('‘없는이름’이(가) 들어간 금융회사의 정기예금이 없어요')
+    expect(within(screen.getByRole('list', { name: '은행 정기예금 목록' })).queryAllByRole('listitem')).toHaveLength(0)
+
+    await user.clear(search)
+    expect(screen.getByLabelText('기본금리로 받는 돈의 범위')).toBeInTheDocument()
+    expect(within(screen.getByRole('list', { name: '은행 정기예금 목록' })).getAllByRole('listitem')).toHaveLength(10)
+  })
+
+  it('offers the loaded companies as suggestions and forgets the name when I switch to savings banks', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn((_input: RequestInfo | URL, init?: RequestInit) => Promise.resolve(respond(
+      JSON.parse(String(init?.body)).group === 'savings_bank' ? response('저축은행', [product('가저축은행', '4.00', 10_338_400)]) : response('은행', [product('우리은행', '3.00', 10_253_800), product('국민은행', '3.40', 10_287_000)]),
+    ))))
+    const { container } = render(<MemoryRouter><DepositProducts amount={10_000_000} months={12} headingId="x" /></MemoryRouter>)
+    await screen.findByLabelText('기본금리로 받는 돈의 범위')
+
+    expect([...container.querySelectorAll('datalist option')].map((option) => option.getAttribute('value'))).toEqual(['국민은행', '우리은행'])
+    await user.type(screen.getByLabelText('은행 이름으로 찾기'), '우리')
+    await user.click(screen.getByRole('radio', { name: '저축은행' }))
+
+    expect(screen.getByLabelText('은행 이름으로 찾기')).toHaveValue('')
+    expect(await screen.findByRole('list', { name: '저축은행 정기예금 목록' })).toHaveTextContent('가저축은행')
+  })
 })
