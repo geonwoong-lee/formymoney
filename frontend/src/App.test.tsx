@@ -38,7 +38,7 @@ describe('App', () => {
     expect(await screen.findByText(/FastAPI와 Supabase 연결 완료/)).toBeInTheDocument()
   })
 
-  it('prepares the planned routes', () => {
+  it('prepares the planned routes', async () => {
     vi.stubGlobal('fetch', vi.fn())
 
     render(
@@ -47,7 +47,21 @@ describe('App', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: '월별 납입 계획' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '월별 납입 계획' })).toBeInTheDocument()
+  })
+
+  it('says so when the address does not exist instead of showing the home screen', () => {
+    vi.stubGlobal('fetch', vi.fn())
+
+    render(
+      <MemoryRouter initialEntries={['/no-such-page']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: '찾는 화면이 없어요' })).toBeInTheDocument()
+    expect(screen.getByText('/no-such-page')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '처음 화면으로 가기' })).toHaveAttribute('href', '/')
   })
 
   it('opens a desktop app from the start menu', async () => {
@@ -64,7 +78,7 @@ describe('App', () => {
     const startMenu = screen.getByRole('navigation', { name: '시작 메뉴' })
     await user.click(within(startMenu).getByRole('link', { name: '내 조건' }))
 
-    expect(screen.getByRole('heading', { name: '내가 지킬 수 있는 조건만 골라주세요.' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '내가 지킬 수 있는 조건만 골라주세요.' })).toBeInTheDocument()
   })
 
   it('minimizes, restores, and maximizes the retro window', async () => {

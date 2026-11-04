@@ -265,8 +265,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 21px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-top: 2px solid #fff;
   border-left: 2px solid #fff;
   border-right: 2px solid #000;
@@ -741,3 +741,13 @@
 .admin-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
 .admin-table th, .admin-table td { padding: 4px 6px; border-bottom: 1px dotted #808080; text-align: left; word-break: break-word; }
 .rate-line { display: block; width: 100%; max-width: 520px; height: auto; margin: 8px 0; background: #fff; border: 2px inset #fff; }
+
+/* Plain links that stand on their own line are only ~16px tall; extra vertical padding on an inline link widens the click area to 24px without moving the text. */
+.retro-window__body a:not([class]) {
+  padding-block: 5px;
+}
+
+.retro-window__body select,
+.retro-window__body input:not([type=checkbox]):not([type=radio]) {
+  min-height: 24px;
+}
