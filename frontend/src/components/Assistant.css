@@ -294,3 +294,18 @@
   border-color: #000080;
   color: #000080;
 }
+
+/* The first-visit tag above the dog: small, covers nothing, goes away by itself. */
+.assistant-hint {
+  max-width: 150px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-dark) var(--panel-dark) var(--panel-light);
+  background: #ffffa8;
+  box-shadow: 2px 3px 0 rgb(0 0 0 / 28%);
+  color: #000;
+  font-size: 12px;
+  line-height: 1.35;
+  pointer-events: none;
+}

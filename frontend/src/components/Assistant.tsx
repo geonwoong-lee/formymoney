@@ -16,6 +16,7 @@ import './Assistant.css'
 const INTERNAL_PATH = /^\/[a-z-]+$/
 
 const MAX_TURNS = 6
+const HINT_SECONDS = 10
 const SIMILAR_NOTICE = '질문과 딱 맞는 답은 찾지 못했어요. 비슷한 주제의 안내예요.'
 
 // A cited source opens our own page in place, a web article (https, or the http some publishers still use) in a new tab,
@@ -74,7 +75,10 @@ function clampOffset(x: number, y: number) {
 export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: boolean }) {
   const navigate = useNavigate()
   const [hidden, setHidden] = useState(() => readFlag(ASSISTANT_HIDDEN_KEY))
-  const [open, setOpen] = useState(() => greetOnFirstVisit && !readFlag(ASSISTANT_SEEN_KEY) && !readFlag(ASSISTANT_HIDDEN_KEY))
+  const [open, setOpen] = useState(false)
+  // A first-time visitor gets a short tag above the dog, not an opened bubble: the bubble covered the icons, the start page and the
+  // consent bar all at once, and on a phone half the window.
+  const [hint, setHint] = useState(() => greetOnFirstVisit && !readFlag(ASSISTANT_SEEN_KEY) && !readFlag(ASSISTANT_HIDDEN_KEY))
   const [query, setQuery] = useState('')
   const [answer, setAnswer] = useState<AssistantAnswer | null>(null)
   const [optionsOpen, setOptionsOpen] = useState(false)
@@ -95,6 +99,13 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
     const timer = window.setInterval(() => setPose((current) => (current + 1) % IDLE_POSES.length), POSE_SECONDS * 1000)
     return () => window.clearInterval(timer)
   }, [open, thinking])
+
+  useEffect(() => {
+    if (!hint) return
+    writeFlag(ASSISTANT_SEEN_KEY, true)  // shown once
+    const timer = window.setTimeout(() => setHint(false), HINT_SECONDS * 1000)
+    return () => window.clearTimeout(timer)
+  }, [hint])
 
   useEffect(() => {
     if (open) {
@@ -201,6 +212,7 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
 
   function toggleBubble() {
     if (justDragged.current) { justDragged.current = false; return }
+    setHint(false)  // the visitor found the dog: the tag has done its job
     setOpen((current) => !current)
   }
 
@@ -213,6 +225,7 @@ export function Assistant({ greetOnFirstVisit = false }: { greetOnFirstVisit?: b
   const bubbleOnRight = HOME_LEFT + offset.x + BUBBLE_WIDTH > window.innerWidth - 12
 
   return <aside className={`assistant${bubbleOnRight ? ' assistant--flip' : ''}`} aria-label="도우미 머니독" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
+    {hint && !open && <p className="assistant-hint" role="status">궁금한 건 저한테 물어보세요!</p>}
     {open && <div className="assistant-bubble" role="dialog" aria-label="도우미 말풍선">
       <form onSubmit={search}>
         <label className="assistant-bubble__title" htmlFor="assistant-query">{GREETING}</label>

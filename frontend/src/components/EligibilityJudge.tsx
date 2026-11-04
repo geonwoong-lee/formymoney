@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent } from 'react'
 import {
-  judgeYouthEligibility, MAX_TABLE_HOUSEHOLD, RULES_ROUND, RULES_SOURCE_NAME, RULES_SOURCE_URL, YOUTH_OFFICIAL_NAME, YOUTH_OFFICIAL_URL,
+  judgeYouthEligibility, MAX_TABLE_HOUSEHOLD, objectMark, RULES_ROUND, RULES_SOURCE_NAME, RULES_SOURCE_URL, YOUTH_OFFICIAL_NAME, YOUTH_OFFICIAL_URL,
   type EligibilityResult, type EligibilityVerdict,
 } from '../features/eligibility'
 import { RULES, type IncomeKind } from '../features/eligibilityRules'
@@ -40,7 +40,7 @@ export function EligibilityJudge({ onJudged, today }: Props) {
     event.preventDefault()
     setResult(null)
     if (!birthDate) return setError('생년월일을 넣어 주세요.')
-    if (amount.trim() === '' || Number(amount) < 0) return setError(`작년 ${RULES.income[kind].label}을 넣어 주세요.`)
+    if (amount.trim() === '' || Number(amount) < 0) return setError(`작년 ${RULES.income[kind].label}${objectMark(RULES.income[kind].label)} 넣어 주세요.`)
     if (needsHousehold && (householdIncome.trim() === '' || Number(householdIncome) < 0)) return setError('가구 전체의 작년 소득을 넣어 주세요.')
     const judged = judgeYouthEligibility({
       birthDate, militaryMonths: Number(militaryMonths) || 0, kind, amount: Number(amount), smallCompany, householdSize: sizeNumber,

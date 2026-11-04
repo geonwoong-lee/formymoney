@@ -168,7 +168,11 @@ describe('MaturityPage', () => {
       version: 1, plan: { monthlyAmount: 500_000, contributionType: 'general', currentBankCode: 'kb', startMonth: '2026-07' }, conditions: {}, monthlyPayments: {},
     }))
     const fetch = stubServer((url) => url.includes('/savings/products')
-      ? respond({ products: [{ bankCode: 'kb', conditions: [] }] })
+      ? respond({ products: [
+        { bankCode: 'kb', conditions: [{ code: 'salary_transfer' }] },
+        { bankCode: 'woori', conditions: [{ code: 'salary_transfer' }] },
+        { bankCode: 'hana', conditions: [{ code: 'card' }] },
+      ] })
       : respond({ termMonths: 36, results: [{ bankCode: 'kb', bankName: 'KB국민은행', productName: '청년미래적금', expectedMaturityAmount: 19_941_250 }] }))
     renderPage()
 
@@ -178,6 +182,8 @@ describe('MaturityPage', () => {
     expect(screen.getByLabelText('만기 금액(원)')).toHaveValue('19,941,250')
     const calculate = fetch.mock.calls.find(([input]) => String(input).includes('/savings/calculate'))
     expect(JSON.parse(String(calculate?.[1]?.body))).toMatchObject({ monthlyAmount: 500_000, bankCodes: ['kb'], currentBankCode: 'kb' })
+    // The server rejects answers for banks that are not being calculated, so only 내 은행's answers may be sent.
+    expect(Object.keys(JSON.parse(String(calculate?.[1]?.body)).conditionAnswers)).toEqual(['kb'])
     expect(screen.getByText(/예상 만기 달/)).toHaveTextContent('예상 만기 달: 2029년 7월')
     const created: string[] = []
     vi.stubGlobal('URL', Object.assign(Object.create(URL), { createObjectURL: (blob: Blob) => { created.push(blob.type); return 'blob:x' }, revokeObjectURL: () => undefined }))

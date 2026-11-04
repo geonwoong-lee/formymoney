@@ -51,6 +51,12 @@ function subject(word: string) {
   return code >= 0 && code % 28 === 0 ? '가' : '이'
 }
 
+// 을/를 after a word, by whether its last syllable has a final consonant.
+export function objectMark(word: string) {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  return code >= 0 && code % 28 === 0 ? '를' : '을'
+}
+
 function won(manwon: number) {
   return `${manwon.toLocaleString('ko-KR')}만원`
 }
