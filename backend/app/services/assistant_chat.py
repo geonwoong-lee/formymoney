@@ -83,6 +83,23 @@ NEGATED_EXPRESSION = re.compile(r"(추천|확실|무조건)[^.!?\n]{0,8}?(않|�
 UNKNOWN_PATTERN = re.compile(r"모르|없|어렵|부족|찾지 못")
 
 
+GREETING = re.compile(r"^\s*(안녕|안녕하세요|하이|헬로|hi|hello|ㅎㅇ|반가워|반갑습니다)[\s!.~?]*$", re.IGNORECASE)
+THANKS = re.compile(r"^\s*(고마워요?|고맙습니다|감사해요|감사합니다|감사|땡큐|thanks)[\s!.~?]*$", re.IGNORECASE)
+GREETING_ANSWER = "안녕하세요, 머니독이에요! 적금·예금 금리, 청년미래적금, 청년정책, 전세대출, 이자 계산, 오늘의 시장 지표를 물어보세요."
+THANKS_ANSWER = "도움이 됐다니 기뻐요! 또 궁금한 게 있으면 편하게 물어보세요."
+GREETING_SUGGESTIONS = ["서울 월세 지원 정책 있어?", "월 30만원 24개월 연 4% 적금이면 얼마야?", "오늘 나스닥 어때?"]
+
+
+def small_talk(message: str) -> "AssistantReply | None":
+    """Hello and thank-you need no search and no model."""
+    text = " ".join(message.split())
+    if GREETING.match(text):
+        return AssistantReply(GREETING_ANSWER, [], "rule", suggestions=list(GREETING_SUGGESTIONS))
+    if THANKS.match(text):
+        return AssistantReply(THANKS_ANSWER, [], "rule")
+    return None
+
+
 @dataclass(frozen=True)
 class AssistantReply:
     answer: str
@@ -196,12 +213,23 @@ def plain_text(answer: str) -> str:
     return MARKDOWN_LINK.sub(lambda match: match.group(1), answer).replace("**", "").replace("__", "").strip()
 
 
+def _source_key(raw: str) -> str:
+    """The model sometimes writes an id as "[T1]" or "t1"; both mean T1."""
+    return raw.strip().strip("[]() ").upper()
+
+
+# "단리랑 복리 차이가 뭐야?": asking what something means. A plain explanation with no figures needs no source.
+DEFINITION_QUESTION = re.compile(r"뭐야|뭐예요|뭔가요|뭘까|무엇|무슨 뜻|뜻이|뜻은|차이|이란|란\?|설명|어떤 거|어떤 건")
+
+
 def validate_citations(answer: str, message: str, used: list[AnswerSource]) -> list[str]:
     """With search results, numbers (dates included) must come from the cited chunks, not just any chunk."""
     if not used:
-        # Only a plain "I don't know" may go without a source; any number needs one.
-        unknown = bool(UNKNOWN_PATTERN.search(answer)) and not NUMBER_PATTERN.search(answer)
-        return [] if unknown else ["답에 쓴 참고 자료 번호를 source_ids에 적으세요."]
+        # Only a plain "I don't know", or a plain explanation of a term, may go without a source; any number needs one.
+        plain = not NUMBER_PATTERN.search(answer)
+        unknown = bool(UNKNOWN_PATTERN.search(answer)) and plain
+        explains = bool(DEFINITION_QUESTION.search(message)) and plain
+        return [] if unknown or explains else ["답에 쓴 참고 자료 번호를 source_ids에 적으세요."]
     cited_text = " ".join(source.content for source in used)
     allowed = _numbers(f"{cited_text} {message}")
     return list(dict.fromkeys(
@@ -230,6 +258,8 @@ def answer_question(
     sources: dict[str, AnswerSource] | None = None,
 ) -> AssistantReply:
     text = " ".join(message.split())
+    if (chat := small_talk(text)) is not None:
+        return chat
     if RECOMMEND_PATTERN.search(text):
         return AssistantReply(ADVICE_REPLY, _links(["/banks", "/about"]), "rule")
     feedback: list[str] = []
@@ -238,13 +268,14 @@ def answer_question(
         answer = plain_text(str(result.get("answer", "")))
         paths = [str(path) for path in result.get("link_paths", []) if isinstance(path, str)]
         # Only ids we handed out count; anything else the model writes is dropped.
-        cited = [str(key) for key in result.get("source_ids", []) if isinstance(key, str)]
+        cited = [_source_key(key) for key in result.get("source_ids", []) if isinstance(key, str)]
         used = [sources[key] for key in dict.fromkeys(cited) if sources and key in sources]
         feedback = validate_answer(answer, text, context)
         if not feedback and sources:
             feedback = validate_citations(answer, text, used)
         if not feedback:
-            links = _links(paths)
+            # The screen a cited lookup came from is always offered, whichever other screens the model picked.
+            links = _links([*(source.url for source in used if source.url), *paths])[:3]
             return AssistantReply(answer, links, "ai", used, suggestions_for(links, text))
     # "unavailable" lets the screen show its own keyword answer for the topic instead of this generic line.
     return AssistantReply(UNAVAILABLE_ANSWER, _links(["/about", "/daily"]), "unavailable")

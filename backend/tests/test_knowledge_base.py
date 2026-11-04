@@ -403,3 +403,20 @@ def test_scheduled_dates_cannot_fill_every_slot_when_other_chunks_are_close(clie
 
     kinds = [item.chunk.source_type for item in found]
     assert len(found) == 5 and kinds.count("event") <= 2 and "headline" in kinds
+
+
+def test_glossary_knowledge_matches_the_terms_screen_and_is_searchable(client: TestClient) -> None:
+    import re
+    from pathlib import Path
+
+    from app.services.glossary_facts import GLOSSARY
+    from app.services.knowledge_base import build_documents
+
+    screen = Path(__file__).resolve().parents[2] / "frontend" / "src" / "features" / "glossary.ts"
+    slugs = re.findall(r"slug: '([a-z0-9-]+)', name:", screen.read_text(encoding="utf-8"))
+    assert [slug for slug, _name, _meaning in GLOSSARY] == slugs  # the two lists must change together
+
+    with client.app.state.session_factory() as session:
+        documents = {doc.key: doc for doc in build_documents(session)}
+    tax = documents["glossary:interest-tax"]
+    assert tax.kind == "glossary" and tax.url == "/terms" and "15.4%" in tax.content
