@@ -276,7 +276,7 @@
 .deposit-flag { display: inline-block; padding: 1px 8px; border: 1px solid #808080; background: #f4f4f4; font-size: 13px; }
 .deposit-flag--warn { border-color: #a03000; color: #a03000; background: #fff4ec; }
 .deposit-terms { margin-top: 6px; }
-.deposit-terms summary { cursor: pointer; color: #000080; font-size: 14px; }
+.deposit-terms summary { font-size: 13px; }
 .deposit-terms dl { margin: 8px 0 4px; display: grid; gap: 6px; }
 .deposit-terms dl div { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 8px; }
 .deposit-terms dt { font-weight: 700; font-size: 13px; }

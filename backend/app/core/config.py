@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     finlife_api_key: str | None = None  # 금융감독원 금융상품 한눈에 Open API
     # 금융감독원 전자공시(OpenDART). Read from VERY_RICH_DART_API_KEY or the plain DART_API_KEY name.
     dart_api_key: str | None = Field(default=None, validation_alias=AliasChoices("VERY_RICH_DART_API_KEY", "DART_API_KEY"))
+    youth_api_key: str | None = None  # 온통청년 청년정책 Open API (한국고용정보원)
     daily_token_limit: int = 200_000
 
     model_config = SettingsConfigDict(

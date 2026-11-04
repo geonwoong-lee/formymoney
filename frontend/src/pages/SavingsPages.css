@@ -19,8 +19,8 @@
 .common-questions fieldset p { margin: 4px 0 10px; color: #444; font-size: 12px; }
 .optional-heading { margin-top: 28px; }
 .bank-question { border: 2px outset #fff; background: var(--panel); }
-.bank-question > summary { display: flex; justify-content: space-between; gap: 12px; padding: 12px; cursor: pointer; }
-.bank-question > summary span { font-size: 12px; }
+.bank-question > summary { display: flex; align-items: center; gap: 12px; width: auto; padding: 8px 12px 8px 8px; }
+.bank-question > summary span { margin-left: auto; font-size: 12px; }
 .bank-question__body { padding: 4px 12px 14px; background: #fff; }
 .bank-question fieldset { margin: 10px 0; padding: 12px; border: 1px solid #808080; }
 .bank-question legend { font-weight: 700; }
@@ -139,7 +139,7 @@ html, body, #root { height: 100%; overflow: hidden; }
   .retro-form { grid-template-columns: 1fr; }
   .survey-evidence { grid-template-columns: 1fr; }
   .bank-results li { grid-template-columns: 28px 1fr auto; }
-  .bank-results .maturity { grid-column: 2 / 3; }
+  .bank-results .rate, .bank-results .maturity { grid-column: 2 / 3; }
   .bank-results .button { grid-column: 3; grid-row: 1 / span 2; }
   .money-breakdown { grid-template-columns: 1fr; }
   .cashflow-controls { grid-template-columns: 1fr; }
@@ -152,7 +152,7 @@ html, body, #root { height: 100%; overflow: hidden; }
 .cashflow-before-cancel ul { margin: 4px 0; padding-left: 18px; }
 .cashflow-before-cancel li { margin: 3px 0; line-height: 1.5; }
 .bank-results .bank-why { grid-column: 1 / -1; padding-top: 6px; border-top: 1px dotted #808080; font-size: 14px; }
-.bank-results .bank-why summary { cursor: pointer; }
+
 .bank-results .bank-why ul { display: grid; gap: 4px; margin: 6px 0; padding: 0; list-style: none; }
 /* Each line stays its own block (the rows above are grids), with its text laid out in one horizontal line. */
 .bank-results .bank-why li { display: block; grid-template-columns: none; padding: 3px 10px; border: 2px outset #fff; background: var(--panel); line-height: 1.35; }

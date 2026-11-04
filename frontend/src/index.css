@@ -57,3 +57,60 @@ button:focus-visible {
   background: var(--selection);
   color: #fff;
 }
+
+/* Toggles (<details>) look like Windows 95 controls: a raised bar with a [+]/[-] tree box that sinks while open. */
+details > summary {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 10px 3px 8px;
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-dark) var(--panel-dark) var(--panel-light);
+  box-shadow: inset -1px -1px var(--panel-shadow);
+  background: var(--panel);
+  color: #000;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  cursor: default;
+  list-style: none;
+  user-select: none;
+}
+
+details > summary::-webkit-details-marker { display: none; }
+
+details > summary::before {
+  content: '+';
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 7px;
+  border: 1px solid var(--panel-shadow);
+  background: #fff;
+  color: #000;
+  font: 700 11px/9px 'Courier New', monospace;
+  text-align: center;
+  vertical-align: -1px;
+}
+
+details[open] > summary {
+  border-color: var(--panel-dark) var(--panel-light) var(--panel-light) var(--panel-dark);
+  box-shadow: inset 1px 1px var(--panel-shadow);
+}
+
+details[open] > summary::before { content: '\2212'; }
+
+details > summary:active {
+  border-color: var(--panel-dark) var(--panel-light) var(--panel-light) var(--panel-dark);
+  box-shadow: inset 1px 1px var(--panel-shadow);
+}
+
+details > summary:focus { outline: none; }
+
+details > summary:focus-visible {
+  outline: 1px dotted #000;
+  outline-offset: -5px;
+}
+
+/* The opened content sits in a sunken, indented panel like a tree view's children. */
+details[open] > summary + * { margin-top: 6px; }

@@ -578,6 +578,46 @@ export function getLoanProducts(payload: {
   return request('/api/v1/loan-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
 }
 
+export interface YouthPolicy {
+  policyNo: string
+  name: string
+  keywords: string[]
+  summary: string
+  support: string
+  category: string
+  ageLabel: string
+  incomeNote: string
+  extraConditions: string
+  applyLabel: string
+  applyEnd: string | null
+  applyMethod: string
+  selection: string
+  institution: string
+  applyUrl: string
+  refUrl: string
+  regionLabel: string
+  modifiedOn: string | null
+}
+
+export interface YouthPoliciesResponse {
+  day: string | null
+  total: number
+  count: number
+  offset: number
+  policies: YouthPolicy[]
+  categories: string[]
+  regions: { code: string; name: string }[]
+  notes: string[]
+  sourceName: string
+  sourceUrl: string
+}
+
+export function getYouthPolicies(payload: {
+  keyword: string; category: string; region: string; age: number | null; openOnly: boolean; sort: 'deadline' | 'recent'; offset: number; limit: number
+}, signal?: AbortSignal): Promise<YouthPoliciesResponse> {
+  return request('/api/v1/youth-policies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
+}
+
 export function planAfterMaturity(payload: {
   amount: number
   months: 12 | 24

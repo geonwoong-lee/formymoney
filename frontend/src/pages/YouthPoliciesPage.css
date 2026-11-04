@@ -1,0 +1,19 @@
+.youth-policy__support {
+  margin: 4px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+
+.maturity-inputs .youth-policy__check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: end;
+}

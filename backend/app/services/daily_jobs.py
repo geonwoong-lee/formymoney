@@ -21,6 +21,7 @@ from app.collectors.dart import BANK_CORPS, FILING_CORPS, DartError, fetch_filin
 from app.collectors.ecos import SERIES, EcosError, fetch_series
 from app.collectors.finlife import GROUPS as FINLIFE_GROUPS, FinlifeError, ProductRate, fetch_products
 from app.collectors.finlife_loan import LoanRate, fetch_loans
+from app.collectors.youth_policy import YouthPolicy, YouthPolicyError, fetch_youth_policies
 from app.collectors.naver_news import NaverNewsError, fetch_headlines
 from app.collectors.official_rss import LINK_ONLY_FEEDS, OFFICIAL_FEEDS, OfficialRssError, fetch_feed
 from app.collectors.press_text import PressTextError, fetch_paragraphs
@@ -33,6 +34,7 @@ from app.services.news_digest import DigestError, build_sources, korea_today, sa
 from app.services.news_headline_service import NewsHeadlineService
 from app.services.openai_client import OpenAIError, embed_texts
 from app.services.loan_service import save_loans
+from app.services.youth_policy_service import save_youth_policies
 from app.services.product_rate_service import ProductRateService
 
 # The first six are about the savings and loans this site compares; the rest let 머니독 and the digest answer about the
@@ -158,6 +160,7 @@ def run_market_job(settings: Settings, session: Session, fetch: FetchSeries = fe
         result.saved += service.save(series.code, points)
     collect_product_rates(settings, session, result, today)
     collect_loans(settings, session, result, today)
+    collect_youth_policies(settings, session, result, today)
     collect_dart(settings, session, result, today)
     refresh_knowledge(settings, session, result)
     return result
@@ -241,6 +244,23 @@ def collect_loans(settings: Settings, session: Session, result: JobResult, today
     # A failed group would otherwise wipe its products from the stored list, so only a full set replaces it.
     if loans and not any(line.startswith("금감원:rent_loan") for line in result.failures):
         result.notes.append(f"금감원 전세자금대출 {save_loans(session, today, loans)}개 상품 저장")
+
+
+FetchYouth = Callable[[str], list[YouthPolicy]]
+
+
+def collect_youth_policies(settings: Settings, session: Session, result: JobResult, today, fetch: FetchYouth = fetch_youth_policies) -> None:
+    """온통청년 policies; skipped quietly until a key is set. A partial list never replaces the stored one."""
+    if not settings.youth_api_key:
+        return
+    result.attempted += 1
+    try:
+        policies = fetch(settings.youth_api_key)
+    except YouthPolicyError as error:
+        result.fail("온통청년", error)
+        return
+    result.collected += len(policies)
+    result.notes.append(f"온통청년 청년정책 {save_youth_policies(session, today, policies)}건 저장")
 
 
 JOBS: dict[str, Callable[[Settings, Session], JobResult]] = {"news": run_news_job, "market": run_market_job}

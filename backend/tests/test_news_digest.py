@@ -73,7 +73,9 @@ def test_validate_checks_point_numbers_against_cited_sources_only() -> None:
         *GOOD["points"][1:],
     ]}
 
-    assert validate(miscited, SOURCES) == ["인용한 뉴스에 없는 숫자입니다: 4"]
+    errors = validate(miscited, SOURCES)
+    assert len(errors) == 1 and errors[0].startswith("인용한 뉴스에 없는 숫자입니다: 4")
+    assert "d2 기사에 있습니다" in errors[0]  # points the model at the article that really has the number
     assert validate({**GOOD, "overview": "예금 금리 4%대와 기준금리 0.25%p 인상 소식이 있었어요."}, SOURCES) == []
 
 
@@ -116,7 +118,7 @@ def test_money_notes_allow_generic_bank_names_a_check_request_and_reject_duplica
     assert validate({**GOOD, "money_notes": [NOTE, NOTE]}, SOURCES) == ["내 돈과의 관계 항목이 중복됐습니다."]
 
 
-def test_write_digest_retries_once_and_links_come_from_sources() -> None:
+def test_write_digest_retries_and_links_come_from_sources() -> None:
     calls: list[list[str]] = []
 
     def ask(settings, sources, feedback):
@@ -134,9 +136,27 @@ def test_write_digest_retries_once_and_links_come_from_sources() -> None:
     }]
 
 
-def test_write_digest_fails_after_two_bad_answers_or_too_few_sources() -> None:
+def test_write_digest_gets_a_third_try_after_two_bad_answers() -> None:
+    calls: list[list[str]] = []
+
+    def ask(settings, sources, feedback):
+        calls.append(feedback)
+        return (GOOD if len(calls) == 3 else {"overview": "금리 7% 시대", "points": GOOD["points"]}), "m"
+
+    assert write_digest(_settings(), SOURCES, ask).model == "m"
+    assert len(calls) == 3
+
+
+def test_write_digest_fails_after_three_bad_answers_or_too_few_sources() -> None:
+    calls: list[int] = []
+
+    def always_bad(*_):
+        calls.append(1)
+        return {"overview": "", "points": []}, "m"
+
     with pytest.raises(DigestError):
-        write_digest(_settings(), SOURCES, lambda *_: ({"overview": "", "points": []}, "m"))
+        write_digest(_settings(), SOURCES, always_bad)
+    assert len(calls) == 3
     with pytest.raises(DigestError):
         write_digest(_settings(), SOURCES[:2], lambda *_: (GOOD, "m"))
 

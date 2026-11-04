@@ -54,6 +54,7 @@ export function GeneralSavingsPage() {
       <Link className="button button--secondary" to="/conditions">청년미래적금 조건 입력</Link>
       <Link className="button button--secondary" to="/maturity">만기 후 계획</Link>
       <Link className="button button--secondary" to="/rent-loans">전세자금대출 비교</Link>
+      <Link className="button button--secondary" to="/youth-policies">청년정책 찾기</Link>
     </nav>
   </section>
 }

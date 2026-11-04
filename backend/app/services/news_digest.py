@@ -35,6 +35,7 @@ MAX_POINT_LENGTH = 220
 MAX_MONEY_NOTES = 3
 MAX_MONEY_NOTE_LENGTH = 200
 COPY_WINDOW = 25
+MAX_ATTEMPTS = 3  # the model sometimes cites the wrong article for a correct number; the feedback usually fixes it
 MONEY_NOTE_CATEGORIES = ("new_savings", "current_savings", "loan", "fx")
 # Money notes explain a general relationship only: no forecast, no telling anyone what to do.
 MONEY_NOTE_FORBIDDEN = (
@@ -167,7 +168,11 @@ def _check_cited(item: object, by_id: dict[str, DigestSource], max_length: int, 
         errors.append(f"{label}의 근거 뉴스 id가 올바르지 않습니다.")
     else:
         cited_text = " ".join(by_id[source_id].text for source_id in ids)
-        errors += _unknown_numbers(text, cited_text, "인용한 뉴스에 없는 숫자입니다")
+        for error in _unknown_numbers(text, cited_text, "인용한 뉴스에 없는 숫자입니다"):
+            number = error.rsplit(": ", 1)[1].replace(",", "")
+            owners = [s.id for s in by_id.values() if number in {t.replace(",", "") for t in NUMBER_PATTERN.findall(s.text)}]
+            # Tell the model where the number really is, so it cites that article or drops the number.
+            errors.append(error + (f" (이 숫자는 {', '.join(owners)} 기사에 있습니다. 그 id를 함께 인용하거나 숫자를 빼세요)" if owners else ""))
     return text, errors
 
 
@@ -242,7 +247,7 @@ def write_digest(settings: Settings, sources: list[DigestSource], ask: AskModel 
         raise DigestError(f"요약할 뉴스가 {MIN_SOURCES}건보다 적습니다.")
     by_id = {source.id: source for source in sources}
     feedback: list[str] = []
-    for _attempt in range(2):
+    for _attempt in range(MAX_ATTEMPTS):
         result, model = ask(settings, sources, feedback)
         feedback = validate(result, sources)
         if not feedback:

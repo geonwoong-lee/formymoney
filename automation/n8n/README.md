@@ -88,3 +88,11 @@ docker compose --env-file automation/n8n/.env -f automation/n8n/compose.yml down
 - 가져오기: 컨테이너에 `/workflows`가 연결돼 있으면 2절 명령에서 파일 이름만 바꾼다. 연결돼 있지 않으면 `docker cp automation/n8n/workflows/daily-market-news-jobs.json n8n:/tmp/` 뒤 `docker exec n8n n8n import:workflow --input=/tmp/daily-market-news-jobs.json`.
 - 가져온 뒤에는 비활성 상태다. n8n 화면에서 `수동 실행`으로 결과를 확인하고 게시(활성화)해야 매일 예약이 작동한다. 예약은 n8n 컨테이너와 FastAPI가 켜져 있을 때만 돈다(로컬 PC를 끄면 실행되지 않음).
 - CLI로 시험 실행할 때는 기존 n8n과 runner 포트가 겹치므로 `docker exec -e N8N_RUNNERS_BROKER_PORT=5690 n8n n8n execute --id veryRichDailyJob`처럼 다른 포트를 준다. 이 워크플로는 Code 노드가 없어 runner 없이도 끝까지 실행된다.
+
+## 9. 오후 뉴스 수집 워크플로
+
+`workflows/daily-news-afternoon.json`(`Very Rich - 오후 뉴스 수집·요약`, id `veryRichAfternoonNews`)은 매일 오후 3시 30분(KST)에 `POST /api/v1/internal/daily/jobs/news`만 한 번 더 실행한다. 오전 7시 30분 수집에는 오전 8시에 발표되는 통계(소비자물가 등)의 기사가 아직 없어서, 머니독과 `/daily`가 그날 오후에야 그 기사를 알 수 있기 때문이다.
+
+- 시장 지표 작업은 넣지 않았다. 같은 날 요약은 날짜 기준으로 덮어쓰고, 머니독 지식은 내용이 바뀐 조각만 임베딩을 다시 만든다.
+- 실패 처리는 8절과 같다(요청 실패, `status=failed`, 실행 기록 저장 실패면 n8n 실행을 오류로 끝냄). `runId`는 실행마다 달라 아침 실행과 겹치지 않는다.
+- 가져오기와 게시는 8절과 같다. 가져온 뒤 비활성 상태이므로 `수동 실행`으로 확인하고 게시해야 예약이 작동한다.
