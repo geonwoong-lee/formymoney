@@ -273,7 +273,7 @@
   border-bottom: 2px solid #000;
   background: var(--panel);
   color: #000;
-  font-family: Arial, sans-serif;
+  font-family: var(--font-retro);
   font-size: 14px;
   font-weight: 900;
   line-height: 1;
@@ -345,7 +345,7 @@
   background: #ffff80;
   box-shadow: 2px 2px #000;
   color: #000;
-  font-family: "Courier New", monospace;
+  font-family: "Courier New", "Galmuri11", monospace;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -356,10 +356,10 @@
   max-width: 650px;
   margin: 0;
   color: #000080;
-  font-family: "Courier New", monospace;
+  font-family: var(--font-retro-title);
   font-size: clamp(30px, 5vw, 48px);
-  line-height: 1.08;
-  letter-spacing: -0.055em;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   text-shadow: 2px 2px #c0c0c0;
   overflow-wrap: anywhere;
 }
@@ -484,7 +484,7 @@
   height: 32px;
   padding: 0 9px 0 5px;
   gap: 4px;
-  font-family: Tahoma, "MS Sans Serif", sans-serif;
+  font-family: var(--font-retro);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -576,7 +576,7 @@
   padding: 8px 5px;
   background: #808080;
   color: #c0c0c0;
-  font-family: Arial, sans-serif;
+  font-family: var(--font-retro);
   font-size: 17px;
   font-weight: 900;
   letter-spacing: 0.05em;

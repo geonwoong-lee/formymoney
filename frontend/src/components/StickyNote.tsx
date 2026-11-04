@@ -6,11 +6,11 @@ const CLOSED_KEY = 'very-rich:sticky-note-closed:v1'
 
 // The path a first-time visitor can follow, in the order the screens build on each other.
 const JOURNEY = [
-  { to: '/conditions', label: '내 조건', hint: '받을 우대 조건 체크' },
-  { to: '/banks', label: '은행 비교', hint: '내 조건 만기액 비교' },
-  { to: '/my-savings', label: '내 적금', hint: '가입한 적금 기록·알림' },
-  { to: '/cashflow', label: '납입 계획', hint: '달마다 넣은 돈 확인' },
-  { to: '/maturity', label: '만기 후 계획', hint: '만기 돈 쓸 곳 고르기' },
+  { to: '/conditions', label: '내 조건', hint: '우대 조건 체크' },
+  { to: '/banks', label: '은행 비교', hint: '만기액 비교' },
+  { to: '/my-savings', label: '내 적금', hint: '가입 적금 기록' },
+  { to: '/cashflow', label: '납입 계획', hint: '넣은 돈 확인' },
+  { to: '/maturity', label: '만기 후 계획', hint: '만기 돈 쓸 곳' },
 ] as const
 
 function wasClosed(): boolean {
