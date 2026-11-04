@@ -139,7 +139,7 @@ html, body, #root { height: 100%; overflow: hidden; }
   .retro-form { grid-template-columns: 1fr; }
   .survey-evidence { grid-template-columns: 1fr; }
   .bank-results li { grid-template-columns: 28px 1fr auto; }
-  .bank-results .maturity { grid-column: 2 / 3; }
+  .bank-results .rate, .bank-results .maturity { grid-column: 2 / 3; }
   .bank-results .button { grid-column: 3; grid-row: 1 / span 2; }
   .money-breakdown { grid-template-columns: 1fr; }
   .cashflow-controls { grid-template-columns: 1fr; }

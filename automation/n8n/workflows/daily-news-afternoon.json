@@ -1,0 +1,190 @@
+{
+  "id": "veryRichAfternoonNews",
+  "name": "Very Rich - 오후 뉴스 수집·요약 (오전 8시 통계 기사 반영)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "dfc9240a-9b55-42a6-9ced-0ddb73d49811",
+      "name": "수동 실행",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -700,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 15 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a82327fd-ea45-4564-80a2-02f6e0b4965a",
+      "name": "매일 오후 3시 30분 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -700,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.VERY_RICH_API_BASE_URL}}/api/v1/internal/daily/jobs/news",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Very-Rich-Ingest-Secret",
+              "value": "={{$env.VERY_RICH_N8N_INGEST_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({runId: String($execution.id)})}}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "e4f32509-a30a-4eef-a852-3f4d838f8766",
+      "name": "뉴스 수집·요약",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -460,
+        60
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e39bdad1-bc8a-4f6d-ab4c-7be0ca6b57e5",
+              "leftValue": "={{ [$('뉴스 수집·요약').first().json].some((body) => !body || body.error !== undefined || !body.status || body.status === 'failed' || body.runRecorded !== true) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "a535832d-1538-491a-8264-8575913f9b28",
+      "name": "실패한 작업이 있나",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -220,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{ [['뉴스·요약', $('뉴스 수집·요약').first().json]].filter(([label, body]) => !body || body.error !== undefined || !body.status || body.status === 'failed' || body.runRecorded !== true).map(([label, body]) => label + ': ' + (!body || body.error !== undefined || !body.status ? 'FastAPI 요청 실패' : body.status === 'failed' ? '수집 실패 ' + (body.failures || []).slice(0, 2).join(' / ') : '실행 기록 저장 실패')).join(' | ') }}"
+      },
+      "id": "331b7624-5599-4c12-a5a5-4c1eae7a4224",
+      "name": "실행 실패로 표시",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        20,
+        -40
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "55cad7dd-9ec1-4c01-a256-a8e171b35596",
+      "name": "완료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        20,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "수동 실행": {
+      "main": [
+        [
+          {
+            "node": "뉴스 수집·요약",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "매일 오후 3시 30분 KST": {
+      "main": [
+        [
+          {
+            "node": "뉴스 수집·요약",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 수집·요약": {
+      "main": [
+        [
+          {
+            "node": "실패한 작업이 있나",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "실패한 작업이 있나": {
+      "main": [
+        [
+          {
+            "node": "실행 실패로 표시",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "완료",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "Asia/Seoul",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 900
+  },
+  "versionId": "3659fcce-4717-497a-92a7-aff1f7a3acaf",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

@@ -48,3 +48,21 @@ def test_workflow_has_no_secrets_or_openai_credentials() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "$env.VERY_RICH_N8N_INGEST_SECRET" in text
     assert "credentials" not in text and "sk-" not in text
+
+
+AFTERNOON = WORKFLOW.parent / "daily-news-afternoon.json"
+
+
+def test_afternoon_workflow_runs_only_the_news_job_after_the_morning_statistics_release() -> None:
+    workflow = json.loads(AFTERNOON.read_text(encoding="utf-8"))
+    schedule = _node(workflow, "매일 오후 3시 30분 KST")
+    assert schedule["parameters"]["rule"]["interval"][0]["expression"] == "30 15 * * *"
+    assert workflow["settings"]["timezone"] == "Asia/Seoul"
+    assert workflow["id"] != _workflow()["id"] and workflow["active"] is False
+    assert [node["name"] for node in workflow["nodes"] if node["type"] == "n8n-nodes-base.httpRequest"] == ["뉴스 수집·요약"]
+    news = _node(workflow, "뉴스 수집·요약")
+    assert news["parameters"]["url"].endswith("/api/v1/internal/daily/jobs/news")
+    assert news["onError"] == "continueRegularOutput" and not news.get("retryOnFail")
+    assert workflow["connections"]["뉴스 수집·요약"]["main"][0][0]["node"] == "실패한 작업이 있나"
+    text = AFTERNOON.read_text(encoding="utf-8")
+    assert "$env.VERY_RICH_N8N_INGEST_SECRET" in text and "credentials" not in text and "sk-" not in text
