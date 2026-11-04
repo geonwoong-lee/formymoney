@@ -11,6 +11,7 @@ from app.api.v1.endpoints.events import router as events_router
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.investments import router as investments_router
 from app.api.v1.endpoints.loans import router as loans_router
+from app.api.v1.endpoints.youth_policies import router as youth_policies_router
 from app.api.v1.endpoints.market import router as market_router
 from app.api.v1.endpoints.maturity import router as maturity_router
 from app.api.v1.endpoints.product_detail import router as product_detail_router
@@ -31,6 +32,7 @@ api_router.include_router(events_router, tags=["events"])
 api_router.include_router(health_router, tags=["system"])
 api_router.include_router(investments_router, tags=["investments"])
 api_router.include_router(loans_router, tags=["loans"])
+api_router.include_router(youth_policies_router, tags=["youth-policies"])
 api_router.include_router(market_router, tags=["market"])
 api_router.include_router(maturity_router, tags=["maturity"])
 api_router.include_router(plans_router, tags=["plans"])

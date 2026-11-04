@@ -15,6 +15,7 @@ import { GeneralSavingsPage } from './pages/GeneralSavingsPage'
 import { AdminPage } from './pages/AdminPage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
 import { RentLoansPage } from './pages/RentLoansPage'
+import { YouthPoliciesPage } from './pages/YouthPoliciesPage'
 import { TermsPage } from './pages/TermsPage'
 import { MySavingsPage } from './pages/MySavingsPage'
 import { SharePage } from './pages/SharePage'
@@ -42,6 +43,7 @@ function App() {
         <Route path="/my-savings" element={<MySavingsPage />} />
         <Route path="/general-savings" element={<GeneralSavingsPage />} />
         <Route path="/rent-loans" element={<RentLoansPage />} />
+        <Route path="/youth-policies" element={<YouthPoliciesPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/product" element={<ProductDetailPage />} />
         <Route path="/terms" element={<TermsPage />} />

@@ -43,6 +43,7 @@ const utilityApps: UtilityAppDefinition[] = [
 
 function getCurrentApp(pathname: string) {
   if (pathname.startsWith('/banks/')) return { ...desktopApps[2], windowTitle: '은행 상세 정보' }
+  if (pathname === '/youth-policies') return { ...desktopApps[4], to: pathname, label: '청년정책 찾기', windowTitle: '청년정책 찾기' }
   if (pathname === '/share') return { ...desktopApps[2], windowTitle: '공유받은 은행 비교' }
   return desktopApps.find((app) => app.to === pathname) ?? desktopApps[0]
 }
