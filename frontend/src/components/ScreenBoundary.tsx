@@ -1,7 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 const RELOADED_AT_KEY = 'very-rich:chunk-reload-at:v1'
-const RELOAD_GAP_MS = 30_000
+// Long enough that a screen that keeps failing never reloads the page in a loop; a later release can still trigger one.
+const RELOAD_GAP_MS = 10 * 60_000
 
 function looksLikeMissingScreen(error: Error): boolean {
   return /dynamically imported module|Importing a module script failed|Failed to fetch dynamically|error loading dynamically|Loading chunk/i.test(error.message)

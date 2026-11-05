@@ -55,6 +55,20 @@ describe('RentLoansPage', () => {
     expect(screen.getByRole('link', { name: /금융감독원 금융상품 한눈에/ })).toHaveAttribute('href', 'https://finlife.fss.or.kr/')
   })
 
+  it('offers a retry button when the loans cannot be loaded, and lists them once it works', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+      .mockImplementation(() => Promise.resolve(new Response(JSON.stringify(body(1)), { status: 200, headers: { 'Content-Type': 'application/json' } })))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MemoryRouter><RentLoansPage /></MemoryRouter>)
+
+    await user.click(await screen.findByRole('button', { name: '다시 시도' }))
+
+    expect(await screen.findByText('A 전세론', { exact: false })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
+  })
+
   it('sends the chosen repayment and rate type, and says so when nothing matches or the data cannot load', async () => {
     const user = userEvent.setup()
     const fetch = vi.fn()

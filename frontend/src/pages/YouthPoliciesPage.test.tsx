@@ -53,6 +53,20 @@ describe('YouthPoliciesPage', () => {
     expect(window.localStorage.length).toBe(0)
   })
 
+  it('offers a retry button when the policies cannot be loaded, and lists them once it works', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+      .mockImplementation(() => json(body([policy('청년 월세 지원')])))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MemoryRouter><YouthPoliciesPage /></MemoryRouter>)
+
+    await user.click(await screen.findByRole('button', { name: '다시 시도' }))
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument())
+    expect(screen.queryByText(/청년정책을 불러오지 못했어요/)).not.toBeInTheDocument()
+  })
+
   it('says so when nothing was collected, nothing matches, or the request fails', async () => {
     vi.stubGlobal('fetch', vi.fn(() => json(body([], { total: 0, count: 0 }))))
     const first = render(<MemoryRouter><YouthPoliciesPage /></MemoryRouter>)
