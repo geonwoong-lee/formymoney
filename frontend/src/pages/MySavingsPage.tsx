@@ -84,6 +84,7 @@ function Status({ status, events }: { status: MyStatusResponse; events: Upcoming
         {payments.skippedRounds.length === 0 && payments.reducedRounds.length === 0 && <p className="my-savings__muted">지금까지 계획대로 넣었어요.</p>}
       </> : <p className="my-savings__muted">가입하고 납입을 시작하면 낸 돈과 남은 돈을 나눠 보여 드려요.</p>}
       <p className="my-savings__muted">실제로 넣은 금액은 <Link to="/cashflow">월별 납입 계획</Link>에서 고칠 수 있어요. 이 화면은 그 입력을 기준으로 계산해요.</p>
+      {status.timeline.phase === 'saving' && <p className="my-savings__muted">해지를 고민 중이라면 <Link to="/early-exit">해지 전 계산</Link>에서 지금 깨면 받는 돈과 버티는 방법을 비교해 보세요.</p>}
     </section>
 
     <section className="my-savings__card" aria-labelledby="my-savings-conditions">

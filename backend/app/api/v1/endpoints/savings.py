@@ -8,10 +8,13 @@ from app.schemas.savings import (
     CalculationResponse,
     CashflowCalculationRequest,
     CashflowCalculationResponse,
+    EarlyExitRequest,
+    EarlyExitResponse,
     MonthImpactRequest,
     MonthImpactResponse,
     ProductsResponse,
 )
+from app.services.early_exit import calculate_early_exit
 from app.services.my_savings import my_status
 from app.services.news_digest import korea_today
 from app.services.savings_service import SavingsDataError, SavingsInputError, SavingsService
@@ -59,6 +62,20 @@ def calculate_month_impact(payload: MonthImpactRequest, request: Request) -> Mon
     try:
         with request.app.state.session_factory() as session:
             return SavingsService(session).calculate_month_impact(payload)
+    except SavingsInputError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
+    except (SavingsDataError, SQLAlchemyError) as error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+
+
+@router.post("/early-exit", response_model=EarlyExitResponse)
+def calculate_early_exit_endpoint(payload: EarlyExitRequest, request: Request) -> EarlyExitResponse:
+    """지금 일반 중도해지할 때 받는 돈의 기본금리 기준 참고값과, 해지하지 않는 방법의 만기 수령액을 비교한다.
+
+    낸 원금이 같은 것은 pause(남은 달 쉬기)뿐이고, minimum은 남은 달 최소 금액만큼 원금이 늘어난다(extraPrincipal)."""
+    try:
+        with request.app.state.session_factory() as session:
+            return calculate_early_exit(SavingsService(session), payload)
     except SavingsInputError as error:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)) from error
     except (SavingsDataError, SQLAlchemyError) as error:

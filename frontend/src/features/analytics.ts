@@ -6,6 +6,7 @@ export const ANALYTICS_CONSENT_KEY = 'very-rich:analytics-consent:v1'
 export type AnalyticsEvent =
   | 'visit_conditions' | 'visit_banks' | 'visit_cashflow' | 'check_month_impact' | 'visit_maturity'
   | 'plan_maturity' | 'download_reminder' | 'share_result' | 'open_shared' | 'visit_my_savings' | 'visit_general_savings' | 'visit_rent_loans' | 'visit_terms' | 'visit_daily' | 'visit_market' | 'visit_alternatives'
+  | 'visit_early_exit' | 'check_early_exit'
 
 export const PAGE_EVENTS: Record<string, AnalyticsEvent> = {
   '/conditions': 'visit_conditions',
@@ -19,6 +20,7 @@ export const PAGE_EVENTS: Record<string, AnalyticsEvent> = {
   '/daily': 'visit_daily',
   '/market': 'visit_market',
   '/alternatives': 'visit_alternatives',
+  '/early-exit': 'visit_early_exit',
 }
 
 export type Consent = 'yes' | 'no' | null

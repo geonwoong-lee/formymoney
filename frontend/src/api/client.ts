@@ -132,6 +132,45 @@ export interface MonthImpactResponse {
   sourceDate: string
 }
 
+export interface EarlyExitScenario {
+  key: 'keep' | 'pause' | 'minimum'
+  label: string
+  futureMonthlyAmount: number | null
+  principal: number
+  depositInterest: number
+  governmentContribution: number
+  governmentContributionInterest: number
+  expectedMaturityAmount: number
+  extraPrincipal: number
+  moreThanTermination: number
+}
+
+export interface EarlyExitResponse {
+  bankCode: string
+  bankName: string
+  paidMonths: number
+  termMonths: number
+  monthsLeft: number
+  baseRate: number
+  expectedRate: number
+  interestTaxRate: number
+  termination: {
+    principal: number
+    interestAtBaseRate: number
+    interestTax: number
+    receivedAtBaseRate: number
+    lostGovernmentContribution: number
+  }
+  scenarios: EarlyExitScenario[]
+  specialTerminationReasons: string[]
+  specialTerminationSource: string
+  specialTerminationSourceUrl: string
+  specialTerminationSourceDate: string
+  unavailableNotes: string[]
+  sourceUrl: string
+  sourceDate: string
+}
+
 export interface InvestmentAsset {
   code: string
   ticker: string
@@ -810,6 +849,22 @@ export function calculateMonthImpact(payload: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+  })
+}
+
+export function calculateEarlyExit(payload: {
+  bankCode: string
+  monthlyAmounts: number[]
+  fixedMonthlyAmount: number
+  contributionType: ContributionType
+  conditionAnswers: Record<string, ConditionAnswer>
+  paidMonths: number
+}, signal?: AbortSignal): Promise<EarlyExitResponse> {
+  return request<EarlyExitResponse>('/api/v1/savings/early-exit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
   })
 }
 

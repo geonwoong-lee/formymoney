@@ -29,6 +29,8 @@ EVENTS: list[tuple[str, str, bool]] = [
     ("visit_general_savings", "일반 적금 비교 화면", False),
     ("visit_rent_loans", "전세대출 비교 화면", False),
     ("visit_terms", "쉬운 용어 풀이 화면", False),
+    ("visit_early_exit", "해지 전 계산 화면", False),
+    ("check_early_exit", "해지 전 계산 실행", False),
     ("share_result", "은행 비교 결과 공유", False),
     ("open_shared", "공유받은 결과 열기", False),
 ]

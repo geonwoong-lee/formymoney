@@ -13,6 +13,7 @@ router = APIRouter()
 EventName = Literal[
     "visit_conditions", "visit_banks", "visit_cashflow", "check_month_impact", "visit_maturity",
     "plan_maturity", "download_reminder", "share_result", "open_shared", "visit_my_savings", "visit_general_savings", "visit_rent_loans", "visit_terms", "visit_daily", "visit_market", "visit_alternatives",
+    "visit_early_exit", "check_early_exit",
 ]
 
 

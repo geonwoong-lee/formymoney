@@ -1,0 +1,12 @@
+.early-exit__card { margin: 16px 0; padding: 12px 14px; border: 2px solid #808080; background: #f4f4f4; }
+.early-exit__card--now { border-color: #a03000; background: #fff8f2; }
+.early-exit__card h2 { margin: 0 0 6px; font-size: 19px; }
+.early-exit__card h3 { margin: 10px 0 4px; font-size: 15px; }
+.early-exit__card .money-breakdown { margin: 12px 0; }
+.early-exit__card summary { font-weight: 700; cursor: pointer; padding: 4px 0; }
+.early-exit__card ul { margin: 0; padding-left: 18px; }
+.early-exit__card li { margin: 3px 0; }
+.early-exit__headline { font-size: 17px; }
+/* Digits have no bold in this font, so amounts stand out by colour. */
+.early-exit__headline b, .early-exit__losses b { color: #000080; text-decoration: underline dotted; text-underline-offset: 3px; }
+.early-exit__card--now .early-exit__headline b { color: #a03000; }
