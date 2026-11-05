@@ -25,6 +25,12 @@ EVENTS: list[tuple[str, str, bool]] = [
     ("visit_daily", "오늘의 머니 화면", False),
     ("visit_market", "시장 지표 화면", False),
     ("visit_alternatives", "대안 비교 화면", False),
+    ("visit_my_savings", "내 적금 화면", False),
+    ("visit_general_savings", "일반 적금 비교 화면", False),
+    ("visit_rent_loans", "전세대출 비교 화면", False),
+    ("visit_terms", "쉬운 용어 풀이 화면", False),
+    ("share_result", "은행 비교 결과 공유", False),
+    ("open_shared", "공유받은 결과 열기", False),
 ]
 EVENT_NAMES = {name for name, _, _ in EVENTS}
 
