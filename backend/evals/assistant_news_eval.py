@@ -37,9 +37,9 @@ QUESTIONS = [
 ]
 
 DATE = re.compile(r"\d{4}년 \d{1,2}월(?: \d{1,2}일)?|\d{1,2}월 \d{1,2}일")
-# Only wording that says the fact is missing or different, with the missing-word right after "자료에"; "자료에 따르면 ... 없어요" accepts the premise, so it does not count.
+# Only wording that says the fact is missing or different, with the missing-word within a few characters of "자료"/"내용"; "자료에 따르면 ... 영향은 없어요" accepts the premise, so it does not count. Answers vary from run to run, so a single BAD here is worth reading before it is worth fixing.
 # The premises are made up on purpose (a stock split, a rate cut that did not happen) so a day's news cannot make them true.
-ADMITS = re.compile(r"자료(에|상|에는|에도)? ?(구체적으로 |정확히 )?(없|담겨 있지|나와 있지|정리되어 있지|확인되지|확인할 수 없|확인하기 어렵)|자료와 다릅|사실 여부를 확인|확인(할 수 없|되지 않|하기 어렵)|알 수 없")
+ADMITS = re.compile(r"(자료|내용)[^.]{0,10}(없|담겨 있지|나와 있지|정리되어 있지|확인(되지|할 수 없|하기 어렵))|자료와 다릅|사실 여부를 확인")
 
 
 def check(item):
