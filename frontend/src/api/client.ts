@@ -637,6 +637,8 @@ export interface YouthPolicy {
   refUrl: string
   regionLabel: string
   modifiedOn: string | null
+  fit: string[]  // 고른 내 상황에 맞는 이유
+  toCheck: string[]  // 신청 전에 확인할 조건
 }
 
 export interface YouthPoliciesResponse {
@@ -648,12 +650,15 @@ export interface YouthPoliciesResponse {
   categories: string[]
   regions: { code: string; name: string }[]
   notes: string[]
+  profileOptions: { jobs: { code: string; name: string }[]; marriages: { code: string; name: string }[]; schools: { code: string; name: string }[] }
+  conditionsCollected: boolean
   sourceName: string
   sourceUrl: string
 }
 
 export function getYouthPolicies(payload: {
   keyword: string; category: string; region: string; age: number | null; openOnly: boolean; sort: 'deadline' | 'recent'; offset: number; limit: number
+  job?: string; marriage?: string; school?: string
 }, signal?: AbortSignal): Promise<YouthPoliciesResponse> {
   return request('/api/v1/youth-policies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
 }

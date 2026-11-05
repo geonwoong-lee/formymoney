@@ -14,6 +14,8 @@ function Row({ policy }: { policy: YouthPolicy }) {
   return <li className="deposit-product">
     <p className="deposit-product__name"><b>{policy.name}</b> <span className="deposit-product__type">{policy.category}</span>{policy.ageLabel && <> <span className="deposit-product__type">{policy.ageLabel}</span></>} <span className="deposit-product__type">{policy.regionLabel}</span></p>
     {policy.institution && <p className="maturity-muted">{policy.institution}</p>}
+    {policy.fit.length > 0 && <ul className="youth-policy__fit" aria-label="내 상황에 맞는 이유">{policy.fit.map((line) => <li key={line}>{line}</li>)}</ul>}
+    {policy.toCheck.length > 0 && <ul className="youth-policy__check-list" aria-label="신청 전에 확인할 조건">{policy.toCheck.map((line) => <li key={line}>{line}</li>)}</ul>}
     {policy.support && <p className="youth-policy__support">{policy.support}</p>}
     <p>신청 기간 <span className="deposit-product__amount">{policy.applyLabel}</span></p>
     <details className="deposit-terms">
@@ -43,6 +45,10 @@ export function YouthPoliciesPage() {
   const [category, setCategory] = useState('')
   const [region, setRegion] = useState('')
   const [age, setAge] = useState('')
+  // 내 상황(선택). 이 화면에서 거르는 데만 쓰고 저장하지 않는다.
+  const [job, setJob] = useState('')
+  const [marriage, setMarriage] = useState('')
+  const [school, setSchool] = useState('')
   const [openOnly, setOpenOnly] = useState(true)
   const [sort, setSort] = useState<'deadline' | 'recent'>('deadline')
   const [shown, setShown] = useState(PAGE)
@@ -50,23 +56,23 @@ export function YouthPoliciesPage() {
   const ageValue = age.trim() === '' ? null : Number(age)
   const ageInvalid = ageValue !== null && (!Number.isInteger(ageValue) || ageValue < 0 || ageValue > 120)
   const [attempt, setAttempt] = useState(0)
-  const key = `${keyword.trim()}|${category}|${region}|${ageValue}|${openOnly}|${sort}|${shown}|${attempt}`
+  const key = `${keyword.trim()}|${category}|${region}|${ageValue}|${job}|${marriage}|${school}|${openOnly}|${sort}|${shown}|${attempt}`
   const body = loaded?.key === key ? loaded.body : undefined
-  const [options, setOptions] = useState<Pick<YouthPoliciesResponse, 'categories' | 'regions'>>({ categories: [], regions: [] })
+  const [options, setOptions] = useState<Pick<YouthPoliciesResponse, 'categories' | 'regions' | 'profileOptions'>>({ categories: [], regions: [], profileOptions: { jobs: [], marriages: [], schools: [] } })
 
   useEffect(() => {
     if (ageInvalid) return
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
-      getYouthPolicies({ keyword: keyword.trim(), category, region, age: ageValue, openOnly, sort, offset: 0, limit: shown }, controller.signal)
-        .then((response) => { setLoaded({ key, body: response }); setOptions({ categories: response.categories, regions: response.regions }) })
+      getYouthPolicies({ keyword: keyword.trim(), category, region, age: ageValue, job, marriage, school, openOnly, sort, offset: 0, limit: shown }, controller.signal)
+        .then((response) => { setLoaded({ key, body: response }); setOptions({ categories: response.categories, regions: response.regions, profileOptions: response.profileOptions }) })
         .catch((cause: unknown) => {
           if (cause instanceof DOMException && cause.name === 'AbortError') return
           setLoaded({ key, body: null })
         })
     }, 300)
     return () => { window.clearTimeout(timer); controller.abort() }
-  }, [key, ageInvalid, keyword, category, region, ageValue, openOnly, sort, shown])
+  }, [key, ageInvalid, keyword, category, region, ageValue, job, marriage, school, openOnly, sort, shown])
 
   const reset = () => setShown(PAGE)
   return <section className="page page--wide maturity-page">
@@ -95,6 +101,24 @@ export function YouthPoliciesPage() {
         <label><span>내 나이(만, 선택)</span>
           <input type="number" inputMode="numeric" min={0} max={120} value={age} aria-invalid={ageInvalid} onChange={(event) => { setAge(event.target.value); reset() }} />
         </label>
+        <label><span>취업 상태(선택)</span>
+          <select value={job} onChange={(event) => { setJob(event.target.value); reset() }}>
+            <option value="">고르지 않음</option>
+            {options.profileOptions.jobs.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+          </select>
+        </label>
+        <label><span>결혼 여부(선택)</span>
+          <select value={marriage} onChange={(event) => { setMarriage(event.target.value); reset() }}>
+            <option value="">고르지 않음</option>
+            {options.profileOptions.marriages.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+          </select>
+        </label>
+        <label><span>학력(선택)</span>
+          <select value={school} onChange={(event) => { setSchool(event.target.value); reset() }}>
+            <option value="">고르지 않음</option>
+            {options.profileOptions.schools.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+          </select>
+        </label>
         <label><span>정렬</span>
           <select value={sort} onChange={(event) => { setSort(event.target.value as 'deadline' | 'recent'); reset() }}>
             <option value="deadline">신청 마감이 가까운 순</option>
@@ -103,7 +127,7 @@ export function YouthPoliciesPage() {
         </label>
         <label className="youth-policy__check"><input type="checkbox" checked={openOnly} onChange={(event) => { setOpenOnly(event.target.checked); reset() }} /> <span>신청 기간이 끝난 정책은 빼기</span></label>
       </div>
-      <p className="maturity-muted">나이는 정책에 나이 제한이 적혀 있을 때만 걸러요. 입력한 나이는 저장하지 않아요.</p>
+      <p className="maturity-muted">나이는 정책에 나이 제한이 적혀 있을 때만, 취업 상태·결혼 여부·학력은 온통청년에 등록된 대상 구분으로 걸러요. 고른 값은 이 화면에서 거르는 데만 쓰고 저장하지 않아요. 소득·거주 기간 같은 조건은 판정하지 않고 &lsquo;확인할 조건&rsquo;으로 알려 드려요.</p>
       {ageInvalid && <p className="maturity-error" role="alert">나이는 0~120 사이의 정수로 넣어 주세요.</p>}
     </section>
 
@@ -113,6 +137,7 @@ export function YouthPoliciesPage() {
       {body === null && <ErrorNotice message="청년정책을 불러오지 못했어요. 잠시 후 다시 확인해 주세요." onRetry={() => setAttempt((count) => count + 1)} />}
       {body && body.total === 0 && <p className="maturity-muted">아직 수집된 청년정책이 없어요. 수집이 끝난 뒤에 다시 확인해 주세요.</p>}
       {body && body.total > 0 && body.count === 0 && <p className="maturity-muted">고른 조건에 맞는 정책이 없어요. 조건을 바꿔 보세요.</p>}
+      {body && !body.conditionsCollected && (job || marriage || school) && <p className="notice">취업 상태·결혼 여부·학력 자료를 아직 모으지 않아서 이 조건으로는 거르지 못했어요. 다음 수집 뒤에 다시 확인해 주세요.</p>}
       {body && body.count > 0 && <>
         <p className="maturity-muted">전체 {body.total.toLocaleString('ko-KR')}개 중 {body.count.toLocaleString('ko-KR')}개를 찾았어요. {sort === 'deadline' ? '신청 마감이 가까운 순서' : '최근에 수정된 순서'}예요.</p>
         <ul className="deposit-products" aria-label="청년정책 목록">

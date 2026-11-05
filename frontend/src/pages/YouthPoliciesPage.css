@@ -17,3 +17,8 @@
   gap: 6px;
   align-self: end;
 }
+.youth-policy__fit, .youth-policy__check-list { margin: 0 0 6px; padding: 0; list-style: none; font-size: 13px; }
+.youth-policy__fit li { color: #005a00; }
+.youth-policy__fit li::before { content: '✓ '; }
+.youth-policy__check-list li { color: #8a4b00; }
+.youth-policy__check-list li::before { content: '? '; }
