@@ -13,6 +13,15 @@ class SignUpRequest(AuthModel):
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=8, max_length=128)
     display_name: str = Field(min_length=1, max_length=50)
+    terms_accepted: bool
+
+    @field_validator("terms_accepted")
+    @classmethod
+    def require_terms(cls, value: bool) -> bool:
+        # The signup form asks for this, and the server does not rely on the form: a request without it is refused.
+        if value is not True:
+            raise ValueError("이용약관과 개인정보 처리방침에 동의해 주세요.")
+        return value
 
     @field_validator("email")
     @classmethod

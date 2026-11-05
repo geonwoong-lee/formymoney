@@ -63,6 +63,7 @@ describe('signup consent', () => {
     await user.click(screen.getByRole('checkbox', { name: /동의합니다/ }))
     await user.click(screen.getByRole('button', { name: '가입하기' }))
     expect(fetchMock).toHaveBeenCalledOnce()
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toMatchObject({ email: 'new@example.com', termsAccepted: true })
   })
 
   it('asks for no consent when logging in', () => {

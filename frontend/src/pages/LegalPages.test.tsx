@@ -18,7 +18,8 @@ describe('legal pages', () => {
     expect(screen.getByText(/서버로도 보내지 않아요/)).toBeInTheDocument()
     expect(screen.getAllByText(/OpenAI/).length).toBeGreaterThan(0)
     expect(screen.getByText(/저장하지 않고 기록에도 남기지 않아요/)).toBeInTheDocument()
-    expect(screen.getByText(/내 정보 화면에서 하나씩 또는 모두 지울 수 있어요/)).toBeInTheDocument()
+    expect(screen.getByText(/계정의 관심 상품은 내 적금 화면에서 지울 수 있어요/)).toBeInTheDocument()
+    expect(screen.getByText(/접속 기록/, { selector: 'h2' }).textContent).toContain('서버의 접속 기록')
     expect(screen.getByRole('link', { name: '이용약관 보기' })).toHaveAttribute('href', '/service-terms')
   })
 

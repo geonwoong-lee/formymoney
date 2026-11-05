@@ -26,7 +26,7 @@ export function AuthPage() {
     setMessage(null)
     try {
       const session = mode === 'signup'
-        ? await signUp(email, password, displayName)
+        ? await signUp(email, password, displayName, agreed)
         : await login(email, password)
       if (saveAuthSession(session)) {
         navigate('/me')
