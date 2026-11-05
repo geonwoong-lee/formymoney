@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { emptyBoard, FINAL_LEVEL, isCleared, levelConfig, openCell, placeMines } from '../features/minesweeper'
+import { loadMineProgress, saveMineProgress } from '../features/minesweeperProgress'
 import './RetroUtilityApps.css'
 
 export type UtilityId = 'folder' | 'notepad' | 'paint' | 'calculator' | 'minesweeper'
@@ -135,7 +136,9 @@ function CalculatorApp() {
 }
 
 function MinesweeperApp() {
-  const [level, setLevel] = useState(1)
+  const [saved] = useState(loadMineProgress)
+  const [level, setLevel] = useState(saved.level)
+  const [best, setBest] = useState(saved.best)
   const { size, mines } = levelConfig(level)
   const [board, setBoard] = useState(() => emptyBoard(size))
   const [status, setStatus] = useState<'ready' | 'playing' | 'won' | 'lost'>('ready')
@@ -147,6 +150,7 @@ function MinesweeperApp() {
   }, [status])
   function start(nextLevel: number) {
     setLevel(nextLevel); setBoard(emptyBoard(levelConfig(nextLevel).size)); setStatus('ready'); setSeconds(0)
+    saveMineProgress({ level: nextLevel, best })
   }
   function reset() { start(level) }
   function nextLevel() { start(Math.min(FINAL_LEVEL, level + 1)) }
@@ -156,14 +160,21 @@ function MinesweeperApp() {
     const ready = board.some((cell) => cell.mine) ? board : placeMines(board, size, mines, index)
     const { board: next, hitMine } = openCell(ready, size, index)
     setBoard(next)
-    setStatus(hitMine ? 'lost' : isCleared(next) ? 'won' : 'playing')
+    const cleared = !hitMine && isCleared(next)
+    setStatus(hitMine ? 'lost' : cleared ? 'won' : 'playing')
+    if (cleared) {
+      // Clearing a level is remembered right away, so closing the window afterwards still starts the next one.
+      const newBest = Math.max(best, level)
+      setBest(newBest)
+      saveMineProgress({ level: Math.min(FINAL_LEVEL, level + 1), best: newBest })
+    }
   }
   function flag(index: number) { if (status === 'lost' || status === 'won' || board[index].revealed) return; setStatus((value) => value === 'ready' ? 'playing' : value); setBoard((current) => current.map((cell, cellIndex) => cellIndex === index ? { ...cell, flagged: !cell.flagged } : cell)) }
   const flags = board.filter((cell) => cell.flagged).length
   const last = level >= FINAL_LEVEL
   return (
     <div className="minesweeper-app utility-app">
-      <div className="utility-menubar"><button type="button" onClick={reset}>게임</button><span>도움말</span></div>
+      <div className="utility-menubar"><button type="button" onClick={reset}>게임</button><button type="button" onClick={() => start(1)}>레벨 1부터</button><span>도움말</span></div>
       <div className="mine-counter"><span>{String(Math.max(0, mines - flags)).padStart(3, '0')}</span><button type="button" aria-label={status === 'won' && !last ? '다음 레벨' : '새 게임'} onClick={status === 'won' && !last ? nextLevel : reset}>{status === 'lost' ? '☹' : status === 'won' ? '😎' : '☺'}</button><span>{String(seconds).padStart(3, '0')}</span></div>
       <div className={`mine-board${size > 12 ? ' mine-board--dense' : ''}`} role="grid" aria-label={`${size} 곱하기 ${size} 지뢰찾기 판`} style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>{board.map((cell, index) => <button type="button" role="gridcell" key={index} className={cell.revealed ? 'is-revealed' : ''} aria-label={`${Math.floor(index / size) + 1}행 ${index % size + 1}열${cell.flagged ? ', 깃발' : ''}`} onClick={() => reveal(index)} onContextMenu={(event) => { event.preventDefault(); flag(index) }}>{cell.revealed ? cell.mine ? '✹' : cell.nearby || '' : cell.flagged ? '⚑' : ''}</button>)}</div>
       {status === 'won' && <div className="mine-banner" role="status">
@@ -171,7 +182,7 @@ function MinesweeperApp() {
         {!last && <button type="button" onClick={nextLevel}>다음 레벨 ({levelConfig(level + 1).size}×{levelConfig(level + 1).size}, 지뢰 {levelConfig(level + 1).mines}개)</button>}
       </div>}
       {status === 'lost' && <div className="mine-banner mine-banner--lost" role="status"><span>지뢰를 밟았어요. 같은 레벨을 다시 해 보세요.</span></div>}
-      <div className="utility-statusbar">레벨 {level} · 지뢰 {mines}개 · 왼쪽 클릭: 열기 · 오른쪽 클릭: 깃발</div>
+      <div className="utility-statusbar">레벨 {level} · 지뢰 {mines}개{best > 0 ? ` · 최고 ${best}레벨 클리어` : ''} · 왼쪽 클릭: 열기 · 오른쪽 클릭: 깃발</div>
     </div>
   )
 }

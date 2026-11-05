@@ -1,11 +1,14 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { emptyBoard, levelConfig, placeMines } from '../features/minesweeper'
 import { RetroUtilityApp } from './RetroUtilityApps'
 
+beforeEach(() => window.localStorage.clear())
+
 afterEach(() => {
   cleanup()
+  window.localStorage.clear()
   vi.restoreAllMocks()
 })
 
@@ -95,6 +98,30 @@ describe('Minesweeper', () => {
     // Without mines the whole board would open at once and count as cleared.
     expect(screen.queryByText(/클리어/)).not.toBeInTheDocument()
     expect(screen.getAllByRole('gridcell').filter((c) => c.classList.contains('is-revealed')).length).toBeLessThan(81 - 10)
+  })
+
+  it('remembers the cleared level, so reopening the game starts at the next one', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const user = userEvent.setup()
+    const first = renderGame()
+    await clearBoard(user, 1, 40)
+    first.unmount()
+
+    renderGame()
+    const second = levelConfig(2)
+    expect(screen.getByText(new RegExp(`레벨 2 · 지뢰 ${second.mines}개 · 최고 1레벨 클리어`))).toBeInTheDocument()
+    expect(screen.getAllByRole('gridcell')).toHaveLength(second.size * second.size)
+  })
+
+  it('keeps the level after a loss and lets the player go back to level 1 without losing the best', async () => {
+    window.localStorage.setItem('very-rich:minesweeper:v1', JSON.stringify({ level: 3, best: 2 }))
+    const user = userEvent.setup()
+    renderGame()
+    expect(screen.getByText(/레벨 3 · 지뢰 16개 · 최고 2레벨 클리어/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '레벨 1부터' }))
+    expect(screen.getByText(/레벨 1 · 지뢰 10개 · 최고 2레벨 클리어/)).toBeInTheDocument()
+    expect(JSON.parse(window.localStorage.getItem('very-rich:minesweeper:v1') ?? '{}')).toEqual({ level: 1, best: 2 })
   })
 
   it('counts flags down from the level mine count', async () => {

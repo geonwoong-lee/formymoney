@@ -12,11 +12,16 @@ export function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [agreed, setAgreed] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (mode === 'signup' && !agreed) {
+      setMessage('이용약관과 개인정보 처리방침에 동의해 주세요.')
+      return
+    }
     setSubmitting(true)
     setMessage(null)
     try {
@@ -65,6 +70,12 @@ export function AuthPage() {
           비밀번호
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} maxLength={128} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required />
         </label>
+        {mode === 'signup' && (
+          <label className="auth-consent">
+            <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} aria-required="true" />
+            <span>(필수) <Link to="/service-terms" target="_blank">이용약관</Link>과 <Link to="/privacy" target="_blank">개인정보 처리방침</Link>을 읽었고 동의합니다.</span>
+          </label>
+        )}
         <button className="button" type="submit" disabled={submitting}>
           {submitting ? '처리 중...' : mode === 'login' ? '로그인' : '가입하기'}
         </button>

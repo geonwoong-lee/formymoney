@@ -55,6 +55,8 @@ const DESKTOP_GROUPS: { label: string; paths: string[] }[] = [
 function getCurrentApp(pathname: string) {
   if (pathname.startsWith('/banks/')) return { ...desktopApps[2], windowTitle: '은행 상세 정보' }
   if (pathname === '/share') return { ...desktopApps[2], windowTitle: '공유받은 은행 비교' }
+  if (pathname === '/privacy') return { ...desktopApps[0], windowTitle: '개인정보 처리방침' }
+  if (pathname === '/service-terms') return { ...desktopApps[0], windowTitle: '이용약관' }
   return desktopApps.find((app) => app.to === pathname) ?? desktopApps[0]
 }
 
@@ -264,7 +266,7 @@ export function AppLayout({ children }: PropsWithChildren) {
           <div className="retro-window__menubar" aria-hidden="true"><span>파일(F)</span><span>편집(E)</span><span>보기(V)</span><span>도움말(H)</span></div>
           <nav className="retro-window__toolbar" aria-label="창 탐색"><button type="button" aria-label="뒤로 가기" onClick={() => navigate(-1)}>←</button><button type="button" aria-label="앞으로 가기" onClick={() => navigate(1)}>→</button><span aria-label="현재 위치">주소　Very Rich? \ {currentApp.windowTitle}</span></nav>
           <div className="retro-window__body">{children}</div>
-          <footer className="retro-window__statusbar"><span>준비</span><span>Very Rich? OS</span></footer>
+          <footer className="retro-window__statusbar"><span>준비</span><span className="retro-window__legal"><Link to="/privacy">개인정보 처리방침</Link> · <Link to="/service-terms">이용약관</Link></span><span>Very Rich? OS</span></footer>
           {!maximized && <span className="window-resize-hint" aria-hidden="true" />}
         </section>}
 
