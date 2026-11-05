@@ -17,7 +17,7 @@ export function AnalyticsConsentBar() {
   const consent = useConsent()
   if (consent !== null) return null
   return <div className="analytics-consent" role="region" aria-label="익명 이용 통계 동의">
-    <p><b>익명 이용 통계를 보내도 될까요?</b> 어떤 화면을 하루에 몇 번 썼는지만 세서 서비스를 고치는 데 써요. 누가 썼는지, 입력한 금액과 답은 보내지 않아요.</p>
+    <p><b>익명 이용 통계를 보내도 될까요?</b> 어떤 화면을 하루에 몇 번 썼는지와, 은행 비교에서 고른 우대조건 답(채울 수 있다·없다·모른다)을 하루 한 번 익명으로 세요. 누가 썼는지와 입력한 금액은 보내지 않아요.</p>
     <div>
       <button type="button" className="button" onClick={() => writeConsent('yes')}>보내도 돼요</button>
       <button type="button" className="button button--secondary" onClick={() => writeConsent('no')}>보내지 않을래요</button>

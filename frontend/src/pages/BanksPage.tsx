@@ -6,6 +6,7 @@ import { calculateSavings, getSavingsProducts, type SavingsCalculationResponse }
 import { ErrorNotice } from '../components/ErrorNotice'
 import { loadEligibility } from '../features/eligibility'
 import { ShareResult } from '../components/ShareResult'
+import { sendConditionAnswers } from '../features/conditionStats'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
 
@@ -25,6 +26,9 @@ export function BanksPage() {
         contributionType: draft.plan.contributionType ?? 'general',
         conditionAnswers: answersForApi(draft, products.products),
         currentBankCode: draft.plan.currentBankCode,
+      }).then((response) => {
+        sendConditionAnswers(draft, products.products)
+        return response
       }))
       .then(setResult)
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : '계산하지 못했습니다.'))

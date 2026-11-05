@@ -29,6 +29,7 @@ const YouthPoliciesPage = page(() => import('./pages/YouthPoliciesPage'), 'Youth
 const PrivacyPage = page(() => import('./pages/LegalPages'), 'PrivacyPage')
 const ServiceTermsPage = page(() => import('./pages/LegalPages'), 'ServiceTermsPage')
 const TermsPage = page(() => import('./pages/TermsPage'), 'TermsPage')
+const ConditionStatsPage = page(() => import('./pages/ConditionStatsPage'), 'ConditionStatsPage')
 const EarlyExitPage = page(() => import('./pages/EarlyExitPage'), 'EarlyExitPage')
 const MySavingsPage = page(() => import('./pages/MySavingsPage'), 'MySavingsPage')
 const SharePage = page(() => import('./pages/SharePage'), 'SharePage')
@@ -55,6 +56,7 @@ function App() {
         <Route path="/market" element={<MarketPage />} />
         <Route path="/maturity" element={<MaturityPage />} />
         <Route path="/early-exit" element={<EarlyExitPage />} />
+        <Route path="/condition-stats" element={<ConditionStatsPage />} />
         <Route path="/share" element={<SharePage />} />
         <Route path="/my-savings" element={<MySavingsPage />} />
         <Route path="/general-savings" element={<GeneralSavingsPage />} />

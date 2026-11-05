@@ -55,6 +55,7 @@ const DESKTOP_GROUPS: { label: string; paths: string[] }[] = [
 function getCurrentApp(pathname: string) {
   if (pathname.startsWith('/banks/')) return { ...desktopApps[2], windowTitle: '은행 상세 정보' }
   if (pathname === '/share') return { ...desktopApps[2], windowTitle: '공유받은 은행 비교' }
+  if (pathname === '/condition-stats') return { ...desktopApps[2], windowTitle: '우대조건 현황' }
   if (pathname === '/early-exit') return { ...desktopApps[3], windowTitle: '해지 전 계산' }
   if (pathname === '/privacy') return { ...desktopApps[0], windowTitle: '개인정보 처리방침' }
   if (pathname === '/service-terms') return { ...desktopApps[0], windowTitle: '이용약관' }

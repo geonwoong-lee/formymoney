@@ -764,6 +764,28 @@ export function getMe(accessToken: string): Promise<AuthUser> {
   })
 }
 
+export interface ConditionStat {
+  code: string
+  title: string
+  bonusRate: number
+  shown: boolean
+  responses: number | null
+  yesPercent: number | null
+  noPercent: number | null
+  unknownPercent: number | null
+}
+
+export interface ConditionStatsResponse {
+  start: string
+  end: string
+  minimumResponses: number
+  banks: { bankCode: string; bankName: string; conditions: ConditionStat[] }[]
+}
+
+export function getConditionStats(signal?: AbortSignal): Promise<ConditionStatsResponse> {
+  return request<ConditionStatsResponse>('/api/v1/analytics/condition-stats', { signal })
+}
+
 export function getSavingsProducts(signal?: AbortSignal): Promise<SavingsProductsResponse> {
   return request<SavingsProductsResponse>('/api/v1/savings/products', { signal })
 }

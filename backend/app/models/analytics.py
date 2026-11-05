@@ -19,3 +19,22 @@ class AnalyticsDailyCount(Base):
     day: Mapped[date] = mapped_column(Date, index=True)
     event: Mapped[str] = mapped_column(String(40))
     count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ConditionAnswerDailyCount(Base):
+    """How many times visitors who agreed to anonymous statistics answered a bank's preferential condition yes, no or unknown on a day.
+
+    Only the day, bank, condition, answer and a count are kept: no user, session, device or IP, and nothing that links
+    one answer to another answer from the same person.
+    """
+
+    __tablename__ = "condition_answer_daily_counts"
+    __table_args__ = (UniqueConstraint(
+        "day", "bank_code", "condition_code", "answer", name="uq_condition_answer_daily_counts_key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    day: Mapped[date] = mapped_column(Date, index=True)
+    bank_code: Mapped[str] = mapped_column(String(30))
+    condition_code: Mapped[str] = mapped_column(String(50))
+    answer: Mapped[str] = mapped_column(String(10))
+    count: Mapped[int] = mapped_column(Integer, default=0)
