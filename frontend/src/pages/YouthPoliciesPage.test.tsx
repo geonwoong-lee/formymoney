@@ -63,8 +63,9 @@ describe('YouthPoliciesPage', () => {
 
     await user.click(await screen.findByRole('button', { name: '다시 시도' }))
 
-    await waitFor(() => expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument())
-    expect(screen.queryByText(/청년정책을 불러오지 못했어요/)).not.toBeInTheDocument()
+    expect((await screen.findAllByText('청년 월세 지원')).length).toBeGreaterThan(0)
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
   })
 
   it('says so when nothing was collected, nothing matches, or the request fails', async () => {
