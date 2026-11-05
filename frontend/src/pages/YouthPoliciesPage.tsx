@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ErrorNotice } from '../components/ErrorNotice'
 import { getYouthPolicies, type YouthPoliciesResponse, type YouthPolicy } from '../api/client'
 import './MaturityPage.css'
 import './YouthPoliciesPage.css'
@@ -48,7 +49,8 @@ export function YouthPoliciesPage() {
   const [loaded, setLoaded] = useState<{ key: string; body: YouthPoliciesResponse | null } | null>(null)
   const ageValue = age.trim() === '' ? null : Number(age)
   const ageInvalid = ageValue !== null && (!Number.isInteger(ageValue) || ageValue < 0 || ageValue > 120)
-  const key = `${keyword.trim()}|${category}|${region}|${ageValue}|${openOnly}|${sort}|${shown}`
+  const [attempt, setAttempt] = useState(0)
+  const key = `${keyword.trim()}|${category}|${region}|${ageValue}|${openOnly}|${sort}|${shown}|${attempt}`
   const body = loaded?.key === key ? loaded.body : undefined
   const [options, setOptions] = useState<Pick<YouthPoliciesResponse, 'categories' | 'regions'>>({ categories: [], regions: [] })
 
@@ -108,7 +110,7 @@ export function YouthPoliciesPage() {
     {!ageInvalid && <section className="maturity-step" aria-labelledby={`${id}-results`}>
       <h2 id={`${id}-results`}>찾은 청년정책</h2>
       {body === undefined && <p className="maturity-muted">청년정책을 불러오는 중이에요.</p>}
-      {body === null && <p className="maturity-muted">청년정책을 불러오지 못했어요. 잠시 후 다시 확인해 주세요.</p>}
+      {body === null && <ErrorNotice message="청년정책을 불러오지 못했어요. 잠시 후 다시 확인해 주세요." onRetry={() => setAttempt((count) => count + 1)} />}
       {body && body.total === 0 && <p className="maturity-muted">아직 수집된 청년정책이 없어요. 수집이 끝난 뒤에 다시 확인해 주세요.</p>}
       {body && body.total > 0 && body.count === 0 && <p className="maturity-muted">고른 조건에 맞는 정책이 없어요. 조건을 바꿔 보세요.</p>}
       {body && body.count > 0 && <>

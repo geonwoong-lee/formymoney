@@ -18,7 +18,8 @@ export function saveAuthSession(
     AUTH_STORAGE_KEY,
     JSON.stringify({
       accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
+      // The app has no token refresh, so the refresh token is not kept in the browser; an expired session asks for a new login.
+      refreshToken: null,
       expiresAt,
     } satisfies StoredAuthSession),
   )

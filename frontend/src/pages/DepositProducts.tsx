@@ -1,6 +1,7 @@
 import { BankBadge } from '../components/BankBadge'
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { ErrorNotice } from '../components/ErrorNotice'
 import { bankSearchTerms, companyMatches } from '../features/bankAliases'
 import { formatKrwExact } from '../features/krw'
 import { isWatched, loadWatchlist, MAX_WATCHED, toggleWatched, type WatchedProduct } from '../features/watchlist'
@@ -109,7 +110,8 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
   const listId = useId()
   const [loaded, setLoaded] = useState<{ key: string; body: DepositProductsResponse | null } | null>(null)
   const [watchlist, setWatchlist] = useState(() => loadWatchlist())
-  const key = `${loadKey}-${group}`
+  const [attempt, setAttempt] = useState(0)
+  const key = `${loadKey}-${group}-${attempt}`
   const body = loaded?.key === key ? loaded.body : undefined
 
   useEffect(() => {
@@ -158,7 +160,7 @@ export function ProductList({ kind, noun, headingId, heading, intro, months, loa
     </div>
 
     {body === undefined && <p className="maturity-muted">공시 금리를 불러오는 중이에요.</p>}
-    {body === null && <p className="maturity-muted">공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.</p>}
+    {body === null && <ErrorNotice message="공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요." onRetry={() => setAttempt((count) => count + 1)} />}
     {body && body.count === 0 && <p className="maturity-muted">아직 모은 {months}개월 {noun} 공시 금리가 없어요.</p>}
     {body && body.count > 0 && body.lowest && body.middle && body.highest && <>
       {!wanted && <dl className="deposit-range" aria-label="기본금리로 받는 돈의 범위">

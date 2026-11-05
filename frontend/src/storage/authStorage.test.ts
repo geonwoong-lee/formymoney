@@ -17,6 +17,7 @@ describe('authStorage', () => {
     const raw = storage.getItem('very-rich:auth:v1') ?? ''
     expect(loadAuthSession(storage)?.accessToken).toBe('access-token')
     expect(raw).not.toContain('password')
+    expect(raw).not.toContain('refresh-token')
   })
 
   it('does not store a signup response without a session', () => {

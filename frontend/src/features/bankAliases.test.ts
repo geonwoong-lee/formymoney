@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { bankSearchTerms, companyMatches } from './bankAliases'
 
 const matching = (query: string, companies: string[]) => companies.filter((company) => companyMatches(company, bankSearchTerms(query)))
-const NAMES = ['국민은행', 'KB저축은행', '농협은행주식회사', '엔에이치저축은행', '중소기업은행', 'IBK저축은행', '아이엠뱅크', '한국스탠다드차타드은행', '우리은행', '우리금융저축은행', '부산은행', 'BNK저축은행']
+const NAMES = ['국민은행', 'KB저축은행', '농협은행주식회사', '엔에이치저축은행', '중소기업은행', 'IBK저축은행', '아이엠뱅크', '한국스탠다드차타드은행', '우리은행', '우리금융저축은행', '부산은행', 'BNK저축은행', '경남은행']
 
 describe('bank search terms', () => {
   it('finds the same company under the name people use and the name the disclosure uses', () => {
@@ -12,7 +12,13 @@ describe('bank search terms', () => {
     expect(matching('NH', NAMES)).toEqual(['농협은행주식회사', '엔에이치저축은행'])
     expect(matching('IBK', NAMES)).toEqual(['중소기업은행', 'IBK저축은행'])
     expect(matching('SC', NAMES)).toEqual(['한국스탠다드차타드은행'])
-    expect(matching('BNK', NAMES)).toEqual(['부산은행', 'BNK저축은행'])
+    expect(matching('BNK', NAMES)).toEqual(['부산은행', 'BNK저축은행', '경남은행'])
+    expect(matching('비엔케이', NAMES)).toEqual(['부산은행', 'BNK저축은행', '경남은행'])
+  })
+
+  it('does not mix up 부산은행 and 경남은행, which are different companies', () => {
+    expect(matching('부산', NAMES)).toEqual(['부산은행'])
+    expect(matching('경남', NAMES)).toEqual(['경남은행'])
   })
 
   it('treats anything else as plain text, with no alias guessing from a part of a word', () => {
