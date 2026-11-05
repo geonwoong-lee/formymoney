@@ -786,6 +786,33 @@ export function getConditionStats(signal?: AbortSignal): Promise<ConditionStatsR
   return request<ConditionStatsResponse>('/api/v1/analytics/condition-stats', { signal })
 }
 
+export interface SavingsEstimateResponse {
+  monthlyAmount: number
+  termMonths: number
+  contributionType: ContributionType
+  contributionRate: number
+  principal: number
+  banks: {
+    bankCode: string
+    bankName: string
+    productName: string
+    baseRate: number
+    maximumRate: number
+    maturityAtBaseRate: number
+    maturityAtMaximumRate: number
+    sourceUrl: string
+    sourceDate: string
+  }[]
+  policySourceUrl: string
+  policySourceDate: string
+  disclaimer: string
+}
+
+// 다른 사이트에 넣는 위젯이 쓰는 공개 계산 API(로그인·저장 없음).
+export function getSavingsEstimate(monthlyAmount: number, contributionType: ContributionType, signal?: AbortSignal): Promise<SavingsEstimateResponse> {
+  return request<SavingsEstimateResponse>(`/api/v1/public/savings-estimate?monthlyAmount=${monthlyAmount}&contributionType=${contributionType}`, { signal })
+}
+
 export function getSavingsProducts(signal?: AbortSignal): Promise<SavingsProductsResponse> {
   return request<SavingsProductsResponse>('/api/v1/savings/products', { signal })
 }

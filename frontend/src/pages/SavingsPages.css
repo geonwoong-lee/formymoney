@@ -165,3 +165,5 @@ html, body, #root { height: 100%; overflow: hidden; }
 .bank-results .bank-why p { margin: 4px 0; }
 .bank-why__note { color: #444; }
 .bank-results .rate strong, .bank-results .rate small { white-space: nowrap; }
+.widget-code { max-width: 100%; overflow-x: auto; padding: 8px 10px; border: 2px inset #fff; background: #fff; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+.widget-preview { display: block; width: 100%; max-width: 640px; height: 560px; border: 2px inset #fff; background: #fff; }

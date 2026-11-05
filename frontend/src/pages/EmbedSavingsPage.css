@@ -1,0 +1,20 @@
+/* The widget lives inside another site's frame, so it carries its own plain colours instead of the desktop look. */
+.embed-savings { box-sizing: border-box; min-height: 100vh; margin: 0; padding: 12px; background: #fff; color: #111; font-size: 14px; line-height: 1.5; }
+.embed-savings h1 { margin: 0 0 8px; font-size: 17px; color: #000080; }
+.embed-savings__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.embed-savings__form label { display: grid; gap: 2px; font-size: 12px; font-weight: 700; }
+.embed-savings__form input, .embed-savings__form select { min-height: 32px; padding: 4px 6px; border: 1px solid #808080; font: inherit; font-weight: 400; }
+.embed-savings__form input { width: 130px; }
+.embed-savings__form button { min-height: 32px; padding: 4px 14px; border: 2px outset #fff; background: #c0c0c0; font: inherit; font-weight: 700; cursor: pointer; }
+.embed-savings__form button:disabled { color: #808080; cursor: default; }
+.embed-savings__error { color: #a03000; }
+.embed-savings__summary { margin: 10px 0 4px; font-size: 12px; color: #444; }
+.embed-savings__table-wrap { overflow-x: auto; }
+.embed-savings table { width: 100%; border-collapse: collapse; }
+.embed-savings th, .embed-savings td { padding: 5px 6px; border-bottom: 1px dotted #808080; text-align: right; white-space: nowrap; }
+.embed-savings thead th { background: #e8e8e8; font-size: 12px; }
+.embed-savings th[scope="row"], .embed-savings thead th:first-child { text-align: left; }
+.embed-savings td small, .embed-savings th small { display: block; color: #666; font-size: 11px; font-weight: 400; }
+.embed-savings__note { margin: 8px 0 4px; font-size: 11px; color: #555; }
+.embed-savings__brand { margin: 4px 0 0; font-size: 12px; }
+.embed-savings a { color: #000080; }
