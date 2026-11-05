@@ -25,6 +25,17 @@ describe('App', () => {
     expect(screen.queryByText(/FastAPI|Supabase|phase1-ready|개발 연결 상태/)).not.toBeInTheDocument()
   })
 
+  it('links the privacy policy and the terms from every screen and opens them', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn())
+    render(<MemoryRouter><App /></MemoryRouter>)
+
+    await user.click(screen.getByRole('link', { name: '개인정보 처리방침' }))
+    expect(await screen.findByRole('heading', { level: 1, name: '개인정보 처리방침' })).toBeInTheDocument()
+    await user.click(screen.getAllByRole('link', { name: '이용약관' })[0])
+    expect(await screen.findByRole('heading', { level: 1, name: '이용약관' })).toBeInTheDocument()
+  })
+
   it('prepares the planned routes', async () => {
     vi.stubGlobal('fetch', vi.fn())
 

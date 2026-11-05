@@ -73,7 +73,7 @@ def auth_client(tmp_path: Path) -> Iterator[TestClient]:
 def test_signup_returns_201_and_never_returns_password(auth_client: TestClient) -> None:
     response = auth_client.post(
         "/api/v1/auth/signup",
-        json={"email": "USER@example.com", "password": "safe-password", "displayName": "사용자"},
+        json={"email": "USER@example.com", "password": "safe-password", "displayName": "사용자", "termsAccepted": True},
     )
 
     assert response.status_code == 201
@@ -85,7 +85,7 @@ def test_signup_returns_201_and_never_returns_password(auth_client: TestClient) 
 def test_signup_accepts_top_level_user_when_email_confirmation_is_required(auth_client: TestClient) -> None:
     response = auth_client.post(
         "/api/v1/auth/signup",
-        json={"email": "confirm@example.com", "password": "safe-password", "displayName": "사용자"},
+        json={"email": "confirm@example.com", "password": "safe-password", "displayName": "사용자", "termsAccepted": True},
     )
 
     assert response.status_code == 201
@@ -109,7 +109,7 @@ def test_gateway_rate_limit_becomes_429_with_clear_message(
 
     response = auth_client.post(
         "/api/v1/auth/signup",
-        json={"email": "limit@example.com", "password": "safe-password", "displayName": "사용자"},
+        json={"email": "limit@example.com", "password": "safe-password", "displayName": "사용자", "termsAccepted": True},
     )
 
     assert response.status_code == 429
@@ -119,11 +119,11 @@ def test_gateway_rate_limit_becomes_429_with_clear_message(
 def test_signup_validates_input_and_reports_conflict(auth_client: TestClient) -> None:
     invalid = auth_client.post(
         "/api/v1/auth/signup",
-        json={"email": "not-email", "password": "short", "displayName": ""},
+        json={"email": "not-email", "password": "short", "displayName": "", "termsAccepted": True},
     )
     conflict = auth_client.post(
         "/api/v1/auth/signup",
-        json={"email": "existing@example.com", "password": "safe-password", "displayName": "사용자"},
+        json={"email": "existing@example.com", "password": "safe-password", "displayName": "사용자", "termsAccepted": True},
     )
 
     assert invalid.status_code == 422
@@ -171,3 +171,12 @@ def test_frontend_can_send_authorization_header(auth_client: TestClient) -> None
 
     assert response.status_code == 200
     assert "Authorization" in response.headers["access-control-allow-headers"]
+
+
+def test_signup_is_refused_without_agreeing_to_the_terms(auth_client: TestClient) -> None:
+    base = {"email": "terms@example.com", "password": "safe-password", "displayName": "사용자"}
+    for extra in ({}, {"termsAccepted": False}):
+        response = auth_client.post("/api/v1/auth/signup", json={**base, **extra})
+        assert response.status_code == 422
+    accepted = auth_client.post("/api/v1/auth/signup", json={**base, "termsAccepted": True})
+    assert accepted.status_code == 201

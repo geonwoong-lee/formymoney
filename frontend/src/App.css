@@ -315,11 +315,13 @@
 
 .retro-window__statusbar {
   display: grid;
-  grid-template-columns: 1fr 150px;
+  grid-template-columns: 1fr auto 150px;
   gap: 4px;
   padding-top: 3px;
   font-size: 11px;
 }
+
+.retro-window__legal a { padding: 5px 2px; color: #000080; }
 
 .retro-window__statusbar span {
   padding: 3px 5px;
@@ -711,7 +713,7 @@
   }
 
   .retro-window__statusbar {
-    grid-template-columns: 1fr 112px;
+    grid-template-columns: minmax(0, 1fr) auto 100px;
   }
 
   .taskbar {

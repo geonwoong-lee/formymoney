@@ -26,6 +26,8 @@ const AdminPage = page(() => import('./pages/AdminPage'), 'AdminPage')
 const ProductDetailPage = page(() => import('./pages/ProductDetailPage'), 'ProductDetailPage')
 const RentLoansPage = page(() => import('./pages/RentLoansPage'), 'RentLoansPage')
 const YouthPoliciesPage = page(() => import('./pages/YouthPoliciesPage'), 'YouthPoliciesPage')
+const PrivacyPage = page(() => import('./pages/LegalPages'), 'PrivacyPage')
+const ServiceTermsPage = page(() => import('./pages/LegalPages'), 'ServiceTermsPage')
 const TermsPage = page(() => import('./pages/TermsPage'), 'TermsPage')
 const MySavingsPage = page(() => import('./pages/MySavingsPage'), 'MySavingsPage')
 const SharePage = page(() => import('./pages/SharePage'), 'SharePage')
@@ -59,6 +61,8 @@ function App() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/product" element={<ProductDetailPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/service-terms" element={<ServiceTermsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       </Suspense>

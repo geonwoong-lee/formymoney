@@ -702,11 +702,12 @@ export function signUp(
   email: string,
   password: string,
   displayName: string,
+  termsAccepted: boolean,
 ): Promise<AuthSessionResponse> {
   return request<AuthSessionResponse>('/api/v1/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, displayName }),
+    body: JSON.stringify({ email, password, displayName, termsAccepted }),
   })
 }
 
