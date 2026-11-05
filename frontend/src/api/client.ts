@@ -132,6 +132,45 @@ export interface MonthImpactResponse {
   sourceDate: string
 }
 
+export interface EarlyExitScenario {
+  key: 'keep' | 'pause' | 'minimum'
+  label: string
+  futureMonthlyAmount: number | null
+  principal: number
+  depositInterest: number
+  governmentContribution: number
+  governmentContributionInterest: number
+  expectedMaturityAmount: number
+  extraPrincipal: number
+  moreThanTermination: number
+}
+
+export interface EarlyExitResponse {
+  bankCode: string
+  bankName: string
+  paidMonths: number
+  termMonths: number
+  monthsLeft: number
+  baseRate: number
+  expectedRate: number
+  interestTaxRate: number
+  termination: {
+    principal: number
+    interestAtBaseRate: number
+    interestTax: number
+    receivedAtBaseRate: number
+    lostGovernmentContribution: number
+  }
+  scenarios: EarlyExitScenario[]
+  specialTerminationReasons: string[]
+  specialTerminationSource: string
+  specialTerminationSourceUrl: string
+  specialTerminationSourceDate: string
+  unavailableNotes: string[]
+  sourceUrl: string
+  sourceDate: string
+}
+
 export interface InvestmentAsset {
   code: string
   ticker: string
@@ -598,6 +637,8 @@ export interface YouthPolicy {
   refUrl: string
   regionLabel: string
   modifiedOn: string | null
+  fit: string[]  // 고른 내 상황에 맞는 이유
+  toCheck: string[]  // 신청 전에 확인할 조건
 }
 
 export interface YouthPoliciesResponse {
@@ -609,12 +650,15 @@ export interface YouthPoliciesResponse {
   categories: string[]
   regions: { code: string; name: string }[]
   notes: string[]
+  profileOptions: { jobs: { code: string; name: string }[]; marriages: { code: string; name: string }[]; schools: { code: string; name: string }[] }
+  conditionsCollected: boolean
   sourceName: string
   sourceUrl: string
 }
 
 export function getYouthPolicies(payload: {
   keyword: string; category: string; region: string; age: number | null; openOnly: boolean; sort: 'deadline' | 'recent'; offset: number; limit: number
+  job?: string; marriage?: string; school?: string
 }, signal?: AbortSignal): Promise<YouthPoliciesResponse> {
   return request('/api/v1/youth-policies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal })
 }
@@ -725,6 +769,55 @@ export function getMe(accessToken: string): Promise<AuthUser> {
   })
 }
 
+export interface ConditionStat {
+  code: string
+  title: string
+  bonusRate: number
+  shown: boolean
+  responses: number | null
+  yesPercent: number | null
+  noPercent: number | null
+  unknownPercent: number | null
+}
+
+export interface ConditionStatsResponse {
+  start: string
+  end: string
+  minimumResponses: number
+  banks: { bankCode: string; bankName: string; conditions: ConditionStat[] }[]
+}
+
+export function getConditionStats(signal?: AbortSignal): Promise<ConditionStatsResponse> {
+  return request<ConditionStatsResponse>('/api/v1/analytics/condition-stats', { signal })
+}
+
+export interface SavingsEstimateResponse {
+  monthlyAmount: number
+  termMonths: number
+  contributionType: ContributionType
+  contributionRate: number
+  principal: number
+  banks: {
+    bankCode: string
+    bankName: string
+    productName: string
+    baseRate: number
+    maximumRate: number
+    maturityAtBaseRate: number
+    maturityAtMaximumRate: number
+    sourceUrl: string
+    sourceDate: string
+  }[]
+  policySourceUrl: string
+  policySourceDate: string
+  disclaimer: string
+}
+
+// 다른 사이트에 넣는 위젯이 쓰는 공개 계산 API(로그인·저장 없음).
+export function getSavingsEstimate(monthlyAmount: number, contributionType: ContributionType, signal?: AbortSignal): Promise<SavingsEstimateResponse> {
+  return request<SavingsEstimateResponse>(`/api/v1/public/savings-estimate?monthlyAmount=${monthlyAmount}&contributionType=${contributionType}`, { signal })
+}
+
 export function getSavingsProducts(signal?: AbortSignal): Promise<SavingsProductsResponse> {
   return request<SavingsProductsResponse>('/api/v1/savings/products', { signal })
 }
@@ -810,6 +903,22 @@ export function calculateMonthImpact(payload: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+  })
+}
+
+export function calculateEarlyExit(payload: {
+  bankCode: string
+  monthlyAmounts: number[]
+  fixedMonthlyAmount: number
+  contributionType: ContributionType
+  conditionAnswers: Record<string, ConditionAnswer>
+  paidMonths: number
+}, signal?: AbortSignal): Promise<EarlyExitResponse> {
+  return request<EarlyExitResponse>('/api/v1/savings/early-exit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal,
   })
 }
 

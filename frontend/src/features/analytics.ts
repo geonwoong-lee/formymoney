@@ -1,11 +1,13 @@
 // Anonymous usage counts, sent only after the user agrees. Only an event name is sent: no id, no answers,
 // no amounts. The server keeps a per-day count and nothing else.
 
-export const ANALYTICS_CONSENT_KEY = 'very-rich:analytics-consent:v1'
+// v2: 우대조건 답(예·아니오·모름)도 세게 되어, 예전 안내(v1)에 동의한 사람에게 다시 묻는다.
+export const ANALYTICS_CONSENT_KEY = 'very-rich:analytics-consent:v2'
 
 export type AnalyticsEvent =
   | 'visit_conditions' | 'visit_banks' | 'visit_cashflow' | 'check_month_impact' | 'visit_maturity'
   | 'plan_maturity' | 'download_reminder' | 'share_result' | 'open_shared' | 'visit_my_savings' | 'visit_general_savings' | 'visit_rent_loans' | 'visit_terms' | 'visit_daily' | 'visit_market' | 'visit_alternatives'
+  | 'visit_early_exit' | 'check_early_exit'
 
 export const PAGE_EVENTS: Record<string, AnalyticsEvent> = {
   '/conditions': 'visit_conditions',
@@ -19,6 +21,7 @@ export const PAGE_EVENTS: Record<string, AnalyticsEvent> = {
   '/daily': 'visit_daily',
   '/market': 'visit_market',
   '/alternatives': 'visit_alternatives',
+  '/early-exit': 'visit_early_exit',
 }
 
 export type Consent = 'yes' | 'no' | null

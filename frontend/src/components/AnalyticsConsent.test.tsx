@@ -21,7 +21,8 @@ describe('anonymous statistics', () => {
     track('visit_banks')
     expect(fetch).not.toHaveBeenCalled()
     const bar = screen.getByRole('region', { name: '익명 이용 통계 동의' })
-    expect(bar).toHaveTextContent('입력한 금액과 답은 보내지 않아요')
+    expect(bar).toHaveTextContent('누가 썼는지와 입력한 금액은 보내지 않아요')
+    expect(bar).toHaveTextContent('우대조건 답')
 
     await user.click(screen.getByRole('button', { name: '보내도 돼요' }))
     expect(window.localStorage.getItem(ANALYTICS_CONSENT_KEY)).toBe('yes')

@@ -1,7 +1,7 @@
 import { BankBadge } from '../components/BankBadge'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { calculateSavings, getSavingsProducts, type BankCalculationResult } from '../api/client'
+import { calculateSavings, getConditionStats, getSavingsProducts, type BankCalculationResult, type ConditionStat } from '../api/client'
 import { BankFinancialsSection } from '../components/BankFinancials'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { answersForApi } from '../features/savingsDraft'
@@ -14,6 +14,18 @@ export function BankDetailPage() {
   const [bank, setBank] = useState<BankCalculationResult | null>(null)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+  // 다른 방문자들의 익명 응답 비율. 불러오지 못해도 계산 근거는 그대로 보인다.
+  const [stats, setStats] = useState<Record<string, ConditionStat> | null>(null)
+
+  useEffect(() => {
+    if (!bankId) return
+    const controller = new AbortController()
+    getConditionStats(controller.signal)
+      .then((response) => setStats(Object.fromEntries(
+        (response.banks.find((item) => item.bankCode === bankId)?.conditions ?? []).map((condition) => [condition.code, condition]))))
+      .catch(() => setStats(null))
+    return () => controller.abort()
+  }, [bankId])
 
   useEffect(() => {
     if (!bankId) return
@@ -52,13 +64,20 @@ export function BankDetailPage() {
       <h2 className="section-title">우대조건 계산 근거</h2>
       <ul className="condition-results">
         {bank.conditions.map((condition) => <li key={condition.code}>
-          <div><strong>{condition.title}</strong><span>{condition.reason}</span></div>
+          <div><strong>{condition.title}</strong><span>{condition.reason}</span>{stats?.[condition.code] && <ConditionStatLine stat={stats[condition.code]} />}</div>
           <b>{condition.appliedBonusRate > 0 ? `+${condition.appliedBonusRate}%p` : '미반영'}</b>
         </li>)}
       </ul>
+      {stats && <p className="source-note">다른 방문자 응답은 통계에 동의한 사람이 고른 답을 익명으로 센 비율이에요. <Link to="/condition-stats">우대조건 현황 전체 보기</Link></p>}
       <p className="source-note">공시 확인일 {bank.sourceDate} · <a href={bank.sourceUrl} target="_blank" rel="noreferrer">원문 보기</a></p>
       <BankFinancialsSection bankCode={bank.bankCode} />
       <div className="actions"><Link className="button" to="/banks">비교 목록으로</Link><Link className="button button--secondary" to="/conditions">조건 수정</Link></div>
     </>}
   </section>
+}
+
+function ConditionStatLine({ stat }: { stat: ConditionStat }) {
+  if (!stat.shown) return <small className="condition-stat">다른 방문자 응답: 아직 적어서 보여 주지 않아요</small>
+  if (stat.yesPercent === null) return <small className="condition-stat">다른 방문자 응답 {stat.responses}건 · 채울 수 있다는 답은 적어서 숨겼어요</small>
+  return <small className="condition-stat">다른 방문자 응답 {stat.responses}건 중 {stat.yesPercent}%가 채울 수 있다고 답했어요{stat.unknownPercent === null ? '' : `(모름 ${stat.unknownPercent}%)`}</small>
 }

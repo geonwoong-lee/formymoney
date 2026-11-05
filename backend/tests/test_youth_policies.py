@@ -156,3 +156,94 @@ def test_collection_keeps_the_stored_list_when_the_api_fails_and_skips_without_a
     assert failed.failures and failed.status == "failed"
     assert ok.notes == ["온통청년 청년정책 1건 저장"]
     assert [p["policyNo"] for p in client.post(URL, json={"openOnly": False}).json()["policies"]] == ["P9"]
+
+
+def test_parse_keeps_condition_codes_and_drops_junk() -> None:
+    policy = parse_policy(_item(jobCd="0013002,0013006, x,0013002", mrgSttsCd="0055001", schoolCd="0049010", earnCndSeCd="0043003"))
+    assert (policy.job_codes, policy.marriage_code, policy.school_codes, policy.income_condition) == ("0013002,0013006", "0055001", "0049010", "0043003")
+    empty = parse_policy(_item())
+    assert (empty.job_codes, empty.marriage_code, empty.school_codes, empty.income_condition) == ("", "", "", "")
+
+
+def test_search_by_my_situation_keeps_unrestricted_policies_and_says_why_each_fits(client: TestClient) -> None:
+    _save(
+        client,
+        _item("ANY", "누구나 월세 지원", jobCd="0013010", mrgSttsCd="0055003", schoolCd="0049010", earnCndSeCd="0043001", earnEtcCn=""),
+        _item("JOB", "미취업 청년 구직 수당", jobCd="0013003", mrgSttsCd="0055003", schoolCd="0049010", earnCndSeCd="0043002"),
+        _item("WED", "신혼부부 이자 지원", jobCd="0013010", mrgSttsCd="0055001", schoolCd="0049010", earnCndSeCd="0043003", addAplyQlfcCndCn="무주택자"),
+        _item("UNI", "대학생 장학금", jobCd="0013003,0013001", mrgSttsCd="0055003", schoolCd="0049005,0049006", earnCndSeCd="0043001", earnEtcCn=""),
+    )
+
+    def search(**body):
+        response = client.post(URL, json=body)
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    def numbers(body):
+        return sorted(policy["policyNo"] for policy in body["policies"])
+
+    everything = search()
+    assert everything["conditionsCollected"] is True
+    assert {item["code"] for item in everything["profileOptions"]["jobs"]} == {
+        "0013001", "0013002", "0013003", "0013004", "0013005", "0013006", "0013007", "0013008"}
+    assert {item["name"] for item in everything["profileOptions"]["jobs"]} >= {"일용근로자", "단기근로자"}
+    assert numbers(search(job="0013001")) == ["ANY", "UNI", "WED"]  # 재직자는 미취업자만 받는 정책에서 빠진다
+    assert numbers(search(job="0013003")) == ["ANY", "JOB", "UNI", "WED"]
+    assert numbers(search(marriage="0055002")) == ["ANY", "JOB", "UNI"]  # 미혼은 신혼부부 정책에서 빠진다
+    assert numbers(search(school="0049007")) == ["ANY", "JOB", "WED"]  # 대학 졸업은 재학생 장학금에서 빠진다
+
+    rows = {policy["policyNo"]: policy for policy in search(job="0013003", age=25, region="11")["policies"]}
+    assert rows["JOB"]["fit"] == ["나이 만 19~34세 대상에 들어요", "전국 대상이에요", "취업 상태: 미취업자 대상에 들어요"]
+    assert rows["ANY"]["fit"][-1] == "취업 상태 제한이 없어요"
+    assert rows["JOB"]["toCheck"] == ["연소득 조건이 있어요(금액은 공고에서 확인)"]
+    assert rows["WED"]["toCheck"] == ["결혼 여부: 기혼 대상", "소득 조건이 있어요(아래 소득 조건 참고)", "추가 자격 조건이 있어요(아래 추가 자격 참고)"]
+    assert rows["UNI"]["toCheck"] == ["학력: 대학 재학, 대졸 예정 대상"]
+    assert rows["ANY"]["toCheck"] == []
+    # 내 상황을 고르지 않으면 맞는 이유는 비고, 확인할 조건만 보인다.
+    plain = {policy["policyNo"]: policy for policy in search()["policies"]}
+    assert plain["JOB"]["fit"] == [] and plain["JOB"]["toCheck"] == ["취업 상태: 미취업자 대상", "연소득 조건이 있어요(금액은 공고에서 확인)"]
+
+
+def test_policies_saved_before_the_codes_were_collected_are_flagged(client: TestClient) -> None:
+    _save(client, _item("OLD", "예전에 모은 정책"))
+    body = client.post(URL, json={"job": "0013001", "marriage": "0055002"}).json()
+    assert body["conditionsCollected"] is False
+    old = body["policies"][0]
+    assert old["policyNo"] == "OLD"  # 코드가 없으면 거르지 않는다
+    # 코드가 없는 칸을 "제한이 없어요"라고 말하지 않고 확인할 조건으로 돌린다.
+    assert not any("제한이 없어요" in line for line in old["fit"])
+    assert old["toCheck"][:2] == ["취업 상태 조건은 공고에서 확인", "결혼 여부 조건은 공고에서 확인"]
+
+
+def test_only_income_codes_do_not_count_as_collected_situation_codes(client: TestClient) -> None:
+    _save(client, _item("INC", "소득 코드만 있는 정책", earnCndSeCd="0043001"))
+    assert client.post(URL, json={}).json()["conditionsCollected"] is False
+
+
+def test_a_day_worker_keeps_policies_listed_for_day_workers(client: TestClient) -> None:
+    _save(
+        client,
+        _item("DAY", "일하는 청년 통장", jobCd="0013001,0013005,0013007"),
+        _item("JOBLESS", "미취업 청년 수당", jobCd="0013003"),
+    )
+    for code in ("0013005", "0013007"):
+        body = client.post(URL, json={"job": code}).json()
+        assert [policy["policyNo"] for policy in body["policies"]] == ["DAY"]
+
+
+def test_several_situations_apply_together(client: TestClient) -> None:
+    _save(
+        client,
+        _item("ALL", "모두 제한 없음", jobCd="0013010", mrgSttsCd="0055003", schoolCd="0049010"),
+        _item("WORK_SINGLE", "재직 미혼 대상", jobCd="0013001", mrgSttsCd="0055002", schoolCd="0049010"),
+        _item("WORK_MARRIED", "재직 기혼 대상", jobCd="0013001", mrgSttsCd="0055001", schoolCd="0049010"),
+        _item("WORK_UNI", "재직 대학 재학 대상", jobCd="0013001", mrgSttsCd="0055003", schoolCd="0049005"),
+        _item("BLANK", "칸이 빈 정책", mrgSttsCd="0055003"),
+    )
+    body = client.post(URL, json={"job": "0013001", "marriage": "0055002", "school": "0049007"}).json()
+    assert sorted(policy["policyNo"] for policy in body["policies"]) == ["ALL", "BLANK", "WORK_SINGLE"]
+
+
+def test_situation_codes_must_be_the_right_kind(client: TestClient) -> None:
+    for body in ({"job": "0055001"}, {"marriage": "x"}, {"school": "00490051"}, {"job": "0013001;--"}):
+        assert client.post(URL, json=body).status_code == 422

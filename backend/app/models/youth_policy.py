@@ -34,3 +34,8 @@ class YouthPolicy(Base):
     nationwide: Mapped[bool] = mapped_column(Boolean)
     modified_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     updated_on: Mapped[date] = mapped_column(Date, index=True)
+    # 온통청년 조건 코드(쉼표로 이음). 비어 있으면 그 조건이 없거나 아직 이 칸을 모으기 전에 저장된 정책이다.
+    job_codes: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    marriage_code: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    school_codes: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    income_condition: Mapped[str] = mapped_column(String(20), default="", server_default="")

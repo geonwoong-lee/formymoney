@@ -49,6 +49,7 @@
 .condition-results li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 4px; border-bottom: 1px dotted #808080; }
 .condition-results span { display: block; margin-top: 3px; color: #555; font-size: 12px; }
 .condition-results b { white-space: nowrap; color: #000080; }
+.condition-results .condition-stat { display: block; margin-top: 3px; color: #005a00; font-size: 12px; }
 .source-note { font-size: 12px; color: #555; }
 .cashflow-controls { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) auto; align-items: end; gap: 10px; margin-top: 24px; padding: 12px; border: 2px outset #fff; background: var(--panel); }
 .cashflow-controls label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; }
@@ -164,3 +165,5 @@ html, body, #root { height: 100%; overflow: hidden; }
 .bank-results .bank-why p { margin: 4px 0; }
 .bank-why__note { color: #444; }
 .bank-results .rate strong, .bank-results .rate small { white-space: nowrap; }
+.widget-code { max-width: 100%; overflow-x: auto; padding: 8px 10px; border: 2px inset #fff; background: #fff; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+.widget-preview { display: block; width: 100%; max-width: 640px; height: 560px; border: 2px inset #fff; background: #fff; }

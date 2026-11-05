@@ -29,13 +29,45 @@ const YouthPoliciesPage = page(() => import('./pages/YouthPoliciesPage'), 'Youth
 const PrivacyPage = page(() => import('./pages/LegalPages'), 'PrivacyPage')
 const ServiceTermsPage = page(() => import('./pages/LegalPages'), 'ServiceTermsPage')
 const TermsPage = page(() => import('./pages/TermsPage'), 'TermsPage')
+const EmbedSavingsPage = page(() => import('./pages/EmbedSavingsPage'), 'EmbedSavingsPage')
+const WidgetGuidePage = page(() => import('./pages/WidgetGuidePage'), 'WidgetGuidePage')
+const ConditionStatsPage = page(() => import('./pages/ConditionStatsPage'), 'ConditionStatsPage')
+const EarlyExitPage = page(() => import('./pages/EarlyExitPage'), 'EarlyExitPage')
 const MySavingsPage = page(() => import('./pages/MySavingsPage'), 'MySavingsPage')
 const SharePage = page(() => import('./pages/SharePage'), 'SharePage')
 const AuthPage = page(() => import('./pages/AuthPage'), 'AuthPage')
 const MyPage = page(() => import('./pages/MyPage'), 'MyPage')
 
+// 위젯이 아닌 화면이 다른 사이트의 iframe 안에서 열렸는지. 그렇다면 로그인·내 정보 같은 화면을 눌리게 꾀는 것(클릭재킹)을 막으려고 내용을 보이지 않는다.
+// 호스팅의 frame-ancestors 설정이 1차 방어이고, 이것은 설정이 빠졌을 때를 위한 2차 방어다.
+function framedByAnotherPage() {
+  try {
+    return window.self !== window.top
+  } catch {
+    return true  // 다른 출처의 부모는 읽을 수 없어 예외가 나므로 갇힌 것으로 본다
+  }
+}
+
 function App() {
   const { pathname } = useLocation()
+  // 다른 사이트의 <iframe>에 들어가는 위젯은 바탕화면·작업표시줄·머니독·통계 동의 없이 계산기만 보인다.
+  if (pathname.startsWith('/embed/')) {
+    return <ScreenBoundary key={pathname}>
+      <Suspense fallback={<p role="status">불러오는 중이에요…</p>}>
+        <Routes>
+          <Route path="/embed/savings" element={<EmbedSavingsPage />} />
+          <Route path="*" element={<p role="alert">없는 위젯 주소예요.</p>} />
+        </Routes>
+      </Suspense>
+    </ScreenBoundary>
+  }
+  if (framedByAnotherPage()) {
+    return <main className="page" role="alert">
+      <h1>Very Rich?</h1>
+      <p>이 화면은 다른 페이지 안에서는 열지 않아요.</p>
+      <p><a href={window.location.href} target="_blank" rel="noreferrer">새 창에서 열기</a></p>
+    </main>
+  }
   return (
     <AppLayout>
       <ScreenBoundary key={pathname}>
@@ -53,6 +85,9 @@ function App() {
         <Route path="/daily" element={<DailyPage />} />
         <Route path="/market" element={<MarketPage />} />
         <Route path="/maturity" element={<MaturityPage />} />
+        <Route path="/early-exit" element={<EarlyExitPage />} />
+        <Route path="/condition-stats" element={<ConditionStatsPage />} />
+        <Route path="/widget" element={<WidgetGuidePage />} />
         <Route path="/share" element={<SharePage />} />
         <Route path="/my-savings" element={<MySavingsPage />} />
         <Route path="/general-savings" element={<GeneralSavingsPage />} />

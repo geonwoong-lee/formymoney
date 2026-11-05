@@ -64,6 +64,11 @@ class YouthPolicy:
     regions: str  # comma separated prefixes, "" when the API gave none
     nationwide: bool
     modified_on: date | None
+    # 온통청년 조건 코드(쉼표로 이음, 없으면 ""). 취업 상태 0013xxx, 결혼 0055xxx, 학력 0049xxx, 소득 조건 구분 0043xxx
+    job_codes: str = ""
+    marriage_code: str = ""
+    school_codes: str = ""
+    income_condition: str = ""
 
 
 def _text(value: object) -> str:
@@ -95,6 +100,12 @@ def _day(value: object) -> date | None:
 def _web_link(value: object) -> str:
     link = str(value or "").strip()
     return link if link.lower().startswith(("http://", "https://")) else ""
+
+
+def _codes(value: object) -> str:
+    """"0013002,0013006" 같은 코드 목록. 7자리 숫자가 아닌 것은 버린다."""
+    parts = (part.strip() for part in str(value or "").split(","))
+    return ",".join(dict.fromkeys(part for part in parts if len(part) == 7 and part.isdigit()))
 
 
 def _categories(value: object) -> str:
@@ -130,6 +141,8 @@ def parse_policy(item: dict[str, object]) -> YouthPolicy | None:
         ref_url=_web_link(item.get("refUrlAddr1")), regions=",".join(prefixes)[:80],
         nationwide=len([code for code in prefixes if code in REGIONS]) >= NATIONWIDE_FROM,
         modified_on=_day(item.get("lastMdfcnDt")),
+        job_codes=_codes(item.get("jobCd"))[:120], marriage_code=_codes(item.get("mrgSttsCd"))[:40],
+        school_codes=_codes(item.get("schoolCd"))[:120], income_condition=_codes(item.get("earnCndSeCd"))[:20],
     )
 
 

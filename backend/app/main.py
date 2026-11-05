@@ -74,6 +74,8 @@ def create_app(
     app.state.assistant_limiter = SlidingWindowLimiter([(60, 5), (86_400, 60)])
     app.state.assistant_cache = AnswerCache()
     app.state.analytics_limiter = SlidingWindowLimiter([(60, 60), (86_400, 2_000)])
+    # 다른 사이트의 위젯·서버가 부르는 공개 계산 API
+    app.state.public_limiter = SlidingWindowLimiter([(60, 60), (86_400, 5_000)])
 
     app.add_middleware(
         CORSMiddleware,

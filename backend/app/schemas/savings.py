@@ -166,6 +166,53 @@ class MonthImpactResponse(CamelModel):
     source_date: str
 
 
+class EarlyExitRequest(CashflowCalculationRequest):
+    paid_months: int = Field(ge=1, description="지금까지 낸 회차 수. 이 회차까지 내고 해지한다고 본다")
+
+
+class EarlyExitTermination(CamelModel):
+    """일반 중도해지로 지금 받는 돈의 참고값. 은행별 중도해지 이율 대신 기본금리를 그대로 적용한다."""
+    principal: int
+    interest_at_base_rate: int
+    interest_tax: int
+    received_at_base_rate: int
+    lost_government_contribution: int
+
+
+class EarlyExitScenario(CamelModel):
+    # keep: 원래 계획대로, pause: 남은 달 쉬고 만기까지 두기, minimum: 남은 달 최소 금액만 넣기
+    key: Literal["keep", "pause", "minimum"]
+    label: str
+    future_monthly_amount: int | None  # keep은 계획표의 금액이 달마다 달라 None
+    principal: int
+    deposit_interest: int
+    government_contribution: int
+    government_contribution_interest: int
+    expected_maturity_amount: int
+    extra_principal: int  # 지금까지 낸 원금보다 더 넣게 되는 원금
+    more_than_termination: int  # 이 선택의 만기 수령액 - 지금 해지할 때 받는 돈의 참고값
+
+
+class EarlyExitResponse(CamelModel):
+    bank_code: str
+    bank_name: str
+    paid_months: int
+    term_months: int
+    months_left: int
+    base_rate: float
+    expected_rate: float
+    interest_tax_rate: float
+    termination: EarlyExitTermination
+    scenarios: list[EarlyExitScenario]
+    special_termination_reasons: list[str]
+    special_termination_source: str  # 사유 목록을 확인한 곳(가입 은행이 아닐 수 있음)
+    special_termination_source_url: str
+    special_termination_source_date: str
+    unavailable_notes: list[str]
+    source_url: str
+    source_date: str
+
+
 class MyStatusRequest(CashflowCalculationRequest):
     start_month: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     enrolled: bool = False
