@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import './pages/SavingsPages.css'
 import { AppLayout } from './components/AppLayout'
+import { ScreenBoundary } from './components/ScreenBoundary'
 import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
@@ -32,8 +33,10 @@ const AuthPage = page(() => import('./pages/AuthPage'), 'AuthPage')
 const MyPage = page(() => import('./pages/MyPage'), 'MyPage')
 
 function App() {
+  const { pathname } = useLocation()
   return (
     <AppLayout>
+      <ScreenBoundary key={pathname}>
       <Suspense fallback={<p className="page page--loading" role="status">화면을 불러오는 중이에요…</p>}>
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -59,6 +62,7 @@ function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       </Suspense>
+      </ScreenBoundary>
     </AppLayout>
   )
 }

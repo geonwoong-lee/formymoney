@@ -10,7 +10,7 @@ const ALIAS_GROUPS: string[][] = [
   ['케이뱅크', 'kbank', 'k뱅크'],
   ['카카오', 'kakao'],
   ['토스', 'toss'],
-  ['bnk', '비엔케이', '부산', '경남'],
+  ['bnk', '비엔케이'],
   ['sbi', '에스비아이'],
   ['ok', '오케이'],
   ['db', '디비'],
@@ -22,12 +22,15 @@ const ALIAS_GROUPS: string[][] = [
   ['ck', '씨케이'],
 ]
 
+// One company name that stands for several (BNK is the group of 부산은행 and 경남은행); the other way round does not hold.
+const GROUP_NAMES: Record<string, string[]> = { bnk: ['부산', '경남'], '비엔케이': ['부산', '경남'] }
+
 /** What to look for in a company name when the visitor types `query`: the text itself, plus its aliases when it is exactly one. */
 export function bankSearchTerms(query: string): string[] {
   const text = query.trim().toLowerCase()
   if (!text) return []
   const aliases = ALIAS_GROUPS.filter((group) => group.includes(text)).flat()
-  return [...new Set([text, ...aliases])]
+  return [...new Set([text, ...aliases, ...(GROUP_NAMES[text] ?? [])])]
 }
 
 export function companyMatches(company: string, terms: string[]): boolean {

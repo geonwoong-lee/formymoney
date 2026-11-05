@@ -1,5 +1,6 @@
 import { BankBadge } from '../components/BankBadge'
 import { useEffect, useId, useState } from 'react'
+import { ErrorNotice } from '../components/ErrorNotice'
 import { Link } from 'react-router-dom'
 import { getLoanProducts, type DepositGroup, type LoanProduct, type LoanProductsResponse } from '../api/client'
 import { MoneyInput } from '../components/MoneyInput'
@@ -74,7 +75,8 @@ export function RentLoansPage() {
   const monthsValue = months ?? 0
   const invalid = !Number.isInteger(principalValue) || principalValue < MIN_PRINCIPAL || principalValue > MAX_PRINCIPAL
     || !Number.isInteger(monthsValue) || monthsValue < MIN_MONTHS || monthsValue > MAX_MONTHS
-  const key = `${principalValue}-${monthsValue}-${group}-${repay}-${rateType}-${guarantee}`
+  const [attempt, setAttempt] = useState(0)
+  const key = `${principalValue}-${monthsValue}-${group}-${repay}-${rateType}-${guarantee}-${attempt}`
   const body = loaded?.key === key ? loaded.body : undefined
 
   useEffect(() => {
@@ -140,7 +142,7 @@ export function RentLoansPage() {
     {!invalid && <section className="maturity-step" aria-labelledby={`${id}-products`}>
       <h2 id={`${id}-products`}>공시된 전세자금대출</h2>
       {body === undefined && <p className="maturity-muted">공시 금리를 불러오는 중이에요.</p>}
-      {body === null && <p className="maturity-muted">공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.</p>}
+      {body === null && <ErrorNotice message="공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요." onRetry={() => setAttempt((count) => count + 1)} />}
       {body && body.count === 0 && <p className="maturity-muted">고른 조건에 맞는 공시 대출이 없어요. 조건을 바꿔 보세요.</p>}
       {body && body.count > 0 && <>
         <p className="maturity-muted">{body.group} 전세자금대출 {body.count.toLocaleString('ko-KR')}개를 {won(body.principal)} · {body.months}개월 기준으로 계산했어요. 총이자가 적은 순서예요.</p>

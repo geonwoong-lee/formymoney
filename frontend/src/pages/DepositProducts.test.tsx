@@ -108,6 +108,20 @@ describe('DepositProducts', () => {
     expect(await screen.findByText('공시 금리를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.')).toBeInTheDocument()
   })
 
+  it('offers a retry button when the list cannot be loaded, and shows the list once it works', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(respond({ error: { code: 'x', message: 'x' } }, 503))
+      .mockResolvedValue(respond(response('은행', [product('우리은행', '3.00', 10_253_800)])))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MemoryRouter><DepositProducts amount={10_000_000} months={12} headingId="x" /></MemoryRouter>)
+
+    await user.click(await screen.findByRole('button', { name: '다시 시도' }))
+
+    expect((await screen.findAllByText(/우리은행/)).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
+  })
+
   it('narrows the list to the companies whose name has what I typed, and brings the full range back when I clear it', async () => {
     const user = userEvent.setup()
     const everyone = [product('우리은행', '3.00', 10_253_800), product('국민은행', '3.40', 10_287_000), product('KB저축', '3.10', 10_262_000), ...Array.from({ length: 12 }, (_, index) => product(`다른은행${index}`, '2.50', 10_200_000 - index))]

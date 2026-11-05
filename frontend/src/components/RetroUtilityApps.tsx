@@ -152,7 +152,8 @@ function MinesweeperApp() {
   function nextLevel() { start(Math.min(FINAL_LEVEL, level + 1)) }
   function reveal(index: number) {
     if (status === 'lost' || status === 'won' || board[index].flagged) return
-    const ready = status === 'ready' ? placeMines(board, size, mines, index) : board
+    // A flag can be put down before the first click, so "no mines yet" is read from the board, not from the status.
+    const ready = board.some((cell) => cell.mine) ? board : placeMines(board, size, mines, index)
     const { board: next, hitMine } = openCell(ready, size, index)
     setBoard(next)
     setStatus(hitMine ? 'lost' : isCleared(next) ? 'won' : 'playing')

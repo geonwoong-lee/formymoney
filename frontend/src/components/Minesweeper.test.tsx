@@ -84,6 +84,19 @@ describe('Minesweeper', () => {
     expect(screen.getByText(/레벨 1 · 지뢰 10개/)).toBeInTheDocument()
   })
 
+  it('still places the mines when a flag is the first thing put down', async () => {
+    let seed = 7
+    vi.spyOn(Math, 'random').mockImplementation(() => { seed = (seed * 48271) % 2147483647; return seed / 2147483647 })
+    const user = userEvent.setup()
+    renderGame()
+    await user.pointer({ keys: '[MouseRight]', target: cell(9, 0) })
+    await user.click(cell(9, 40))
+
+    // Without mines the whole board would open at once and count as cleared.
+    expect(screen.queryByText(/클리어/)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('gridcell').filter((c) => c.classList.contains('is-revealed')).length).toBeLessThan(81 - 10)
+  })
+
   it('counts flags down from the level mine count', async () => {
     const user = userEvent.setup()
     renderGame()
