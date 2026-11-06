@@ -37,9 +37,19 @@ function status(overrides: Record<string, unknown> = {}) {
   }
 }
 
+const earlyExit = {
+  paidMonths: 11, monthsLeft: 25, bankCode: 'kb', bankName: 'KB국민은행',
+  termination: { principal: 5_500_000, interestAtBaseRate: 120_000, interestTax: 18_480, receivedAtBaseRate: 5_601_520, lostGovernmentContribution: 330_000 },
+  scenarios: [
+    { key: 'keep', label: '원래 계획', futureMonthlyAmount: null, principal: 17_250_000, expectedMaturityAmount: 19_750_750, moreThanTermination: 0, extraPrincipal: 0 },
+    { key: 'pause', label: '남은 달 쉬기', futureMonthlyAmount: 0, principal: 5_500_000, expectedMaturityAmount: 6_100_000, moreThanTermination: 498_480, extraPrincipal: 0 },
+  ],
+}
+
 function stub(body = status()) {
   const fetch = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
     const url = String(input)
+    if (url.includes('/savings/early-exit')) return Promise.resolve(respond(earlyExit))
     if (url.includes('/savings/products')) return Promise.resolve(respond(products))
     if (url.includes('/my-status')) return Promise.resolve(respond(body))
     if (url.includes('/events')) return Promise.resolve(respond({ today: '2026-11-03', items: [
@@ -105,6 +115,37 @@ describe('MySavingsPage', () => {
     expect(monthly).toHaveTextContent('1개 중 0개 채웠어요, 1개는 아직이에요')
   })
 
+  it('shows the before-you-cancel card with the saved plan and this round, and links to the full comparison', async () => {
+    saveDraft({ ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 500_000, contributionType: 'general', startMonth: '2026-01', enrollmentStatus: 'enrolled' } })
+    const fetch = stub()
+    renderPage()
+
+    const card = await screen.findByRole('region', { name: '해지하기 전에' })
+    await vi.waitFor(() => expect(card).toHaveTextContent('5,601,520원'))
+    expect(card).toHaveTextContent('330,000원')
+    expect(card).toHaveTextContent('지금 해지보다 498,480원 더')
+    expect(within(card).getByRole('link', { name: /자세히 비교/ })).toHaveAttribute('href', '/early-exit')
+    const sent = JSON.parse(String(fetch.mock.calls.find(([input]) => String(input).includes('/savings/early-exit'))?.[1]?.body))
+    expect(sent).toMatchObject({ bankCode: 'kb', fixedMonthlyAmount: 500_000, paidMonths: 11 })
+  })
+
+  it('hides the card when not saving, and keeps the page when the calculation fails', async () => {
+    saveDraft({ ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 500_000 } })
+    stub(status({ timeline: { phase: 'before_start', startMonth: '2027-01', maturityMonth: '2030-01', currentRound: null, termMonths: 36, monthsToMaturity: 38 } }))
+    renderPage()
+    await screen.findByRole('region', { name: '납입 현황' })
+    expect(screen.queryByRole('region', { name: '해지하기 전에' })).not.toBeInTheDocument()
+
+    cleanup()
+    const fetch = stub()
+    const base = fetch.getMockImplementation()!
+    fetch.mockImplementation((input, init) => String(input).includes('/savings/early-exit') ? Promise.resolve(respond({}, 503)) : base(input, init))
+    renderPage()
+    const card = await screen.findByRole('region', { name: '해지하기 전에' })
+    await vi.waitFor(() => expect(card).toHaveTextContent('해지 전 계산을 하지 못했어요'))
+    expect(screen.getByRole('region', { name: '지금 내 적금' })).toBeInTheDocument()
+  })
+
   it('says when maturity is close and points to the comparison with a deposit', async () => {
     saveDraft({ ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 500_000, startMonth: '2026-01', enrollmentStatus: 'enrolled' } })
     stub(status({ timeline: { phase: 'saving', startMonth: '2023-12', maturityMonth: '2026-12', currentRound: 35, termMonths: 36, monthsToMaturity: 2 } }))
@@ -141,6 +182,7 @@ describe('MySavingsPage', () => {
       if (url.includes('/me/plans')) return Promise.resolve(respond({ limit: 10, plans: [{ id: 7, name: '여름 계획', createdAt: '', updatedAt: '',
         draft: { ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 300_000 } } }] }))
       if (url.includes('/savings/products')) return Promise.resolve(respond(products))
+      if (url.includes('/savings/early-exit')) return Promise.resolve(respond(earlyExit))
       if (url.includes('/my-status')) return Promise.resolve(respond(status()))
       return Promise.resolve(respond({ today: '2026-11-03', items: [] }))
     })
