@@ -1,6 +1,6 @@
 """After-maturity plan: keep the money in a deposit or move it, laid out by the user's chosen risk profile.
 
-The profile only decides which choices come first and are marked as fitting; every choice stays visible,
+The profile only decides which choices are marked as fitting and how they are ordered (closest risk level first); every choice stays visible,
 nothing is recommended, and investment results are past ranges over every possible start month.
 """
 
@@ -48,6 +48,8 @@ from app.services.product_rate_service import shown_company
 CHECKED_ON = date(2026, 11, 2)
 DEPOSIT_PROTECTION_LIMIT = 100_000_000
 PROFILE_MAX_RISK = {"stable": 1, "balanced": 2, "aggressive": 4}
+# The risk level each profile is closest to; choices are listed nearest first (never by past return).
+PROFILE_TARGET_RISK = {"stable": 0, "balanced": 2, "aggressive": 3}
 
 # kind, risk level (0 protected .. 4 leveraged), risk label, one neutral line about what it is.
 ASSET_FACTS: dict[str, tuple[str, int, str, str]] = {
@@ -148,8 +150,9 @@ class MaturityService:
                 principal_protected=False, fits_profile=risk <= max_risk, summary=summary, warning=warning,
                 history=history, source_name="월말 조정주가와 원/달러 환율", source_url=asset.price_source_url,
             ))
-        # Fitting choices first, then lower risk first; nothing is ranked by past return.
-        options.sort(key=lambda option: (not option.fits_profile, option.risk_level, option.code))
+        # Fitting choices first, nearest to the profile's risk level next, lower risk on a tie; nothing is ranked by past return.
+        target_risk = PROFILE_TARGET_RISK[request.profile]
+        options.sort(key=lambda option: (not option.fits_profile, abs(option.risk_level - target_risk), option.risk_level, option.code))
 
         mix = None
         if request.mix is not None:
