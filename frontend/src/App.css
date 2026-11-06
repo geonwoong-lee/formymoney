@@ -131,7 +131,8 @@
 .pixel-icon--mySavings,
 .pixel-icon--generalSavings,
 .pixel-icon--rentLoans,
-.pixel-icon--youthPolicies {
+.pixel-icon--youthPolicies,
+.pixel-icon--business {
   background-position: center;
   background-size: 76%;
 }
