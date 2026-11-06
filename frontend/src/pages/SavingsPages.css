@@ -33,6 +33,8 @@
 .comparison-summary span { padding: 5px 8px; border: 1px solid #000; background: #ffff80; font-size: 12px; }
 .bank-results { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .bank-results li { display: grid; grid-template-columns: 32px minmax(0, 1.4fr) minmax(64px, 0.7fr) minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px; border: 2px outset #fff; background: var(--panel); }
+.bank-results .bank-actions { display: grid; gap: 6px; justify-items: stretch; }
+.bank-results .bank-actions .button { white-space: nowrap; text-align: center; }
 .bank-results small { display: block; margin-top: 3px; color: #444; }
 .bank-results .difference { margin-top: 5px; font-weight: 700; }
 .bank-results .difference--plus { color: #006000; }
@@ -146,7 +148,7 @@ html, body, #root { height: 100%; overflow: hidden; }
   .survey-evidence { grid-template-columns: 1fr; }
   .bank-results li { grid-template-columns: 28px 1fr auto; }
   .bank-results .rate, .bank-results .maturity { grid-column: 2 / 3; }
-  .bank-results .button { grid-column: 3; grid-row: 1 / span 2; }
+  .bank-results .bank-actions { grid-column: 3; grid-row: 1 / span 2; }
   .money-breakdown { grid-template-columns: 1fr; }
   .cashflow-controls { grid-template-columns: 1fr; }
   .alternative-results { grid-template-columns: 1fr; }
