@@ -8,7 +8,7 @@ import {
 } from '../api/client'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { track } from '../features/analytics'
-import { defaultPaidMonths } from '../features/earlyExit'
+import { defaultPaidMonths, gainLabel } from '../features/earlyExit'
 import { answersForApi } from '../features/savingsDraft'
 import { loadDraft } from '../storage/draftStorage'
 import './EarlyExitPage.css'
@@ -122,7 +122,7 @@ export function EarlyExitPage() {
       {result && <>
         <section className="early-exit__card early-exit__card--now" aria-labelledby="early-exit-now">
           <h2 id="early-exit-now">지금 해지하면 ({result.paidMonths}회차까지 내고 일반 중도해지)</h2>
-          <p className="early-exit__headline">기본금리로 쳐도 받는 돈은 <b>{won(result.termination.receivedAtBaseRate)}</b></p>
+          <p className="early-exit__headline">기본금리로 쳐도 받는 돈은 <b>{won(result.termination.receivedAtBaseRate)}</b>, 낸 돈 {won(result.termination.principal)}보다 <b>{gainLabel(result.termination.principal, result.termination.receivedAtBaseRate)}</b></p>
           <p className="cashflow-help">실제 중도해지 이율은 은행마다 따로 정해져 있고 보통 기본금리보다 낮아요. 그래서 실제로 받는 돈은 이보다 적을 수 있어요.</p>
           <dl className="money-breakdown">
             <div><dt>낸 원금</dt><dd>{won(result.termination.principal)}</dd></div>
@@ -139,7 +139,7 @@ export function EarlyExitPage() {
 
         <section className="early-exit__card" aria-labelledby="early-exit-options">
           <h2 id="early-exit-options">해지하지 않으면</h2>
-          {pause && <p className="early-exit__headline">남은 {result.monthsLeft}달을 한 푼도 안 넣고 두기만 해도 만기에 <b>{won(pause.expectedMaturityAmount)}</b>, 기본금리로 친 지금 해지 금액보다 <b>{won(pause.moreThanTermination)}</b> 더 받아요(낸 원금은 같음).</p>}
+          {pause && <p className="early-exit__headline">남은 {result.monthsLeft}달을 한 푼도 안 넣고 두기만 해도 만기에 <b>{won(pause.expectedMaturityAmount)}</b>(낸 돈 {won(pause.principal)}보다 <b>{gainLabel(pause.principal, pause.expectedMaturityAmount)}</b>), 기본금리로 친 지금 해지 금액보다 <b>{won(pause.moreThanTermination)}</b> 더 받아요(낸 원금은 같음).</p>}
           <div className="cashflow-table-wrap">
             <table className="cashflow-table" aria-label="해지하지 않는 방법 비교">
               <thead><tr><th>방법</th><th>남은 달 납입</th><th>낸 원금</th><th>예상 만기 수령액</th><th>지금 해지보다</th></tr></thead>

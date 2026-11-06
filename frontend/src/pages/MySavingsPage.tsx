@@ -13,7 +13,7 @@ import { MyWatchlist } from '../components/MyWatchlist'
 import { RateAlerts } from '../components/RateAlerts'
 import { answersForApi } from '../features/savingsDraft'
 import { loadAuthSession } from '../storage/authStorage'
-import { loadDraft, type VeryRichDraft } from '../storage/draftStorage'
+import { loadDraft, saveDraft, type VeryRichDraft } from '../storage/draftStorage'
 import './MySavingsPage.css'
 
 const won = (value: number) => `${value.toLocaleString('ko-KR')}원`
@@ -137,6 +137,8 @@ export function MySavingsPage() {
   const [loaded, setLoaded] = useState<{ source: string; status: MyStatusResponse | null; error: string; exit?: EarlyExitInput } | null>(null)
   const [events, setEvents] = useState<UpcomingEvent[]>([])
   const [reloadKey, setReloadKey] = useState(0)
+  const [banks, setBanks] = useState<{ bankCode: string; bankName: string }[]>([])
+  const [, setDraftVersion] = useState(0)
 
   const draft: VeryRichDraft = source === THIS_DEVICE ? loadDraft() : plans.find((plan) => String(plan.id) === source)?.draft ?? loadDraft()
   const bankCode = draft.plan.currentBankCode
@@ -149,6 +151,21 @@ export function MySavingsPage() {
     getEvents(controller.signal).then((body) => setEvents(body.items)).catch(() => setEvents([]))
     return () => controller.abort()
   }, [])
+
+  useEffect(() => {
+    if (bankCode) return
+    const controller = new AbortController()
+    getSavingsProducts(controller.signal).then((body) => setBanks(body.products.map(({ bankCode: code, bankName }) => ({ bankCode: code, bankName })))).catch(() => setBanks([]))
+    return () => controller.abort()
+  }, [bankCode])
+
+  // 은행을 아직 안 정했을 때 여기서 바로 고른다. 이 기기에 입력한 내용에만 저장한다.
+  function chooseBank(code: string) {
+    if (!code) return
+    const stored = loadDraft()
+    saveDraft({ ...stored, plan: { ...stored.plan, currentBankCode: code } })
+    setDraftVersion((version) => version + 1)
+  }
 
   useEffect(() => {
     if (!bankCode) return
@@ -193,7 +210,14 @@ export function MySavingsPage() {
     {!bankCode && <div className="notice">
       <p>아직 어느 은행 적금인지 정하지 않았어요. 내 조건에서 은행과 월 납입액을 정하면 이 화면이 채워져요.</p>
       <p>채워지면 지금 해지할 때 받는 돈과 해지하지 않고 버틸 때를 견주는 &lsquo;해지하기 전에&rsquo; 카드도 여기서 볼 수 있어요. 바로 해 보려면 <Link to="/early-exit">해지 전 계산</Link>에서 직접 넣을 수도 있어요.</p>
-      <div className="actions"><Link className="button" to="/conditions">내 조건 입력하기</Link></div>
+      {source === THIS_DEVICE && banks.length > 0 && <label className="my-savings__source">
+        <span>어느 은행 적금으로 볼까요?</span>
+        <select value="" onChange={(event) => chooseBank(event.target.value)}>
+          <option value="">은행 고르기</option>
+          {banks.map((bank) => <option key={bank.bankCode} value={bank.bankCode}>{bank.bankName}</option>)}
+        </select>
+      </label>}
+      <div className="actions"><Link className="button" to="/conditions">내 조건 입력하기</Link><Link className="button button--secondary" to="/banks">은행 비교에서 고르기</Link></div>
     </div>}
     {bankCode && !current && <p className="notice">내 적금을 계산하는 중입니다.</p>}
     {current?.error && <ErrorNotice message={current.error} onRetry={() => setReloadKey((key) => key + 1)} />}

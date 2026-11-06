@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { emptyDraft, saveDraft } from '../storage/draftStorage'
+import { emptyDraft, loadDraft, saveDraft } from '../storage/draftStorage'
 import { MySavingsPage } from './MySavingsPage'
 
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -79,6 +79,19 @@ describe('MySavingsPage', () => {
     expect(fetch.mock.calls.some(([input]) => String(input).includes('/my-status'))).toBe(false)
   })
 
+  it('lets me pick the bank right here when none is chosen yet', async () => {
+    const user = userEvent.setup()
+    const fetch = stub()
+    renderPage()
+
+    expect(screen.getByRole('link', { name: '은행 비교에서 고르기' })).toHaveAttribute('href', '/banks')
+    await user.selectOptions(await screen.findByLabelText('어느 은행 적금으로 볼까요?'), 'KB국민은행')
+    expect(loadDraft().plan.currentBankCode).toBe('kb')
+    await vi.waitFor(() => expect(fetch.mock.calls.some(([input]) => String(input).includes('/my-status'))).toBe(true))
+    expect(await screen.findByRole('region', { name: '지금 내 적금' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('어느 은행 적금으로 볼까요?')).not.toBeInTheDocument()
+  })
+
   it('sends the inputs on this device and shows the round, payments, conditions and events', async () => {
     saveDraft({
       ...emptyDraft,
@@ -122,6 +135,8 @@ describe('MySavingsPage', () => {
 
     const card = await screen.findByRole('region', { name: '해지하기 전에' })
     await vi.waitFor(() => expect(card).toHaveTextContent('5,601,520원'))
+    expect(card).toHaveTextContent('낸 돈보다 +101,520원(+1.8%)')
+    expect(card).toHaveTextContent('낸 돈보다 +600,000원(+10.9%)')
     expect(card).toHaveTextContent('330,000원')
     expect(card).toHaveTextContent('지금 해지보다 498,480원 더')
     expect(within(card).getByRole('link', { name: /자세히 비교/ })).toHaveAttribute('href', '/early-exit')

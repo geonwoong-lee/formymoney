@@ -102,7 +102,7 @@ export function ConditionsPage() {
         {enrollmentStatus === 'enrolled' && <label>가입한 달
           <input type="month" max={CURRENT_MONTH} value={draft.plan.startMonth ?? ''} onChange={(event) => update({ ...draft, plan: { ...draft.plan, startMonth: event.target.value } })} />
         </label>}
-        <label>{enrollmentStatus === 'enrolled' ? '가입한 은행' : '현재 주거래 은행'}
+        <label>{enrollmentStatus === 'enrolled' ? '가입한 은행' : '내 적금 은행(가입했거나 가입할 곳)'}
           <select value={draft.plan.currentBankCode ?? ''} onChange={(event) => update({ ...draft, plan: { ...draft.plan, currentBankCode: event.target.value || undefined } })}>
             <option value="">선택 안 함</option>
             {data?.products.map((product) => <option key={product.bankCode} value={product.bankCode}>{product.bankName}</option>)}

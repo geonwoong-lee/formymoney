@@ -8,7 +8,7 @@ import { loadEligibility } from '../features/eligibility'
 import { ShareResult } from '../components/ShareResult'
 import { sendConditionAnswers } from '../features/conditionStats'
 import { answersForApi } from '../features/savingsDraft'
-import { loadDraft } from '../storage/draftStorage'
+import { loadDraft, saveDraft } from '../storage/draftStorage'
 
 const money = new Intl.NumberFormat('ko-KR')
 
@@ -16,7 +16,7 @@ export function BanksPage() {
   const [result, setResult] = useState<SavingsCalculationResponse | null>(null)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
-  const [currentBankCode] = useState(() => loadDraft().plan.currentBankCode)
+  const [currentBankCode, setCurrentBankCode] = useState(() => loadDraft().plan.currentBankCode)
 
   useEffect(() => {
     const draft = loadDraft()
@@ -33,6 +33,14 @@ export function BanksPage() {
       .then(setResult)
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : '계산하지 못했습니다.'))
   }, [reloadKey])
+
+  // 내 적금 화면과 해지 전 계산이 이 은행으로 채워지고, 아래 차이는 이 은행 기준으로 다시 계산한다.
+  function chooseBank(bankCode: string) {
+    const draft = loadDraft()
+    saveDraft({ ...draft, plan: { ...draft.plan, currentBankCode: bankCode } })
+    setCurrentBankCode(bankCode)
+    setReloadKey((key) => key + 1)
+  }
 
   function retry() {
     setError('')
@@ -62,14 +70,18 @@ export function BanksPage() {
               <strong>{money.format(bank.expectedMaturityAmount)}원</strong>
               <small>원금 {money.format(bank.principal)}원</small>
               {bank.differenceFromCurrentBank !== null && <small className={`difference ${bank.differenceFromCurrentBank > 0 ? 'difference--plus' : bank.differenceFromCurrentBank < 0 ? 'difference--minus' : ''}`}>
-                {bank.differenceFromCurrentBank === 0 ? (bank.bankCode === currentBankCode ? '현재 주거래 은행' : '현재 은행과 같아요') : `현재 은행보다 ${bank.differenceFromCurrentBank > 0 ? '+' : ''}${money.format(bank.differenceFromCurrentBank)}원`}
+                {bank.differenceFromCurrentBank === 0 ? (bank.bankCode === currentBankCode ? '내 적금 은행' : '내 적금 은행과 같아요') : `내 적금 은행보다 ${bank.differenceFromCurrentBank > 0 ? '+' : ''}${money.format(bank.differenceFromCurrentBank)}원`}
               </small>}
             </div>
-            <Link className="button button--small" to={`/banks/${bank.bankCode}`}>상세</Link>
+            <div className="bank-actions">
+              <Link className="button button--small" to={`/banks/${bank.bankCode}`}>상세</Link>
+              {bank.bankCode !== currentBankCode && <button type="button" className="button button--small button--secondary" onClick={() => chooseBank(bank.bankCode)}>내 적금으로 정하기</button>}
+            </div>
             <RateExplain bank={bank} />
           </li>)}
         </ol>
         <p className="source-note">공시 확인일 {[...new Set(result.results.map((bank) => bank.sourceDate))].sort().join(', ')} · 예상금리는 입력한 우대조건 답변 기준의 예상치입니다. 개인별 세금, 은행의 최종 서류 심사와 공시 이후 바뀐 조건은 반영하지 않았습니다. 자세한 기준은 <Link to="/about">계산 기준 및 출처</Link>에서 확인하세요. 은행 아이콘의 상표권은 각 은행에 있고, 이 사이트는 은행과 제휴하지 않았습니다.</p>
+        <p className="source-note">{currentBankCode ? '아래 은행을 고르면 내 적금과 해지 전 계산이 그 은행 기준으로 바뀌어요.' : '가입했거나 가입할 은행에서 ‘내 적금으로 정하기’를 누르면 내 적금과 해지 전 계산이 그 은행으로 채워져요.'}</p>
         <div className="actions"><Link className="button button--secondary" to="/conditions">조건 수정하기</Link></div>
         <ShareResult result={result} />
       </>}

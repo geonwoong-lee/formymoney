@@ -7,3 +7,13 @@ export function defaultPaidMonths(startMonth: string | undefined, enrolled: bool
   }
   return Math.min(Math.max(rounds, 1), termMonths - 1)
 }
+
+// 낸 돈 대비 받는 돈: "+137,475원(+2.3%)". 원금이 0이면 비율은 뺀다.
+export function gainLabel(principal: number, received: number) {
+  const gain = received - principal
+  const sign = gain > 0 ? '+' : gain < 0 ? '-' : ''
+  const amount = `${sign}${Math.abs(gain).toLocaleString('ko-KR')}원`
+  if (principal <= 0) return amount
+  const percent = (Math.abs(gain) / principal * 100).toFixed(1)
+  return `${amount}(${sign}${percent}%)`
+}

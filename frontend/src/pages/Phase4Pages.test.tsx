@@ -42,7 +42,7 @@ describe('Phase 4 pages', () => {
     render(<MemoryRouter><ConditionsPage /></MemoryRouter>)
 
     expect(await screen.findByRole('combobox', { name: '현재 가입 상태' })).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: '현재 주거래 은행' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: '내 적금 은행(가입했거나 가입할 곳)' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: '청년도약계좌 전환 여부' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '처음부터 다시 입력' }))
     expect(loadDraft()).toEqual(emptyDraft)
@@ -65,8 +65,8 @@ describe('Phase 4 pages', () => {
 
     render(<MemoryRouter><BanksPage /></MemoryRouter>)
 
-    expect(await screen.findByText('현재 은행보다 +100,000원')).toBeInTheDocument()
-    expect(screen.getByText('현재 주거래 은행')).toBeInTheDocument()
+    expect(await screen.findByText('내 적금 은행보다 +100,000원')).toBeInTheDocument()
+    expect(screen.getByText('내 적금 은행')).toBeInTheDocument()
   })
 
   it('does not call a different bank the current bank when it gives the same amount', async () => {
@@ -80,8 +80,32 @@ describe('Phase 4 pages', () => {
 
     render(<MemoryRouter><BanksPage /></MemoryRouter>)
 
-    expect(await screen.findByText('현재 은행과 같아요')).toBeInTheDocument()
-    expect(screen.getAllByText('현재 주거래 은행')).toHaveLength(1)
+    expect(await screen.findByText('내 적금 은행과 같아요')).toBeInTheDocument()
+    expect(screen.getAllByText('내 적금 은행')).toHaveLength(1)
+  })
+
+  it('lets me pick my savings bank from the comparison, saves it and recalculates', async () => {
+    const user = userEvent.setup()
+    saveDraft({ ...emptyDraft, plan: { monthlyAmount: 500_000 } })
+    const row = (bankCode: string, bankName: string) => ({ bankCode, bankName, productName: `${bankName} 청년미래적금`, baseRate: 5, maximumRate: 8, appliedBonusRate: 0, expectedRate: 5, principal: 18_000_000, depositInterest: 1, governmentContribution: 1, governmentContributionInterest: 1, expectedMaturityAmount: 19_900_000, differenceFromCurrentBank: null, conditions: [], sourceUrl: 'https://example.com', sourceDate: '2026-10-13' })
+    const calculationResponse = { monthlyAmount: 500_000, termMonths: 36, contributionType: 'general', taxExempt: true, results: [row('shinhan', '신한은행'), row('kb', 'KB국민은행')] }
+    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+      const body = String(input).endsWith('/products') ? productsResponse : calculationResponse
+      return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MemoryRouter><BanksPage /></MemoryRouter>)
+
+    const buttons = await screen.findAllByRole('button', { name: '내 적금으로 정하기' })
+    expect(buttons).toHaveLength(2)
+    await user.click(buttons[1])
+
+    expect(loadDraft().plan.currentBankCode).toBe('kb')
+    await vi.waitFor(() => {
+      const bodies = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/calculate')).map(([, init]) => JSON.parse(String(init?.body)))
+      expect(bodies.at(-1)?.currentBankCode).toBe('kb')
+    })
+    expect(await screen.findAllByRole('button', { name: '내 적금으로 정하기' })).toHaveLength(1)
   })
 
   it('guides an enrolled user to enter the bank and enrollment month', async () => {
