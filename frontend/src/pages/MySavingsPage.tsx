@@ -87,9 +87,9 @@ function Status({ status, events, exit }: { status: MyStatusResponse; events: Up
       <p className="my-savings__muted">실제로 넣은 금액은 <Link to="/cashflow">월별 납입 계획</Link>에서 고칠 수 있어요. 이 화면은 그 입력을 기준으로 계산해요.</p>
     </section>
 
-    {exit && status.timeline.phase === 'saving' && status.timeline.currentRound !== null
-      && status.timeline.currentRound >= 1 && status.timeline.currentRound < status.timeline.termMonths
-      && <EarlyExitCard input={exit} paidMonths={status.timeline.currentRound} />}
+    {exit && (status.timeline.phase === 'unknown' || (status.timeline.phase === 'saving' && status.timeline.currentRound !== null
+      && status.timeline.currentRound >= 1 && status.timeline.currentRound < status.timeline.termMonths))
+      && <EarlyExitCard input={exit} knownRounds={status.timeline.phase === 'saving' ? status.timeline.currentRound : null} termMonths={status.timeline.termMonths} />}
 
     <section className="my-savings__card" aria-labelledby="my-savings-conditions">
       <h2 id="my-savings-conditions">우대조건</h2>

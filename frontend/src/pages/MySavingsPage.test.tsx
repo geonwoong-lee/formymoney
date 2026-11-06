@@ -129,6 +129,20 @@ describe('MySavingsPage', () => {
     expect(sent).toMatchObject({ bankCode: 'kb', fixedMonthlyAmount: 500_000, paidMonths: 11 })
   })
 
+  it('lets me pick the round when the start month is unknown', async () => {
+    const user = userEvent.setup()
+    saveDraft({ ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 500_000 } })
+    const fetch = stub(status({ timeline: { phase: 'unknown', startMonth: null, maturityMonth: null, currentRound: null, termMonths: 36, monthsToMaturity: null } }))
+    renderPage()
+
+    const card = await screen.findByRole('region', { name: '해지하기 전에' })
+    await user.selectOptions(within(card).getByLabelText('지금까지 낸 회차'), '20회차까지')
+    await vi.waitFor(() => {
+      const bodies = fetch.mock.calls.filter(([input]) => String(input).includes('/savings/early-exit')).map(([, init]) => JSON.parse(String(init?.body)))
+      expect(bodies.at(-1)?.paidMonths).toBe(20)
+    })
+  })
+
   it('hides the card when not saving, and keeps the page when the calculation fails', async () => {
     saveDraft({ ...emptyDraft, plan: { currentBankCode: 'kb', monthlyAmount: 500_000 } })
     stub(status({ timeline: { phase: 'before_start', startMonth: '2027-01', maturityMonth: '2030-01', currentRound: null, termMonths: 36, monthsToMaturity: 38 } }))
