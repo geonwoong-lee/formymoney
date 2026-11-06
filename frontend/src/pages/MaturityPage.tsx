@@ -227,7 +227,7 @@ export function MaturityPage() {
     {shown && <>
       <section className="maturity-step" aria-labelledby={`${id}-fit`}>
         <h2 id={`${id}-fit`}>3. {PROFILES.find((item) => item.key === shown.profile)?.label}에 맞는 선택지</h2>
-        <p className="maturity-muted">{won(shown.amount)}을 {shown.months}개월 동안 둔다고 보고 모두 같은 조건으로 계산했어요. 위험이 낮은 것부터 보여 드려요.</p>
+        <p className="maturity-muted">{won(shown.amount)}을 {shown.months}개월 동안 둔다고 보고 모두 같은 조건으로 계산했어요. {shown.profile === 'stable' ? '원금 손실 위험이 낮은 것부터' : '고른 성향의 위험 수준에 가까운 것부터'} 보여 드려요(과거 수익이 큰 순서가 아니에요).</p>
         <ul className="maturity-options" aria-label="성향에 맞는 선택지">
           {fitting.map((option) => <OptionCard key={option.code} option={option} months={shown.months} low={low} high={high} />)}
         </ul>

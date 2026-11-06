@@ -75,6 +75,20 @@ def test_plan_puts_choices_that_fit_the_profile_first_and_keeps_every_choice(cli
     assert aggressive["options"][1]["history"]["windows"] == 12
 
 
+def test_choices_are_ordered_by_how_close_their_risk_is_to_the_profile(client: TestClient) -> None:
+    _with_deposit_rate(client)
+    order = {}
+    for profile in ("stable", "balanced", "aggressive"):
+        options = client.post(URL, json={"amount": 10_000_000, "months": 12, "profile": profile}).json()["options"]
+        order[profile] = [option["code"] for option in options]
+
+    assert order["stable"] == ["deposit", "bond", "schd", "kosdaq150", "nasdaq100", "qld"]
+    # 중립형: 맞는 것 중 위험 2에 가까운 순, 그다음 맞지 않는 것
+    assert order["balanced"] == ["schd", "bond", "deposit", "kosdaq150", "nasdaq100", "qld"]
+    # 공격형: 위험 3(지수)에 가까운 순이라 예금·채권이 맨 앞에 오지 않는다
+    assert order["aggressive"] == ["kosdaq150", "nasdaq100", "schd", "qld", "bond", "deposit"]
+
+
 def test_mix_blends_the_deposit_and_one_asset_in_every_window(client: TestClient) -> None:
     _with_deposit_rate(client)
     base = {"amount": 10_000_000, "months": 12, "profile": "balanced"}
