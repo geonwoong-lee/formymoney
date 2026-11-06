@@ -5,6 +5,7 @@ import {
   getEvents, getMyStatus, getSavingsProducts, listSavedPlans,
   type ConditionResult, type MyStatusResponse, type SavedPlan, type UpcomingEvent,
 } from '../api/client'
+import { EarlyExitCard, type EarlyExitInput } from '../components/EarlyExitCard'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { MonthlyConditionCheck } from '../components/MonthlyConditionCheck'
 import { MyReminders } from '../components/MyReminders'
@@ -53,7 +54,7 @@ function ConditionList({ title, items, mark }: { title: string; items: Condition
   </div>
 }
 
-function Status({ status, events }: { status: MyStatusResponse; events: UpcomingEvent[] }) {
+function Status({ status, events, exit }: { status: MyStatusResponse; events: UpcomingEvent[]; exit: EarlyExitInput | null }) {
   const { result } = status.cashflow
   const { payments, conditions } = status
   return <>
@@ -84,8 +85,11 @@ function Status({ status, events }: { status: MyStatusResponse; events: Upcoming
         {payments.skippedRounds.length === 0 && payments.reducedRounds.length === 0 && <p className="my-savings__muted">지금까지 계획대로 넣었어요.</p>}
       </> : <p className="my-savings__muted">가입하고 납입을 시작하면 낸 돈과 남은 돈을 나눠 보여 드려요.</p>}
       <p className="my-savings__muted">실제로 넣은 금액은 <Link to="/cashflow">월별 납입 계획</Link>에서 고칠 수 있어요. 이 화면은 그 입력을 기준으로 계산해요.</p>
-      {status.timeline.phase === 'saving' && <p className="my-savings__muted">해지를 고민 중이라면 <Link to="/early-exit">해지 전 계산</Link>에서 지금 깨면 받는 돈과 버티는 방법을 비교해 보세요.</p>}
     </section>
+
+    {exit && status.timeline.phase === 'saving' && status.timeline.currentRound !== null
+      && status.timeline.currentRound >= 1 && status.timeline.currentRound < status.timeline.termMonths
+      && <EarlyExitCard input={exit} paidMonths={status.timeline.currentRound} />}
 
     <section className="my-savings__card" aria-labelledby="my-savings-conditions">
       <h2 id="my-savings-conditions">우대조건</h2>
@@ -130,7 +134,7 @@ function Status({ status, events }: { status: MyStatusResponse; events: Upcoming
 export function MySavingsPage() {
   const [source, setSource] = useState(THIS_DEVICE)
   const [plans, setPlans] = useState<SavedPlan[]>([])
-  const [loaded, setLoaded] = useState<{ source: string; status: MyStatusResponse | null; error: string } | null>(null)
+  const [loaded, setLoaded] = useState<{ source: string; status: MyStatusResponse | null; error: string; exit?: EarlyExitInput } | null>(null)
   const [events, setEvents] = useState<UpcomingEvent[]>([])
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -153,14 +157,17 @@ export function MySavingsPage() {
     getSavingsProducts().then((products) => {
       const fixed = draft.plan.monthlyAmount ?? 500_000
       const term = products.policy.termMonths
-      return getMyStatus({
+      const exit: EarlyExitInput = {
         bankCode, fixedMonthlyAmount: fixed, contributionType: draft.plan.contributionType ?? 'general',
         monthlyAmounts: Array.from({ length: term }, (_, index) => draft.monthlyPayments[String(index + 1)] ?? fixed),
         conditionAnswers: answersForApi(draft, products.products)[bankCode] ?? {},
+      }
+      return getMyStatus({
+        ...exit,
         ...(draft.plan.startMonth ? { startMonth: draft.plan.startMonth } : {}),
         enrolled: draft.plan.enrollmentStatus === 'enrolled',
-      }, controller.signal)
-    }).then((status) => setLoaded({ source: key, status, error: '' })).catch((cause: unknown) => {
+      }, controller.signal).then((status) => ({ status, exit }))
+    }).then(({ status, exit }) => setLoaded({ source: key, status, error: '', exit })).catch((cause: unknown) => {
       if (cause instanceof DOMException && cause.name === 'AbortError') return
       setLoaded({ source: key, status: null, error: cause instanceof Error ? cause.message : '내 적금을 계산하지 못했습니다.' })
     })
@@ -185,11 +192,12 @@ export function MySavingsPage() {
 
     {!bankCode && <div className="notice">
       <p>아직 어느 은행 적금인지 정하지 않았어요. 내 조건에서 은행과 월 납입액을 정하면 이 화면이 채워져요.</p>
+      <p>채워지면 지금 해지할 때 받는 돈과 해지하지 않고 버틸 때를 견주는 &lsquo;해지하기 전에&rsquo; 카드도 여기서 볼 수 있어요. 바로 해 보려면 <Link to="/early-exit">해지 전 계산</Link>에서 직접 넣을 수도 있어요.</p>
       <div className="actions"><Link className="button" to="/conditions">내 조건 입력하기</Link></div>
     </div>}
     {bankCode && !current && <p className="notice">내 적금을 계산하는 중입니다.</p>}
     {current?.error && <ErrorNotice message={current.error} onRetry={() => setReloadKey((key) => key + 1)} />}
-    {current?.status && <Status status={current.status} events={events} />}
+    {current?.status && <Status status={current.status} events={events} exit={current.exit ?? null} />}
 
     <MyWatchlist />
 
