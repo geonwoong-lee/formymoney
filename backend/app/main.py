@@ -60,7 +60,7 @@ def create_app(
 
     app = FastAPI(
         title=settings.app_name,
-        version="0.1.0",
+        version="0.1.1",
         lifespan=lifespan,
     )
     app.state.settings = settings
